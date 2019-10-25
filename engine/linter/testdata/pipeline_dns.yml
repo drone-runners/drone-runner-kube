@@ -1,0 +1,13 @@
+---
+kind: pipeline
+type: docker
+name: linux
+
+steps:
+- name: test
+  image: golang
+  commands:
+  - go build
+  - go test
+  dns:
+  - 8.8.8.8

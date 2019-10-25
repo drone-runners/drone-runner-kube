@@ -1,0 +1,15 @@
+---
+kind: pipeline
+type: docker
+name: default
+
+steps:
+- name: test
+  image: golang
+  commands:
+  - go build
+  - go test
+
+services:
+- name: test
+  image: redis

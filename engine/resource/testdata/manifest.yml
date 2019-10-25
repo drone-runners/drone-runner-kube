@@ -1,0 +1,54 @@
+---
+kind: signature
+hmac: a8842634682b78946a2
+
+---
+kind: secret
+type: encrypted
+name: token
+data: f0e4c2f76c58916ec25
+
+---
+kind: pipeline
+type: docker
+name: default
+version: 1
+
+platform:
+  os: linux
+  arch: arm64
+
+workspace:
+  path: /drone/src
+
+clone:
+  depth: 50
+
+steps:
+- name: build
+  image: golang
+  detach: false
+  failure: ignore
+  commands:
+  - go build
+  - go test
+  environment:
+    GOOS: linux
+    GOARCH: arm64
+  depends_on: [ clone ]
+  when:
+    event: [ push ]
+
+services:
+- name: redis
+  image: redis:latest
+  entrypoint: [ "/bin/redis-server" ]
+  command: [ "--debug" ]
+
+image_pull_secrets:
+- dockerconfigjson
+
+trigger:
+  branch: [ master ]
+
+...

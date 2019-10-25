@@ -1,0 +1,21 @@
+kind: pipeline
+type: docker
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+  when:
+    branch: [ master ]
+
+- name: test
+  image: golang
+  commands:
+  - go test
+  when:
+    branch: [ develop ]

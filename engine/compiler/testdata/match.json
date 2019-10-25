@@ -1,0 +1,64 @@
+{
+  "platform": {},
+  "steps": [
+    {
+      "id": "random",
+      "args": [
+        "echo \"$DRONE_SCRIPT\" | /bin/sh"
+      ],
+      "entrypoint": [
+        "/bin/sh",
+        "-c"
+      ],
+      "environment": {},
+      "labels": {},
+      "name": "build",
+      "image": "docker.io/library/golang:latest",
+      "volumes": [
+        {
+          "name": "_workspace",
+          "path": "/drone/src"
+        }
+      ],
+      "working_dir": "/drone/src"
+    },
+    {
+      "id": "random",
+      "args": [
+        "echo \"$DRONE_SCRIPT\" | /bin/sh"
+      ],
+      "depends_on": [
+        "build"
+      ],
+      "entrypoint": [
+        "/bin/sh",
+        "-c"
+      ],
+      "environment": {},
+      "labels": {},
+      "name": "test",
+      "image": "docker.io/library/golang:latest",
+      "run_policy": "never",
+      "volumes": [
+        {
+          "name": "_workspace",
+          "path": "/drone/src"
+        }
+      ],
+      "working_dir": "/drone/src"
+    }
+  ],
+  "volumes": [
+    {
+      "temp": {
+        "id": "random",
+        "name": "_workspace",
+        "labels": {}
+      }
+    }
+  ],
+  "network": {
+    "id": "random",
+    "labels": {}
+  }
+}

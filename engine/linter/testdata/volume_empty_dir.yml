@@ -1,0 +1,21 @@
+---
+kind: pipeline
+type: docker
+name: linux
+
+steps:
+- name: test
+  image: golang
+  commands:
+  - go build
+  - go test
+
+services:
+- name: database
+  image: redis
+  ports:
+  - 6379
+
+volumes:
+- name: vol
+  temp: {}

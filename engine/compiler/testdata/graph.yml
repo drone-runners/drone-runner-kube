@@ -1,0 +1,15 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+
+- name: test
+  image: golang
+  commands:
+  - go test
+  depends_on: [ build ]

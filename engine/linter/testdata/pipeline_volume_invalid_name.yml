@@ -1,0 +1,14 @@
+---
+kind: pipeline
+type: docker
+name: linux
+
+steps:
+- name: test
+  image: docker
+  volumes:
+  - name: _docker_socket
+    path: /var/run/docker.sock
+  commands:
+  - docker system prune
+

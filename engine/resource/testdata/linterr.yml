@@ -1,0 +1,15 @@
+---
+kind: pipeline
+type: docker
+
+server:
+  image: docker-18-04
+  region: nyc1
+  size: s-1vcpu-1gb
+
+steps:
+- commands:
+  - go build
+  - go test
+
+...

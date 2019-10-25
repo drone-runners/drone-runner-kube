@@ -1,0 +1,8 @@
+---
+kind: pipeline
+type: docker
+
+steps:
+ foo: bar
+
+...

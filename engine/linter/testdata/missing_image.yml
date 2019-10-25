@@ -1,0 +1,10 @@
+---
+kind: pipeline
+type: docker
+name: linux
+
+steps:
+- name: test
+  commands:
+  - go build
+  - go test

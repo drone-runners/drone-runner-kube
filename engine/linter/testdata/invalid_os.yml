@@ -1,0 +1,14 @@
+---
+kind: pipeline
+type: docker
+name: linux
+
+platform:
+  os: openbsd
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+  - go test

@@ -7,13 +7,10 @@ package engine
 import (
 	"context"
 	"io"
-
-	"docker.io/go-docker"
 )
 
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
-	client docker.APIClient
 }
 
 // New returns a new engine.

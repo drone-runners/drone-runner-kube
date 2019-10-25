@@ -7,20 +7,46 @@ package engine
 import (
 	"context"
 	"io"
+
+	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
+	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
+	client *kubernetes.Clientset
 }
 
-// New returns a new engine.
-func New() *Kubernetes {
-	return nil
+// NewFromConfig returns a new out-of-cluster engine.
+func NewFromConfig(path string) (*Kubernetes, error) {
+	// use the current context in kubeconfig
+	config, err := clientcmd.BuildConfigFromFlags("", path)
+	if err != nil {
+		return nil, err
+	}
+
+	// create the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return &Kubernetes{clientset}, nil
 }
 
-// NewEnv returns a new Engine from the environment.
-func NewEnv() (*Kubernetes, error) {
-	return nil, nil
+// NewInCluster returns a new in-cluster engine.
+func NewInCluster() (*Kubernetes, error) {
+	// creates the in-cluster config
+	config, err := rest.InClusterConfig()
+	if err != nil {
+		return nil, err
+	}
+	// creates the clientset
+	clientset, err := kubernetes.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	return &Kubernetes{clientset}, nil
 }
 
 // Setup the pipeline environment.

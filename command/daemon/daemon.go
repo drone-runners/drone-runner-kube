@@ -78,7 +78,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	engine, err := engine.NewEnv()
+	engine, err := engine.NewInCluster()
 	if err != nil {
 		logrus.WithError(err).
 			Fatalln("cannot load the docker engine")

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -48,7 +49,6 @@ type execCommand struct {
 	Labels     map[string]string
 	Secrets    map[string]string
 	Resources  compiler.Resources
-	Clone      bool
 	Config     string
 	Pretty     bool
 	Procs      int64
@@ -63,6 +63,12 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 	rawsource, err := ioutil.ReadAll(c.Source)
 	if err != nil {
 		return err
+	}
+
+	kubeconfig := c.Config
+	if kubeconfig == "" {
+		dir, _ := os.Getwd()
+		kubeconfig = filepath.Join(dir, ".kube", "config")
 	}
 
 	envs := environ.Combine(
@@ -124,16 +130,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Networks:   c.Networks,
 		Volumes:    c.Volumes,
 		Secret:     secret.StaticVars(c.Secrets),
-		Registry: registry.Combine(
-			registry.File(c.Config),
-		),
-	}
-
-	// when running a build locally cloning is always
-	// disabled in favor of mounting the source code
-	// from the current working directory.
-	if c.Clone == false {
-		comp.Mount, _ = os.Getwd()
+		Registry:   registry.Combine(),
 	}
 
 	args := compiler.Args{
@@ -228,7 +225,8 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	engine, err := engine.NewEnv()
+	// change to out-of-cluster for local testing
+	engine, err := engine.NewFromConfig(kubeconfig)
 	if err != nil {
 		return err
 	}
@@ -272,9 +270,6 @@ func registerExec(app *kingpin.Application) {
 	cmd.Arg("source", "source file location").
 		Default(".drone.yml").
 		FileVar(&c.Source)
-
-	cmd.Flag("clone", "enable cloning").
-		BoolVar(&c.Clone)
 
 	cmd.Flag("secrets", "secret parameters").
 		StringMapVar(&c.Secrets)
@@ -327,7 +322,7 @@ func registerExec(app *kingpin.Application) {
 	cmd.Flag("private-key", "private key file path").
 		ExistingFileVar(&c.PrivateKey)
 
-	cmd.Flag("docker-config", "path to the docker config file").
+	cmd.Flag("kubeconfig", "path to the kubernetes config file").
 		StringVar(&c.Config)
 
 	cmd.Flag("debug", "enable debug logging").

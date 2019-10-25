@@ -126,10 +126,6 @@ type Compiler struct {
 	// Registry returns a list of registry credentials that can be
 	// used to pull private container images.
 	Registry registry.Provider
-
-	// Mount is an optional field that overrides the default
-	// workspace volume and mounts to the host path
-	Mount string
 }
 
 // Compile compiles the configuration file.
@@ -138,14 +134,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 
 	// create the workspace paths
 	base, path, full := createWorkspace(args.Pipeline)
-
-	// if the source code is mounted from the host, the
-	// target mount path inside the container must be the
-	// full workspace path.
-	if c.Mount != "" {
-		base = full
-		path = ""
-	}
 
 	// create system labels
 	labels := labels.Combine(
@@ -170,19 +158,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Name:   mount.Name,
 			Labels: labels,
 		},
-	}
-
-	// if the repository is mounted from a local volume,
-	// we should replace the data volume with a host machine
-	// volume declaration.
-	if c.Mount != "" {
-		volume.EmptyDir = nil
-		volume.HostPath = &engine.VolumeHostPath{
-			ID:     random(),
-			Name:   mount.Name,
-			Path:   c.Mount,
-			Labels: labels,
-		}
 	}
 
 	spec := &engine.Spec{
@@ -268,12 +243,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		step.Labels = labels
 		step.Volumes = append(step.Volumes, mount)
 		spec.Steps = append(spec.Steps, step)
-
-		// if the repository is mounted from a local
-		// volume we should disable cloning.
-		if c.Mount != "" {
-			step.RunPolicy = engine.RunNever
-		}
 	}
 
 	// create steps

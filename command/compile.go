@@ -104,16 +104,7 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 		Networks:   c.Networks,
 		Volumes:    c.Volumes,
 		Secret:     secret.StaticVars(c.Secrets),
-		Registry: registry.Combine(
-			registry.File(c.Config),
-		),
-	}
-
-	// when running a build locally cloning is always
-	// disabled in favor of mounting the source code
-	// from the current working directory.
-	if c.Clone == false {
-		comp.Mount, _ = os.Getwd()
+		Registry:   registry.Combine(),
 	}
 
 	args := compiler.Args{
@@ -190,9 +181,6 @@ func registerCompile(app *kingpin.Application) {
 
 	cmd.Flag("shmsize", "container shm size").
 		Int64Var(&c.Resources.ShmSize)
-
-	cmd.Flag("docker-config", "path to the docker config file").
-		StringVar(&c.Config)
 
 	// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

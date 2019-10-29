@@ -9,8 +9,8 @@ type (
 	// required instructions for reproducible pipeline
 	// execution.
 	Spec struct {
+		Metadata Metadata  `json:"metadata,omitempty"`
 		Platform Platform  `json:"platform,omitempty"`
-		Files    []*File   `json:"files,omitempty"`
 		Steps    []*Step   `json:"steps,omitempty"`
 		Volumes  []*Volume `json:"volumes,omitempty"`
 		Network  Network   `json:"network"`
@@ -33,7 +33,6 @@ type (
 		Entrypoint   []string          `json:"entrypoint,omitempty"`
 		Envs         map[string]string `json:"environment,omitempty"`
 		ExtraHosts   []string          `json:"extra_hosts,omitempty"`
-		Files        []*File           `json:"files,omitempty"`
 		IgnoreErr    bool              `json:"ignore_err,omitempty"`
 		IgnoreStdout bool              `json:"ignore_stderr,omitempty"`
 		IgnoreStderr bool              `json:"ignore_stdout,omitempty"`
@@ -138,5 +137,12 @@ type (
 		Address  string `json:"address,omitempty"`
 		Username string `json:"username,omitempty"`
 		Password string `json:"password,omitempty"`
+	}
+
+	// Metadata defines
+	Metadata struct {
+		Namespace   string            `json:"namespace,omitempty"`
+		Annotations map[string]string `json:"annotations,omitempty"`
+		Labels      map[string]string `json:"labels,omitempty"`
 	}
 )

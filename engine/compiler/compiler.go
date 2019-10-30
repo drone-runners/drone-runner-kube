@@ -143,6 +143,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		labels.FromStage(args.Stage),
 		labels.FromSystem(args.System),
 		labels.WithTimeout(args.Repo),
+		args.Pipeline.PodSpec.Labels,
 	)
 
 	// create the workspace mount
@@ -161,6 +162,13 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	}
 
 	spec := &engine.Spec{
+		PodSpec: engine.PodSpec{
+			Name:         random(),
+			Namespace:    args.Pipeline.PodSpec.Namespace,
+			Annotations:  args.Pipeline.PodSpec.Annotations,
+			NodeSelector: args.Pipeline.PodSpec.NodeSelector,
+			Labels:       labels,
+		},
 		Network: engine.Network{
 			ID:     random(),
 			Labels: labels,
@@ -172,6 +180,16 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Version: args.Pipeline.Platform.Version,
 		},
 		Volumes: []*engine.Volume{volume},
+	}
+
+	// add tolerations
+	for _, toleration := range args.Pipeline.PodSpec.Tolerations {
+		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{
+			Operator:          toleration.Operator,
+			Effect:            toleration.Effect,
+			TolerationSeconds: toleration.TolerationSeconds,
+			Value:             toleration.Value,
+		})
 	}
 
 	// create the default environment variables.

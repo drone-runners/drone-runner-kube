@@ -41,7 +41,6 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		//
 
 		Networks: nil, // set in compiler.go
-		Files:    nil, // set below
 		Volumes:  nil, // set below
 		Devices:  nil, // see below
 		// Resources:    toResources(src), // TODO

@@ -9,7 +9,7 @@ type (
 	// required instructions for reproducible pipeline
 	// execution.
 	Spec struct {
-		Metadata Metadata  `json:"metadata,omitempty"`
+		PodSpec  PodSpec   `json:"pod_spec,omitempty"`
 		Platform Platform  `json:"platform,omitempty"`
 		Steps    []*Step   `json:"steps,omitempty"`
 		Volumes  []*Volume `json:"volumes,omitempty"`
@@ -139,10 +139,22 @@ type (
 		Password string `json:"password,omitempty"`
 	}
 
-	// Metadata defines
-	Metadata struct {
-		Namespace   string            `json:"namespace,omitempty"`
-		Annotations map[string]string `json:"annotations,omitempty"`
-		Labels      map[string]string `json:"labels,omitempty"`
+	// PodSpec ...
+	PodSpec struct {
+		Name         string            `json:"name,omitempty"`
+		Namespace    string            `json:"namespace,omitempty"`
+		Annotations  map[string]string `json:"annotations,omitempty"`
+		Labels       map[string]string `json:"labels,omitempty"`
+		NodeSelector map[string]string `json:"node_selector,omitempty"`
+		Tolerations  []Toleration      `json:"tolerations,omitempty"`
+	}
+
+	// Toleration ...
+	Toleration struct {
+		Effect            string `json:"effect,omitempty"`
+		Key               string `json:"key,omitempty"`
+		Operator          string `json:"operator,omitempty"`
+		TolerationSeconds int    `json:"toleration_seconds,omitempty"`
+		Value             string `json:"value,omitempty"`
 	}
 )

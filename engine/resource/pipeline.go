@@ -42,6 +42,8 @@ type Pipeline struct {
 	Volumes     []*Volume         `json:"volumes,omitempty"`
 	PullSecrets []string          `json:"image_pull_secrets,omitempty" yaml:"image_pull_secrets"`
 	Workspace   Workspace         `json:"workspace,omitempty"`
+
+	PodSpec PodSpec `json:"pod_spec,omitempty"`
 }
 
 // GetVersion returns the resource version.
@@ -83,6 +85,23 @@ func (p *Pipeline) GetStep(name string) *Step {
 }
 
 type (
+	// PodSpec ...
+	PodSpec struct {
+		Namespace    string            `json:"namespace,omitempty"`
+		Annotations  map[string]string `json:"annotations,omitempty"`
+		Labels       map[string]string `json:"labels,omitempty"`
+		NodeSelector map[string]string `json:"node_selector,omitempty"`
+		Tolerations  []Toleration      `json:"tolerations,omitempty"`
+	}
+
+	// Toleration ...
+	Toleration struct {
+		Effect            string `json:"effect,omitempty"`
+		Key               string `json:"key,omitempty"`
+		Operator          string `json:"operator,omitempty"`
+		TolerationSeconds int    `json:"toleration_seconds,omitempty"`
+		Value             string `json:"value,omitempty"`
+	}
 	// Step defines a Pipeline step.
 	Step struct {
 		Command     []string                       `json:"command,omitempty"`

@@ -45,7 +45,7 @@ func toVolumes(spec *Spec) []v1.Volume {
 	for _, v := range spec.Volumes {
 		if v.EmptyDir != nil {
 			volume := v1.Volume{
-				Name: v.EmptyDir.Name,
+				Name: v.EmptyDir.ID,
 				VolumeSource: v1.VolumeSource{
 					EmptyDir: &v1.EmptyDirVolumeSource{},
 				},
@@ -56,7 +56,7 @@ func toVolumes(spec *Spec) []v1.Volume {
 		if v.HostPath != nil {
 			hostPathType := v1.HostPathDirectoryOrCreate
 			volume := v1.Volume{
-				Name: v.HostPath.Name,
+				Name: v.HostPath.ID,
 				VolumeSource: v1.VolumeSource{
 					HostPath: &v1.HostPathVolumeSource{
 						Path: v.HostPath.Path,

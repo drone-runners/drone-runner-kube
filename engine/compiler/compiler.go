@@ -165,11 +165,12 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 
 	spec := &engine.Spec{
 		PodSpec: engine.PodSpec{
-			Name:         random(),
-			Namespace:    args.Pipeline.PodSpec.Namespace,
-			Labels:       args.Pipeline.PodSpec.Labels,
-			Annotations:  args.Pipeline.PodSpec.Annotations,
-			NodeSelector: args.Pipeline.PodSpec.NodeSelector,
+			Name:               random(),
+			Namespace:          args.Pipeline.PodSpec.Namespace,
+			Labels:             args.Pipeline.PodSpec.Labels,
+			Annotations:        args.Pipeline.PodSpec.Annotations,
+			NodeSelector:       args.Pipeline.PodSpec.NodeSelector,
+			ServiceAccountName: args.Pipeline.PodSpec.ServiceAccountName,
 		},
 		Network: engine.Network{
 			ID:     random(),

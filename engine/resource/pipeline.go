@@ -43,7 +43,7 @@ type Pipeline struct {
 	PullSecrets []string          `json:"image_pull_secrets,omitempty" yaml:"image_pull_secrets"`
 	Workspace   Workspace         `json:"workspace,omitempty"`
 
-	PodSpec PodSpec `json:"pod_spec,omitempty"`
+	PodSpec PodSpec `json:"pod_spec,omitempty" yaml:"pod_spec"`
 }
 
 // GetVersion returns the resource version.

@@ -137,7 +137,7 @@ func (e *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 		case watch.Added, watch.Modified:
 			pod := e.Object.(*v1.Pod)
 			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name == step.ID && cs.Image == step.Image && (cs.State.Running != nil || cs.State.Terminated != nil) {
+				if cs.Name == step.ID && cs.Image != placeHolderImage && (cs.State.Running != nil || cs.State.Terminated != nil) {
 					return true, nil
 				}
 			}
@@ -156,7 +156,7 @@ func (e *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 		case watch.Added, watch.Modified:
 			pod := e.Object.(*v1.Pod)
 			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name == step.ID && cs.Image == step.Image && (cs.State.Terminated != nil) {
+				if cs.Name == step.ID && cs.Image != placeHolderImage && (cs.State.Terminated != nil) {
 					state.ExitCode = int(cs.State.Terminated.ExitCode)
 					return true, nil
 				}

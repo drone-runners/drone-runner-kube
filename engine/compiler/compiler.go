@@ -25,7 +25,9 @@ import (
 )
 
 // random generator function
-var random = uniuri.New
+var random = func() string {
+	return uniuri.NewLenChars(20, []byte("abcdefghijklmnopqrstuvwxyz0123456789"))
+}
 
 // Privileged provides a list of plugins that execute
 // with privileged capabilities in order to run Docker
@@ -165,9 +167,9 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		PodSpec: engine.PodSpec{
 			Name:         random(),
 			Namespace:    args.Pipeline.PodSpec.Namespace,
+			Labels:       args.Pipeline.PodSpec.Labels,
 			Annotations:  args.Pipeline.PodSpec.Annotations,
 			NodeSelector: args.Pipeline.PodSpec.NodeSelector,
-			Labels:       labels,
 		},
 		Network: engine.Network{
 			ID:     random(),

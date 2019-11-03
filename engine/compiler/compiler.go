@@ -25,7 +25,9 @@ import (
 )
 
 // random generator function
-var random = uniuri.New
+var random = func() string {
+	return uniuri.NewLenChars(20, []byte("abcdefghijklmnopqrstuvwxyz0123456789"))
+}
 
 // Privileged provides a list of plugins that execute
 // with privileged capabilities in order to run Docker
@@ -143,6 +145,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		labels.FromStage(args.Stage),
 		labels.FromSystem(args.System),
 		labels.WithTimeout(args.Repo),
+		args.Pipeline.PodSpec.Labels,
 	)
 
 	// create the workspace mount
@@ -161,6 +164,14 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	}
 
 	spec := &engine.Spec{
+		PodSpec: engine.PodSpec{
+			Name:               random(),
+			Namespace:          args.Pipeline.PodSpec.Namespace,
+			Labels:             args.Pipeline.PodSpec.Labels,
+			Annotations:        args.Pipeline.PodSpec.Annotations,
+			NodeSelector:       args.Pipeline.PodSpec.NodeSelector,
+			ServiceAccountName: args.Pipeline.PodSpec.ServiceAccountName,
+		},
 		Network: engine.Network{
 			ID:     random(),
 			Labels: labels,
@@ -172,6 +183,16 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Version: args.Pipeline.Platform.Version,
 		},
 		Volumes: []*engine.Volume{volume},
+	}
+
+	// add tolerations
+	for _, toleration := range args.Pipeline.PodSpec.Tolerations {
+		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{
+			Operator:          toleration.Operator,
+			Effect:            toleration.Effect,
+			TolerationSeconds: toleration.TolerationSeconds,
+			Value:             toleration.Value,
+		})
 	}
 
 	// create the default environment variables.

@@ -141,12 +141,13 @@ type (
 
 	// PodSpec ...
 	PodSpec struct {
-		Name         string            `json:"name,omitempty"`
-		Namespace    string            `json:"namespace,omitempty"`
-		Annotations  map[string]string `json:"annotations,omitempty"`
-		Labels       map[string]string `json:"labels,omitempty"`
-		NodeSelector map[string]string `json:"node_selector,omitempty"`
-		Tolerations  []Toleration      `json:"tolerations,omitempty"`
+		Name               string            `json:"name,omitempty"`
+		Namespace          string            `json:"namespace,omitempty"`
+		Annotations        map[string]string `json:"annotations,omitempty"`
+		Labels             map[string]string `json:"labels,omitempty"`
+		NodeSelector       map[string]string `json:"node_selector,omitempty"`
+		Tolerations        []Toleration      `json:"tolerations,omitempty"`
+		ServiceAccountName string            `json:"service_account_name,omitempty"`
 	}
 
 	// Toleration ...

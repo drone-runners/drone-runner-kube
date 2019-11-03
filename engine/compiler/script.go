@@ -5,6 +5,8 @@
 package compiler
 
 import (
+	"strings"
+
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/compiler/shell"
 	"github.com/drone-runners/drone-runner-kube/engine/compiler/shell/powershell"
@@ -17,25 +19,37 @@ func setupScript(src *resource.Step, dst *engine.Step, os string) {
 	if len(src.Commands) > 0 {
 		switch os {
 		case "windows":
-			setupScriptWindows(src, dst)
+			setupScriptWindows(src.Commands, dst)
 		default:
-			setupScriptPosix(src, dst)
+			setupScriptPosix(src.Commands, dst)
+		}
+	}
+
+	if len(src.Entrypoint) > 0 {
+		cmds := []string{
+			strings.Join(append(src.Entrypoint, src.Command...), " "),
+		}
+		switch os {
+		case "windows":
+			setupScriptWindows(cmds, dst)
+		default:
+			setupScriptPosix(cmds, dst)
 		}
 	}
 }
 
 // helper function configures the pipeline script for the
 // windows operating system.
-func setupScriptWindows(src *resource.Step, dst *engine.Step) {
+func setupScriptWindows(commands []string, dst *engine.Step) {
 	dst.Entrypoint = []string{"powershell", "-noprofile", "-noninteractive", "-command"}
 	dst.Command = []string{"echo $DRONE_SCRIPT | iex"}
-	dst.Envs["DRONE_SCRIPT"] = powershell.Script(src.Commands)
+	dst.Envs["DRONE_SCRIPT"] = powershell.Script(commands)
 }
 
 // helper function configures the pipeline script for the
 // linux operating system.
-func setupScriptPosix(src *resource.Step, dst *engine.Step) {
+func setupScriptPosix(commands []string, dst *engine.Step) {
 	dst.Entrypoint = []string{"/bin/sh", "-c"}
 	dst.Command = []string{`echo "$DRONE_SCRIPT" | /bin/sh`}
-	dst.Envs["DRONE_SCRIPT"] = shell.Script(src.Commands)
+	dst.Envs["DRONE_SCRIPT"] = shell.Script(commands)
 }

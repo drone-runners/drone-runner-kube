@@ -18,11 +18,12 @@ func toPod(spec *Spec) *v1.Pod {
 			Labels:      spec.PodSpec.Labels,
 		},
 		Spec: v1.PodSpec{
-			RestartPolicy: v1.RestartPolicyNever,
-			Volumes:       toVolumes(spec),
-			Containers:    toContainers(spec),
-			NodeSelector:  spec.PodSpec.NodeSelector,
-			Tolerations:   toTolerations(spec),
+			ServiceAccountName: spec.PodSpec.ServiceAccountName,
+			RestartPolicy:      v1.RestartPolicyNever,
+			Volumes:            toVolumes(spec),
+			Containers:         toContainers(spec),
+			NodeSelector:       spec.PodSpec.NodeSelector,
+			Tolerations:        toTolerations(spec),
 		},
 	}
 }

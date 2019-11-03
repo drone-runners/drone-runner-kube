@@ -10,7 +10,7 @@ require (
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/drone/drone-go v1.0.5-0.20190504210458-4d6116b897ba
 	github.com/drone/envsubst v1.0.2
-	github.com/drone/runner-go v1.2.3-0.20191022224645-c23a30094df2
+	github.com/drone/runner-go v1.3.1
 	github.com/drone/signal v1.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.3.1

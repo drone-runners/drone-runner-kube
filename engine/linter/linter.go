@@ -26,13 +26,16 @@ var ErrCyclicalDependency = errors.New("linter: cyclical step dependency detecte
 
 // Opts provides linting options.
 type Opts struct {
-	Trusted bool
+	Trusted   bool
+	Namespace string
+	Name      string
 }
 
 // Linter evaluates the pipeline against a set of
 // rules and returns an error if one or more of the
 // rules are broken.
-type Linter struct{}
+type Linter struct {
+}
 
 // New returns a new Linter.
 func New() *Linter {
@@ -46,9 +49,6 @@ func (l *Linter) Lint(pipeline *resource.Pipeline, opts Opts) error {
 }
 
 func checkPipeline(pipeline *resource.Pipeline, trusted bool) error {
-	// if err := checkNames(pipeline); err != nil {
-	// 	return err
-	// }
 	if err := checkSteps(pipeline, trusted); err != nil {
 		return err
 	}
@@ -57,22 +57,6 @@ func checkPipeline(pipeline *resource.Pipeline, trusted bool) error {
 	}
 	return nil
 }
-
-// func checkNames(pipeline *resource.Pipeline) error {
-// 	names := map[string]struct{}{}
-// 	if !pipeline.Clone.Disable {
-// 		names["clone"] = struct{}{}
-// 	}
-// 	steps := append(pipeline.Services, pipeline.Steps...)
-// 	for _, step := range steps {
-// 		_, ok := names[step.Name]
-// 		if ok {
-// 			return ErrDuplicateStepName
-// 		}
-// 		names[step.Name] = struct{}{}
-// 	}
-// 	return nil
-// }
 
 func checkSteps(pipeline *resource.Pipeline, trusted bool) error {
 	steps := append(pipeline.Services, pipeline.Steps...)

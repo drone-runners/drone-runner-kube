@@ -22,12 +22,8 @@ type (
 		Command      []string          `json:"args,omitempty"`
 		Detach       bool              `json:"detach,omitempty"`
 		DependsOn    []string          `json:"depends_on,omitempty"`
-		Devices      []*VolumeDevice   `json:"devices,omitempty"`
-		DNS          []string          `json:"dns,omitempty"`
-		DNSSearch    []string          `json:"dns_search,omitempty"`
 		Entrypoint   []string          `json:"entrypoint,omitempty"`
 		Envs         map[string]string `json:"environment,omitempty"`
-		ExtraHosts   []string          `json:"extra_hosts,omitempty"`
 		IgnoreErr    bool              `json:"ignore_err,omitempty"`
 		IgnoreStdout bool              `json:"ignore_stderr,omitempty"`
 		IgnoreStderr bool              `json:"ignore_stdout,omitempty"`
@@ -97,13 +93,6 @@ type (
 		Name   string            `json:"name,omitempty"`
 		Path   string            `json:"path,omitempty"`
 		Labels map[string]string `json:"labels,omitempty"`
-	}
-
-	// VolumeDevice describes a mapping of a raw block
-	// device within a container.
-	VolumeDevice struct {
-		Name       string `json:"name,omitempty"`
-		DevicePath string `json:"path,omitempty"`
 	}
 
 	// Auth defines dockerhub authentication credentials.

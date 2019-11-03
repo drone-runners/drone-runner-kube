@@ -111,15 +111,10 @@ type (
 		Commands    []string                       `json:"commands,omitempty"`
 		Detach      bool                           `json:"detach,omitempty"`
 		DependsOn   []string                       `json:"depends_on,omitempty" yaml:"depends_on"`
-		Devices     []*VolumeDevice                `json:"devices,omitempty"`
-		DNS         []string                       `json:"dns,omitempty"`
-		DNSSearch   []string                       `json:"dns_search,omitempty" yaml:"dns_search"`
 		Entrypoint  []string                       `json:"entrypoint,omitempty"`
 		Environment map[string]*manifest.Variable  `json:"environment,omitempty"`
-		ExtraHosts  []string                       `json:"extra_hosts,omitempty" yaml:"extra_hosts"`
 		Failure     string                         `json:"failure,omitempty"`
 		Image       string                         `json:"image,omitempty"`
-		Network     string                         `json:"network_mode,omitempty" yaml:"network_mode"`
 		Name        string                         `json:"name,omitempty"`
 		Privileged  bool                           `json:"privileged,omitempty"`
 		Pull        string                         `json:"pull,omitempty"`
@@ -136,13 +131,6 @@ type (
 		Name     string          `json:"name,omitempty"`
 		EmptyDir *VolumeEmptyDir `json:"temp,omitempty" yaml:"temp"`
 		HostPath *VolumeHostPath `json:"host,omitempty" yaml:"host"`
-	}
-
-	// VolumeDevice describes a mapping of a raw block
-	// device within a container.
-	VolumeDevice struct {
-		Name       string `json:"name,omitempty"`
-		DevicePath string `json:"path,omitempty" yaml:"path"`
 	}
 
 	// VolumeMount describes a mounting of a Volume

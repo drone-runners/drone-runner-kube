@@ -22,10 +22,7 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		Entrypoint:   src.Entrypoint,
 		Detach:       src.Detach,
 		DependsOn:    src.DependsOn,
-		DNS:          src.DNS,
-		DNSSearch:    src.DNSSearch,
 		Envs:         convertStaticEnv(src.Environment),
-		ExtraHosts:   src.ExtraHosts,
 		IgnoreErr:    strings.EqualFold(src.Failure, "ignore"),
 		IgnoreStderr: false,
 		IgnoreStdout: false,
@@ -34,9 +31,6 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		User:         src.User,
 		Secrets:      convertSecretEnv(src.Environment),
 		WorkingDir:   src.WorkingDir,
-
-		Volumes: nil, // set below
-		Devices: nil, // see below
 	}
 
 	// appends the volumes to the container def.
@@ -44,14 +38,6 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		dst.Volumes = append(dst.Volumes, &engine.VolumeMount{
 			Name: vol.Name,
 			Path: vol.MountPath,
-		})
-	}
-
-	// appends the devices to the container def.
-	for _, vol := range src.Devices {
-		dst.Devices = append(dst.Devices, &engine.VolumeDevice{
-			Name:       vol.Name,
-			DevicePath: vol.DevicePath,
 		})
 	}
 
@@ -67,7 +53,7 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		key = "PLUGIN_" + strings.ToUpper(key)
 
 		// if the setting parameter is sources from the
-		// secret we create a secret enviornment variable.
+		// secret we create a secret environment variable.
 		if value.Secret != "" {
 			dst.Secrets = append(dst.Secrets, &engine.Secret{
 				Name: value.Secret,

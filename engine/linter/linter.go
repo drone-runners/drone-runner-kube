@@ -91,29 +91,8 @@ func checkStep(step *resource.Step, trusted bool) error {
 	if step.Image == "" {
 		return errors.New("linter: invalid or missing image")
 	}
-	// if step.Name == "" {
-	// 	return errors.New("linter: invalid or missing name")
-	// }
-	// if len(step.Name) > 100 {
-	// 	return errors.New("linter: name exceeds maximum length")
-	// }
 	if trusted == false && step.Privileged {
 		return errors.New("linter: untrusted repositories cannot enable privileged mode")
-	}
-	if trusted == false && len(step.Devices) > 0 {
-		return errors.New("linter: untrusted repositories cannot mount devices")
-	}
-	if trusted == false && len(step.DNS) > 0 {
-		return errors.New("linter: untrusted repositories cannot configure dns")
-	}
-	if trusted == false && len(step.DNSSearch) > 0 {
-		return errors.New("linter: untrusted repositories cannot configure dns_search")
-	}
-	if trusted == false && len(step.ExtraHosts) > 0 {
-		return errors.New("linter: untrusted repositories cannot configure extra_hosts")
-	}
-	if trusted == false && len(step.Network) > 0 {
-		return errors.New("linter: untrusted repositories cannot configure network_mode")
 	}
 	for _, mount := range step.Volumes {
 		switch mount.Name {

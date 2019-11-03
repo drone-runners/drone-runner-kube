@@ -10,9 +10,16 @@ data: f0e4c2f76c58916ec25
 
 ---
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 version: 1
+
+metadata:
+  namespace: default
+  annotations:
+    foo: bar
+  labels:
+    bar: baz
 
 platform:
   os: linux
@@ -45,8 +52,16 @@ services:
   entrypoint: [ "/bin/redis-server" ]
   command: [ "--debug" ]
 
+resources:
+  limits:
+    cpu: 0.5
+    memory: 500MiB
+
 image_pull_secrets:
 - dockerconfigjson
+
+node_selector:
+  foo: bar
 
 trigger:
   branch: [ master ]

@@ -41,11 +41,6 @@ type Config struct {
 		Acme  bool   `envconfig:"DRONE_SERVER_ACME"`
 	}
 
-	Keypair struct {
-		Public  string `envconfig:"DRONE_PUBLIC_KEY_FILE"`
-		Private string `envconfig:"DRONE_PRIVATE_KEY_FILE"`
-	}
-
 	Runner struct {
 		Name       string            `envconfig:"DRONE_RUNNER_NAME"`
 		Capacity   int               `envconfig:"DRONE_RUNNER_CAPACITY" default:"2"`
@@ -54,9 +49,6 @@ type Config struct {
 		EnvFile    string            `envconfig:"DRONE_RUNNER_ENV_FILE"`
 		Secrets    map[string]string `envconfig:"DRONE_RUNNER_SECRETS"`
 		Labels     map[string]string `envconfig:"DRONE_RUNNER_LABELS"`
-		Volumes    map[string]string `envconfig:"DRONE_RUNNER_VOLUMES"`
-		Devices    []string          `envconfig:"DRONE_RUNNER_DEVICES"`
-		Networks   []string          `envconfig:"DRONE_RUNNER_NETWORKS"`
 		Privileged []string          `envconfig:"DRONE_RUNNER_PRIVILEGED_IMAGES"`
 	}
 

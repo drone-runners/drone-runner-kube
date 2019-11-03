@@ -43,20 +43,15 @@ type execCommand struct {
 	Include    []string
 	Exclude    []string
 	Privileged []string
-	Networks   []string
-	Volumes    map[string]string
 	Environ    map[string]string
 	Labels     map[string]string
 	Secrets    map[string]string
-	Resources  compiler.Resources
 	Config     string
 	Pretty     bool
 	Procs      int64
 	Debug      bool
 	Trace      bool
 	Dump       bool
-	PublicKey  string
-	PrivateKey string
 }
 
 func (c *execCommand) run(*kingpin.ParseContext) error {
@@ -125,10 +120,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 	comp := &compiler.Compiler{
 		Environ:    c.Environ,
 		Labels:     c.Labels,
-		Resources:  c.Resources,
 		Privileged: append(c.Privileged, compiler.Privileged...),
-		Networks:   c.Networks,
-		Volumes:    c.Volumes,
 		Secret:     secret.StaticVars(c.Secrets),
 		Registry:   registry.Combine(),
 	}
@@ -262,7 +254,6 @@ func registerExec(app *kingpin.Application) {
 	c.Environ = map[string]string{}
 	c.Secrets = map[string]string{}
 	c.Labels = map[string]string{}
-	c.Volumes = map[string]string{}
 
 	cmd := app.Command("exec", "executes a pipeline").
 		Action(c.run)
@@ -286,41 +277,8 @@ func registerExec(app *kingpin.Application) {
 	cmd.Flag("labels", "container labels").
 		StringMapVar(&c.Labels)
 
-	cmd.Flag("networks", "container networks").
-		StringsVar(&c.Networks)
-
-	cmd.Flag("volumes", "container volumes").
-		StringMapVar(&c.Volumes)
-
 	cmd.Flag("privileged", "privileged docker images").
 		StringsVar(&c.Privileged)
-
-	cmd.Flag("cpu-period", "container cpu period").
-		Int64Var(&c.Resources.CPUPeriod)
-
-	cmd.Flag("cpu-quota", "container cpu quota").
-		Int64Var(&c.Resources.CPUQuota)
-
-	cmd.Flag("cpu-set", "container cpu set").
-		StringsVar(&c.Resources.CPUSet)
-
-	cmd.Flag("cpu-shares", "container cpu shares").
-		Int64Var(&c.Resources.CPUShares)
-
-	cmd.Flag("memory", "container memory limit").
-		Int64Var(&c.Resources.MemLimit)
-
-	cmd.Flag("memory-swap", "container memory swap limit").
-		Int64Var(&c.Resources.MemSwapLimit)
-
-	cmd.Flag("shmsize", "container shm size").
-		Int64Var(&c.Resources.ShmSize)
-
-	cmd.Flag("public-key", "public key file path").
-		ExistingFileVar(&c.PublicKey)
-
-	cmd.Flag("private-key", "private key file path").
-		ExistingFileVar(&c.PrivateKey)
 
 	cmd.Flag("kubeconfig", "path to the kubernetes config file").
 		StringVar(&c.Config)

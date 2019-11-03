@@ -43,7 +43,11 @@ type Pipeline struct {
 	PullSecrets []string          `json:"image_pull_secrets,omitempty" yaml:"image_pull_secrets"`
 	Workspace   Workspace         `json:"workspace,omitempty"`
 
-	PodSpec PodSpec `json:"pod_spec,omitempty" yaml:"pod_spec"`
+	Metadata           Metadata          `json:"metadata,omitempty"`
+	NodeSelector       map[string]string `json:"node_selector,omitempty"        yaml:"node_selector"`
+	Resources          *Resources        `json:"resources,omitempty"`
+	ServiceAccountName string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
+	Tolerations        []Toleration      `json:"tolerations,omitempty"`
 }
 
 // GetVersion returns the resource version.
@@ -85,17 +89,14 @@ func (p *Pipeline) GetStep(name string) *Step {
 }
 
 type (
-	// PodSpec ...
-	PodSpec struct {
-		Namespace          string            `json:"namespace,omitempty"`
-		Annotations        map[string]string `json:"annotations,omitempty"`
-		Labels             map[string]string `json:"labels,omitempty"`
-		NodeSelector       map[string]string `json:"node_selector,omitempty"`
-		Tolerations        []Toleration      `json:"tolerations,omitempty"`
-		ServiceAccountName string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
+	// Metadata defines Kubernetes pod meteadata
+	Metadata struct {
+		Namespace   string            `json:"namespace,omitempty"`
+		Annotations map[string]string `json:"annotations,omitempty"`
+		Labels      map[string]string `json:"labels,omitempty"`
 	}
 
-	// Toleration ...
+	// Toleration defines Kubernetes pod tolerations
 	Toleration struct {
 		Effect            string `json:"effect,omitempty"`
 		Key               string `json:"key,omitempty"`
@@ -103,6 +104,7 @@ type (
 		TolerationSeconds int    `json:"toleration_seconds,omitempty"`
 		Value             string `json:"value,omitempty"`
 	}
+
 	// Step defines a Pipeline step.
 	Step struct {
 		Command     []string                       `json:"command,omitempty"`
@@ -127,8 +129,6 @@ type (
 		Volumes     []*VolumeMount                 `json:"volumes,omitempty"`
 		When        manifest.Conditions            `json:"when,omitempty"`
 		WorkingDir  string                         `json:"working_dir,omitempty" yaml:"working_dir"`
-
-		// Resources *Resources `json:"resources,omitempty"`
 	}
 
 	// Volume that can be mounted by containers.
@@ -168,7 +168,25 @@ type (
 
 	// Workspace represents the pipeline workspace configuration.
 	Workspace struct {
-		Base string `json:"base,omitempty"`
 		Path string `json:"path,omitempty"`
+	}
+
+	// Resources describes the compute resource
+	// requirements.
+	Resources struct {
+		// Limits describes the maximum amount of compute
+		// resources allowed.
+		Limits *ResourceObject `json:"limits,omitempty"`
+
+		// Requests describes the minimum amount of
+		// compute resources required.
+		Requests *ResourceObject `json:"requests,omitempty"`
+	}
+
+	// ResourceObject describes compute resource
+	// requirements.
+	ResourceObject struct {
+		CPU    float64            `json:"cpu" yaml:"cpu"`
+		Memory manifest.BytesSize `json:"memory"`
 	}
 )

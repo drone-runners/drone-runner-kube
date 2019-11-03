@@ -68,82 +68,40 @@ func TestToWindows(t *testing.T) {
 func TestCreateWorkspace(t *testing.T) {
 	tests := []struct {
 		from *resource.Pipeline
-		base string
 		path string
-		full string
 	}{
 		{
 			from: &resource.Pipeline{
 				Workspace: resource.Workspace{
-					Base: "",
 					Path: "",
 				},
 			},
-			base: "/drone/src",
-			path: "",
-			full: "/drone/src",
+			path: "/drone/src",
 		},
 		{
 			from: &resource.Pipeline{
 				Workspace: resource.Workspace{
-					Base: "",
 					Path: "",
 				},
 				Platform: manifest.Platform{
 					OS: "windows",
 				},
 			},
-			base: "c:\\drone\\src",
-			path: "",
-			full: "c:\\drone\\src",
+			path: "c:\\drone\\src",
 		},
 		{
 			from: &resource.Pipeline{
 				Workspace: resource.Workspace{
-					Base: "/drone",
-					Path: "src",
+					Path: "/workspace",
 				},
 			},
-			base: "/drone",
-			path: "src",
-			full: "/drone/src",
-		},
-		{
-			from: &resource.Pipeline{
-				Workspace: resource.Workspace{
-					Base: "/drone",
-					Path: "src",
-				},
-				Platform: manifest.Platform{
-					OS: "windows",
-				},
-			},
-			base: "c:\\drone",
-			path: "src",
-			full: "c:\\drone\\src",
-		},
-		{
-			from: &resource.Pipeline{
-				Workspace: resource.Workspace{
-					Base: "/foo",
-					Path: "bar",
-				},
-			},
-			base: "/foo",
-			path: "bar",
-			full: "/foo/bar",
+			path: "/workspace",
 		},
 	}
 	for _, test := range tests {
-		base, path, full := createWorkspace(test.from)
-		if got, want := test.base, base; got != want {
-			t.Errorf("Want workspace base %s, got %s", want, got)
-		}
+		path := createWorkspace(test.from)
 		if got, want := test.path, path; got != want {
 			t.Errorf("Want workspace path %s, got %s", want, got)
-		}
-		if got, want := test.full, full; got != want {
-			t.Errorf("Want workspace %s, got %s", want, got)
 		}
 	}
 }

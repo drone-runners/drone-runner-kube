@@ -13,7 +13,6 @@ type (
 		Platform Platform  `json:"platform,omitempty"`
 		Steps    []*Step   `json:"steps,omitempty"`
 		Volumes  []*Volume `json:"volumes,omitempty"`
-		Network  Network   `json:"network"`
 	}
 
 	// Step defines a pipeline step.
@@ -21,10 +20,6 @@ type (
 		ID           string            `json:"id,omitempty"`
 		Auth         *Auth             `json:"auth,omitempty"`
 		Command      []string          `json:"args,omitempty"`
-		CPUPeriod    int64             `json:"cpu_period,omitempty"`
-		CPUQuota     int64             `json:"cpu_quota,omitempty"`
-		CPUShares    int64             `json:"cpu_shares,omitempty"`
-		CPUSet       []string          `json:"cpu_set,omitempty"`
 		Detach       bool              `json:"detach,omitempty"`
 		DependsOn    []string          `json:"depends_on,omitempty"`
 		Devices      []*VolumeDevice   `json:"devices,omitempty"`
@@ -38,29 +33,14 @@ type (
 		IgnoreStderr bool              `json:"ignore_stdout,omitempty"`
 		Image        string            `json:"image,omitempty"`
 		Labels       map[string]string `json:"labels,omitempty"`
-		MemSwapLimit int64             `json:"memswap_limit,omitempty"`
-		MemLimit     int64             `json:"mem_limit,omitempty"`
 		Name         string            `json:"name,omitempty"`
-		Network      string            `json:"network,omitempty"`
-		Networks     []string          `json:"networks,omitempty"`
 		Privileged   bool              `json:"privileged,omitempty"`
 		Pull         PullPolicy        `json:"pull,omitempty"`
 		RunPolicy    RunPolicy         `json:"run_policy,omitempty"`
 		Secrets      []*Secret         `json:"secrets,omitempty"`
-		ShmSize      int64             `json:"shm_size,omitempty"`
 		User         string            `json:"user,omitempty"`
 		Volumes      []*VolumeMount    `json:"volumes,omitempty"`
 		WorkingDir   string            `json:"working_dir,omitempty"`
-	}
-
-	// File defines a file that should be uploaded or
-	// mounted somewhere in the step container or virtual
-	// machine prior to command execution.
-	File struct {
-		Path  string `json:"path,omitempty"`
-		Mode  uint32 `json:"mode,omitempty"`
-		Data  []byte `json:"data,omitempty"`
-		IsDir bool   `json:"is_dir,omitempty"`
 	}
 
 	// Platform defines the target platform.
@@ -124,12 +104,6 @@ type (
 	VolumeDevice struct {
 		Name       string `json:"name,omitempty"`
 		DevicePath string `json:"path,omitempty"`
-	}
-
-	// Network that is created and attached to containers
-	Network struct {
-		ID     string            `json:"id,omitempty"`
-		Labels map[string]string `json:"labels,omitempty"`
 	}
 
 	// Auth defines dockerhub authentication credentials.

@@ -5,7 +5,6 @@
 package compiler
 
 import (
-	stdpath "path"
 	"strings"
 
 	"github.com/drone-runners/drone-runner-kube/engine"
@@ -18,25 +17,15 @@ const (
 	workspaceHostName = "host"
 )
 
-func createWorkspace(from *resource.Pipeline) (base, path, full string) {
-	base = from.Workspace.Base
-	path = from.Workspace.Path
-	if base == "" {
-		if strings.HasPrefix(path, "/") {
-			base = path
-			path = ""
-		} else {
-			base = workspacePath
-		}
+func createWorkspace(from *resource.Pipeline) string {
+	path := workspacePath
+	if from.Workspace.Path != "" {
+		path = from.Workspace.Path
 	}
-	full = stdpath.Join(base, path)
-
 	if from.Platform.OS == "windows" {
-		base = toWindowsDrive(base)
-		path = toWindowsPath(path)
-		full = toWindowsDrive(full)
+		path = toWindowsDrive(path)
 	}
-	return base, path, full
+	return path
 }
 
 func setupWorkdir(src *resource.Step, dst *engine.Step, path string) {
@@ -53,17 +42,6 @@ func setupWorkdir(src *resource.Step, dst *engine.Step, path string) {
 	}
 	// else set the working directory.
 	dst.WorkingDir = path
-}
-
-// helper function appends the workspace base and
-// path to the step's list of environment variables.
-func setupWorkspaceEnv(step *engine.Step, base, path, full string) {
-	step.Envs["DRONE_WORKSPACE_BASE"] = base
-	step.Envs["DRONE_WORKSPACE_PATH"] = path
-	step.Envs["DRONE_WORKSPACE"] = full
-	step.Envs["CI_WORKSPACE_BASE"] = base
-	step.Envs["CI_WORKSPACE_PATH"] = path
-	step.Envs["CI_WORKSPACE"] = full
 }
 
 // helper function converts the path to a valid windows

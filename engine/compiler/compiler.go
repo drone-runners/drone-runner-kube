@@ -40,18 +40,6 @@ var Privileged = []string{
 	"plugins/heroku",
 }
 
-// Resources defines container resource constraints. These
-// constraints are per-container, not per-pipeline.
-type Resources struct {
-	MemLimit     int64
-	MemSwapLimit int64
-	ShmSize      int64
-	CPUQuota     int64
-	CPUPeriod    int64
-	CPUShares    int64
-	CPUSet       []string
-}
-
 // Args provides compiler arguments.
 type Args struct {
 	// Manifest provides the parsed manifest.
@@ -109,18 +97,6 @@ type Compiler struct {
 	// are always privileged.
 	Privileged []string
 
-	// Networks provides a set of networks that should be
-	// attached to each pipeline container.
-	Networks []string
-
-	// Volumes provides a set of volumes that should be
-	// mounted to each pipeline container.
-	Volumes map[string]string
-
-	// Resources provides global resource constraints
-	// applies to pipeline containers.
-	Resources Resources
-
 	// Secret returns a named secret value that can be injected
 	// into the pipeline step.
 	Secret secret.Provider
@@ -135,7 +111,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	os := args.Pipeline.Platform.OS
 
 	// create the workspace paths
-	base, path, full := createWorkspace(args.Pipeline)
+	workspace := createWorkspace(args.Pipeline)
 
 	// create system labels
 	labels := labels.Combine(
@@ -145,13 +121,13 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		labels.FromStage(args.Stage),
 		labels.FromSystem(args.System),
 		labels.WithTimeout(args.Repo),
-		args.Pipeline.PodSpec.Labels,
+		args.Pipeline.Metadata.Labels,
 	)
 
 	// create the workspace mount
 	mount := &engine.VolumeMount{
 		Name: "_workspace",
-		Path: base,
+		Path: workspace,
 	}
 
 	// create the workspace volume
@@ -166,15 +142,11 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	spec := &engine.Spec{
 		PodSpec: engine.PodSpec{
 			Name:               random(),
-			Namespace:          args.Pipeline.PodSpec.Namespace,
-			Labels:             args.Pipeline.PodSpec.Labels,
-			Annotations:        args.Pipeline.PodSpec.Annotations,
-			NodeSelector:       args.Pipeline.PodSpec.NodeSelector,
-			ServiceAccountName: args.Pipeline.PodSpec.ServiceAccountName,
-		},
-		Network: engine.Network{
-			ID:     random(),
-			Labels: labels,
+			Namespace:          args.Pipeline.Metadata.Namespace,
+			Labels:             args.Pipeline.Metadata.Labels,
+			Annotations:        args.Pipeline.Metadata.Annotations,
+			NodeSelector:       args.Pipeline.NodeSelector,
+			ServiceAccountName: args.Pipeline.ServiceAccountName,
 		},
 		Platform: engine.Platform{
 			OS:      args.Pipeline.Platform.OS,
@@ -186,7 +158,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	}
 
 	// add tolerations
-	for _, toleration := range args.Pipeline.PodSpec.Tolerations {
+	for _, toleration := range args.Pipeline.Tolerations {
 		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{
 			Operator:          toleration.Operator,
 			Effect:            toleration.Effect,
@@ -216,13 +188,8 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		}),
 	)
 
-	// create network reference variables
-	envs["DRONE_DOCKER_NETWORK_ID"] = spec.Network.ID
-
 	// create the workspace variables
-	envs["DRONE_WORKSPACE"] = full
-	envs["DRONE_WORKSPACE_BASE"] = base
-	envs["DRONE_WORKSPACE_PATH"] = path
+	envs["DRONE_WORKSPACE"] = workspace
 
 	// create volume reference variables
 	if volume.EmptyDir != nil {
@@ -260,7 +227,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		step := createClone(args.Pipeline)
 		step.ID = random()
 		step.Envs = environ.Combine(envs, step.Envs)
-		step.WorkingDir = full
+		step.WorkingDir = workspace
 		step.Labels = labels
 		step.Volumes = append(step.Volumes, mount)
 		spec.Steps = append(spec.Steps, step)
@@ -274,7 +241,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		dst.Volumes = append(dst.Volumes, mount)
 		dst.Labels = labels
 		setupScript(src, dst, os)
-		setupWorkdir(src, dst, full)
+		setupWorkdir(src, dst, workspace)
 		spec.Steps = append(spec.Steps, dst)
 
 		// if the pipeline step has unmet conditions the step is
@@ -291,7 +258,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		dst.Volumes = append(dst.Volumes, mount)
 		dst.Labels = labels
 		setupScript(src, dst, os)
-		setupWorkdir(src, dst, full)
+		setupWorkdir(src, dst, workspace)
 		spec.Steps = append(spec.Steps, dst)
 
 		// if the pipeline step has unmet conditions the step is
@@ -357,42 +324,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 				}
 				break STEPS
 			}
-		}
-	}
-
-	// append global resource limits to steps
-	for _, step := range spec.Steps {
-		step.MemSwapLimit = c.Resources.MemSwapLimit
-		step.MemLimit = c.Resources.MemLimit
-		step.ShmSize = c.Resources.ShmSize
-		step.CPUPeriod = c.Resources.CPUPeriod
-		step.CPUQuota = c.Resources.CPUQuota
-		step.CPUShares = c.Resources.CPUShares
-		step.CPUSet = c.Resources.CPUSet
-	}
-
-	// append global networks to the steps.
-	for _, step := range spec.Steps {
-		step.Networks = append(step.Networks, c.Networks...)
-	}
-
-	// append global volumes to the steps.
-	for k, v := range c.Volumes {
-		id := random()
-		volume := &engine.Volume{
-			HostPath: &engine.VolumeHostPath{
-				ID:   id,
-				Name: id,
-				Path: k,
-			},
-		}
-		spec.Volumes = append(spec.Volumes, volume)
-		for _, step := range spec.Steps {
-			mount := &engine.VolumeMount{
-				Name: id,
-				Path: v,
-			}
-			step.Volumes = append(step.Volumes, mount)
 		}
 	}
 

@@ -1,11 +1,7 @@
 ---
 kind: pipeline
-type: docker
-
-server:
-  image: docker-18-04
-  region: nyc1
-  size: s-1vcpu-1gb
+type: kubernetes
+name: default
 
 steps:
 - commands:

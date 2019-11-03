@@ -88,7 +88,9 @@ func toContainers(spec *Spec) []v1.Container {
 			},
 			VolumeMounts: toVolumeMounts(spec, s),
 			Env:          toEnv(s),
-			EnvFrom:      toEnvFrom(s),
+			// TODO(bradrydzewski) revisit how we want to pass sensitive data
+			// to the pipeline contianers.
+			// EnvFrom:      toEnvFrom(s),
 		}
 
 		containers = append(containers, container)
@@ -104,6 +106,15 @@ func toEnv(step *Step) []v1.EnvVar {
 		envVars = append(envVars, v1.EnvVar{
 			Name:  k,
 			Value: v,
+		})
+	}
+
+	// TODO(bradrydzewski) revisit how we want to pass sensitive data
+	// to the pipeline contianers.
+	for _, secret := range step.Secrets {
+		envVars = append(envVars, v1.EnvVar{
+			Name:  secret.Env,
+			Value: string(secret.Data),
 		})
 	}
 

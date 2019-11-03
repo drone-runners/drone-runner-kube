@@ -58,12 +58,14 @@ func NewInCluster() (*Kubernetes, error) {
 
 // Setup the pipeline environment.
 func (e *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
-	for _, step := range spec.Steps {
-		_, err := e.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toSecret(step))
-		if err != nil {
-			return err
-		}
-	}
+	// TODO(bradrydzewski) revisit how we want to pass sensitive data
+	// to the pipeline contianers.
+	// for _, step := range spec.Steps {
+	// 	_, err := e.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toSecret(step))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	_, err := e.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
 	if err != nil {
@@ -75,12 +77,14 @@ func (e *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
 
 // Destroy the pipeline environment.
 func (e *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
-	for _, step := range spec.Steps {
-		err := e.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(step.ID, &metav1.DeleteOptions{})
-		if err != nil {
-			return err
-		}
-	}
+	// TODO(bradrydzewski) revisit how we want to pass sensitive data
+	// to the pipeline contianers.
+	// for _, step := range spec.Steps {
+	// 	err := e.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(step.ID, &metav1.DeleteOptions{})
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	err := e.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
 	return err

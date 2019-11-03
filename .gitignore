@@ -2,5 +2,5 @@ drone-runner-kube
 drone-runner-kube.exe
 release/*
 .env
-NOTES*
-
+TODO.md
+NOTES.md

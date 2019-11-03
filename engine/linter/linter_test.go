@@ -42,12 +42,6 @@ func TestLint(t *testing.T) {
 			invalid: true,
 			message: "linter: invalid volume name: _workspace",
 		},
-		{
-			path:    "testdata/pipeline_volume_invalid_name.yml",
-			trusted: false,
-			invalid: true,
-			message: "linter: invalid volume name: _docker_socket",
-		},
 		// user should not be able to mount host path
 		// volumes unless the repository is trusted.
 		{

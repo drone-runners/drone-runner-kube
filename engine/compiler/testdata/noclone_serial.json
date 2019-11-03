@@ -1,5 +1,8 @@
 {
   "platform": {},
+  "pod_spec": {
+    "name": "random"
+  },
   "steps": [
     {
       "id": "random",

@@ -32,9 +32,18 @@ func TestParse(t *testing.T) {
 		},
 		&Pipeline{
 			Kind:    "pipeline",
-			Type:    "docker",
+			Type:    "kubernetes",
 			Name:    "default",
 			Version: "1",
+			Metadata: Metadata{
+				Namespace: "default",
+				Annotations: map[string]string{
+					"foo": "bar",
+				},
+				Labels: map[string]string{
+					"bar": "baz",
+				},
+			},
 			Workspace: Workspace{
 				Path: "/drone/src",
 			},
@@ -45,7 +54,14 @@ func TestParse(t *testing.T) {
 			Clone: manifest.Clone{
 				Depth: 50,
 			},
-			PullSecrets: []string{"dockerconfigjson"},
+			NodeSelector: map[string]string{"foo": "bar"},
+			PullSecrets:  []string{"dockerconfigjson"},
+			Resources: &Resources{
+				Limits: &ResourceObject{
+					CPU:    0.5,
+					Memory: 524288000,
+				},
+			},
 			Trigger: manifest.Conditions{
 				Branch: manifest.Condition{
 					Include: []string{"master"},
@@ -124,7 +140,7 @@ func TestParseNoMatch(t *testing.T) {
 func TestMatch(t *testing.T) {
 	r := &manifest.RawResource{
 		Kind: "pipeline",
-		Type: "docker",
+		Type: "kubernetes",
 	}
 	if match(r) == false {
 		t.Errorf("Expect match, got false")
@@ -132,7 +148,7 @@ func TestMatch(t *testing.T) {
 
 	r = &manifest.RawResource{
 		Kind: "approval",
-		Type: "docker",
+		Type: "kubernetes",
 	}
 	if match(r) == true {
 		t.Errorf("Expect kind mismatch, got true")

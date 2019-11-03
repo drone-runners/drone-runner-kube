@@ -29,21 +29,14 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		IgnoreErr:    strings.EqualFold(src.Failure, "ignore"),
 		IgnoreStderr: false,
 		IgnoreStdout: false,
-		Network:      src.Network,
 		Privileged:   src.Privileged,
 		Pull:         convertPullPolicy(src.Pull),
 		User:         src.User,
 		Secrets:      convertSecretEnv(src.Environment),
 		WorkingDir:   src.WorkingDir,
 
-		//
-		//
-		//
-
-		Networks: nil, // set in compiler.go
-		Volumes:  nil, // set below
-		Devices:  nil, // see below
-		// Resources:    toResources(src), // TODO
+		Volumes: nil, // set below
+		Devices: nil, // see below
 	}
 
 	// appends the volumes to the container def.

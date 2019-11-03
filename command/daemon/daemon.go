@@ -104,9 +104,6 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			Compiler: &compiler.Compiler{
 				Environ:    config.Runner.Environ,
 				Privileged: append(config.Runner.Privileged, compiler.Privileged...),
-				Networks:   config.Runner.Networks,
-				Volumes:    config.Runner.Volumes,
-				// Resources:  nil,
 				Registry: registry.Combine(
 					registry.File(
 						config.Docker.Config,

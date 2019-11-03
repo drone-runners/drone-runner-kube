@@ -290,7 +290,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		dst.Envs = environ.Combine(envs, dst.Envs)
 		dst.Volumes = append(dst.Volumes, mount)
 		dst.Labels = labels
-		setupScript(src, dst, full)
+		setupScript(src, dst, os)
 		setupWorkdir(src, dst, full)
 		spec.Steps = append(spec.Steps, dst)
 

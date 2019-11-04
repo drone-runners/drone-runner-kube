@@ -46,7 +46,9 @@ type execCommand struct {
 	Environ    map[string]string
 	Labels     map[string]string
 	Secrets    map[string]string
+	Namespace  string
 	Config     string
+	Clone      bool
 	Pretty     bool
 	Procs      int64
 	Debug      bool
@@ -123,9 +125,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Privileged: append(c.Privileged, compiler.Privileged...),
 		Secret:     secret.StaticVars(c.Secrets),
 		Registry:   registry.Combine(),
-		// Cloner: "",
-		// Placeholder: "",
-		// Namespace: "",
+		Namespace:  c.Namespace,
 	}
 
 	args := compiler.Args{
@@ -206,6 +206,8 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Repo:   c.Repo,
 		System: c.System,
 	}
+	state.Build.Status = drone.StatusRunning
+	state.Stage.Status = drone.StatusRunning
 
 	// enable debug logging
 	logrus.SetLevel(logrus.WarnLevel)
@@ -266,6 +268,9 @@ func registerExec(app *kingpin.Application) {
 		Default(".drone.yml").
 		FileVar(&c.Source)
 
+	cmd.Flag("clone", "enable cloning").
+		BoolVar(&c.Clone)
+
 	cmd.Flag("secrets", "secret parameters").
 		StringMapVar(&c.Secrets)
 
@@ -286,6 +291,10 @@ func registerExec(app *kingpin.Application) {
 
 	cmd.Flag("kubeconfig", "path to the kubernetes config file").
 		StringVar(&c.Config)
+
+	cmd.Flag("namespace", "default kubernetes namespace").
+		Default("default").
+		StringVar(&c.Namespace)
 
 	cmd.Flag("debug", "enable debug logging").
 		BoolVar(&c.Debug)

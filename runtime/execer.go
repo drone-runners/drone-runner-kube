@@ -90,7 +90,7 @@ func (e *execer) Exec(ctx context.Context, spec *engine.Spec, state *pipeline.St
 	}
 
 	// once pipeline execution completes, notify the state
-	// manageer that all steps are finished.
+	// manager that all steps are finished.
 	state.FinishAll()
 	if err := e.reporter.ReportStage(noContext, state); err != nil {
 		multierror.Append(result, err)

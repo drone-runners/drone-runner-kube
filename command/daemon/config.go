@@ -92,7 +92,7 @@ type Config struct {
 		Rules     map[string][]string `envconfig:"-"`
 		RulesMap  map[string]string   `envconfig:"DRONE_NAMESPACE_RULES"`
 		RulesFile string              `envconfig:"DRONE_NAMESPACE_RULES_FILE"`
-		Default   string              `envconfig:"DRONE_NAMESPACE_DEFAULT"`
+		Default   string              `envconfig:"DRONE_NAMESPACE_DEFAULT" default:"default"`
 	}
 }
 

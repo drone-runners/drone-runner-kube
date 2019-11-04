@@ -5,7 +5,10 @@
 package engine
 
 import (
+	"strings"
+
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -45,10 +48,17 @@ func toVolumes(spec *Spec) []v1.Volume {
 	var volumes []v1.Volume
 	for _, v := range spec.Volumes {
 		if v.EmptyDir != nil {
+			source := &v1.EmptyDirVolumeSource{}
+			if strings.EqualFold(v.EmptyDir.Medium, "memory") {
+				source.Medium = v1.StorageMediumMemory
+				if v.EmptyDir.SizeLimit > int64(0) {
+					source.SizeLimit = resource.NewQuantity(v.EmptyDir.SizeLimit, resource.BinarySI)
+				}
+			}
 			volume := v1.Volume{
 				Name: v.EmptyDir.ID,
 				VolumeSource: v1.VolumeSource{
-					EmptyDir: &v1.EmptyDirVolumeSource{},
+					EmptyDir: source,
 				},
 			}
 			volumes = append(volumes, volume)
@@ -174,6 +184,33 @@ func toVolumeMounts(spec *Spec, step *Step) []v1.VolumeMount {
 	}
 	return volumeMounts
 }
+
+// func toResources(step *engine.Step) v1.ResourceRequirements {
+// 	var resources v1.ResourceRequirements
+// 	if step.Resources != nil && step.Resources.Limits != nil {
+// 		resources.Limits = v1.ResourceList{}
+// 		if step.Resources.Limits.Memory > int64(0) {
+// 			resources.Limits[v1.ResourceMemory] = *resource.NewQuantity(
+// 				step.Resources.Limits.Memory, resource.BinarySI)
+// 		}
+// 		if step.Resources.Limits.CPU > int64(0) {
+// 			resources.Limits[v1.ResourceCPU] = *resource.NewMilliQuantity(
+// 				step.Resources.Limits.CPU, resource.DecimalSI)
+// 		}
+// 	}
+// 	if step.Resources != nil && step.Resources.Requests != nil {
+// 		resources.Requests = v1.ResourceList{}
+// 		if step.Resources.Requests.Memory > int64(0) {
+// 			resources.Requests[v1.ResourceMemory] = *resource.NewQuantity(
+// 				step.Resources.Requests.Memory, resource.BinarySI)
+// 		}
+// 		if step.Resources.Requests.CPU > int64(0) {
+// 			resources.Requests[v1.ResourceCPU] = *resource.NewMilliQuantity(
+// 				step.Resources.Requests.CPU, resource.DecimalSI)
+// 		}
+// 	}
+// 	return resources
+// }
 
 // LookupVolume is a helper function that will lookup
 // the id for a volume.

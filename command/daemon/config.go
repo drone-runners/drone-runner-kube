@@ -43,7 +43,7 @@ type Config struct {
 
 	Runner struct {
 		Name       string            `envconfig:"DRONE_RUNNER_NAME"`
-		Capacity   int               `envconfig:"DRONE_RUNNER_CAPACITY" default:"2"`
+		Capacity   int               `envconfig:"DRONE_RUNNER_CAPACITY" default:"100"`
 		Procs      int64             `envconfig:"DRONE_RUNNER_MAX_PROCS"`
 		Environ    map[string]string `envconfig:"DRONE_RUNNER_ENVIRON"`
 		EnvFile    string            `envconfig:"DRONE_RUNNER_ENV_FILE"`
@@ -79,6 +79,11 @@ type Config struct {
 
 	Docker struct {
 		Config string `envconfig:"DRONE_DOCKER_CONFIG"`
+	}
+
+	Images struct {
+		Clone       string `envconfig:"DRONE_IMAGE_CLONE"`
+		Placeholder string `envconfig:"DRONE_IMAGE_PLACEHOLDER"`
 	}
 }
 

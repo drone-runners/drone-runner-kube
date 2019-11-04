@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 )
 
-const placeHolderImage = "drone/placeholder:1"
-
 // PullPolicy defines the container image pull policy.
 type PullPolicy int
 

@@ -109,6 +109,11 @@ type Compiler struct {
 	// image used to clone the repository when the pipeline
 	// initializes.
 	Cloner string
+
+	// Placeholder provides the default placeholder image
+	// used to sleep the pipeline container until it is ready
+	// for execution.
+	Placeholder string
 }
 
 // Compile compiles the configuration file.
@@ -241,6 +246,11 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		if c.Cloner != "" {
 			step.Image = c.Cloner
 		}
+
+		// override default placeholder image.
+		if c.Placeholder != "" {
+			step.Placeholder = c.Placeholder
+		}
 	}
 
 	// create steps
@@ -258,6 +268,11 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		// automatically skipped.
 		if !src.When.Match(match) {
 			dst.RunPolicy = engine.RunNever
+		}
+
+		// override default placeholder image.
+		if c.Placeholder != "" {
+			dst.Placeholder = c.Placeholder
 		}
 	}
 

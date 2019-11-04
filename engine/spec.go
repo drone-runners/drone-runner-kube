@@ -30,6 +30,7 @@ type (
 		Image        string            `json:"image,omitempty"`
 		Labels       map[string]string `json:"labels,omitempty"`
 		Name         string            `json:"name,omitempty"`
+		Placeholder  string            `json:"placeholder,omitempty"`
 		Privileged   bool              `json:"privileged,omitempty"`
 		Pull         PullPolicy        `json:"pull,omitempty"`
 		RunPolicy    RunPolicy         `json:"run_policy,omitempty"`

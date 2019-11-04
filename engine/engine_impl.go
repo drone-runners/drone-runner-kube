@@ -20,6 +20,8 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
+const placeholderImage = "drone/placeholder:1"
+
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
 	client *kubernetes.Clientset
@@ -38,7 +40,9 @@ func NewFromConfig(path string) (*Kubernetes, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Kubernetes{clientset}, nil
+	return &Kubernetes{
+		client: clientset,
+	}, nil
 }
 
 // NewInCluster returns a new in-cluster engine.
@@ -53,11 +57,13 @@ func NewInCluster() (*Kubernetes, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Kubernetes{clientset}, nil
+	return &Kubernetes{
+		client: clientset,
+	}, nil
 }
 
 // Setup the pipeline environment.
-func (e *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
+func (k *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
 	// TODO(bradrydzewski) revisit how we want to pass sensitive data
 	// to the pipeline contianers.
 	// for _, step := range spec.Steps {
@@ -67,7 +73,7 @@ func (e *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
 	// 	}
 	// }
 
-	_, err := e.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
+	_, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
 	if err != nil {
 		return err
 	}
@@ -76,7 +82,7 @@ func (e *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
 }
 
 // Destroy the pipeline environment.
-func (e *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
+func (k *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
 	// TODO(bradrydzewski) revisit how we want to pass sensitive data
 	// to the pipeline contianers.
 	// for _, step := range spec.Steps {
@@ -86,37 +92,37 @@ func (e *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
 	// 	}
 	// }
 
-	err := e.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
+	err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
 	return err
 }
 
 // Run runs the pipeline step.
-func (e *Kubernetes) Run(ctx context.Context, spec *Spec, step *Step, output io.Writer) (*State, error) {
-	err := e.start(spec, step)
+func (k *Kubernetes) Run(ctx context.Context, spec *Spec, step *Step, output io.Writer) (*State, error) {
+	err := k.start(spec, step)
 	if err != nil {
 		return nil, err
 	}
 
-	err = e.waitForReady(ctx, spec, step)
+	err = k.waitForReady(ctx, spec, step)
 	if err != nil {
 		return nil, err
 	}
 
-	err = e.tail(ctx, spec, step, output)
+	err = k.tail(ctx, spec, step, output)
 	if err != nil {
 		return nil, err
 	}
 
-	return e.waitForTerminated(ctx, spec, step)
+	return k.waitForTerminated(ctx, spec, step)
 }
 
-func (e *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func(e watch.Event) (bool, error)) error {
+func (k *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func(e watch.Event) (bool, error)) error {
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			return e.client.CoreV1().Pods(spec.PodSpec.Namespace).List(metav1.ListOptions{})
+			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).List(metav1.ListOptions{})
 		},
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return e.client.CoreV1().Pods(spec.PodSpec.Namespace).Watch(metav1.ListOptions{})
+			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).Watch(metav1.ListOptions{})
 		},
 	}
 
@@ -135,13 +141,13 @@ func (e *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func
 	return err
 }
 
-func (e *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) error {
-	return e.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
+func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) error {
+	return k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:
 			pod := e.Object.(*v1.Pod)
 			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name == step.ID && cs.Image != placeHolderImage && (cs.State.Running != nil || cs.State.Terminated != nil) {
+				if cs.Name == step.ID && cs.Image != step.Placeholder && (cs.State.Running != nil || cs.State.Terminated != nil) {
 					return true, nil
 				}
 			}
@@ -150,17 +156,17 @@ func (e *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 	})
 }
 
-func (e *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *Step) (*State, error) {
+func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *Step) (*State, error) {
 	state := &State{
 		Exited:    true,
 		OOMKilled: false,
 	}
-	err := e.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
+	err := k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:
 			pod := e.Object.(*v1.Pod)
 			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name == step.ID && cs.Image != placeHolderImage && (cs.State.Terminated != nil) {
+				if cs.Name == step.ID && cs.Image != step.Placeholder && (cs.State.Terminated != nil) {
 					state.ExitCode = int(cs.State.Terminated.ExitCode)
 					return true, nil
 				}
@@ -175,8 +181,8 @@ func (e *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 	return state, nil
 }
 
-func (e *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
-	req := e.client.CoreV1().RESTClient().Get().
+func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
+	req := k.client.CoreV1().RESTClient().Get().
 		Namespace(spec.PodSpec.Namespace).
 		Name(spec.PodSpec.Name).
 		Resource("pods").
@@ -194,9 +200,9 @@ func (e *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 	return err
 }
 
-func (e *Kubernetes) start(spec *Spec, step *Step) error {
+func (k *Kubernetes) start(spec *Spec, step *Step) error {
 	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		pod, err := e.client.CoreV1().Pods(spec.PodSpec.Namespace).Get(spec.PodSpec.Name, metav1.GetOptions{})
+		pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Get(spec.PodSpec.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -207,7 +213,7 @@ func (e *Kubernetes) start(spec *Spec, step *Step) error {
 			}
 		}
 
-		_, err = e.client.CoreV1().Pods(spec.PodSpec.Namespace).Update(pod)
+		_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Update(pod)
 		return err
 	})
 

@@ -104,6 +104,11 @@ type Compiler struct {
 	// Registry returns a list of registry credentials that can be
 	// used to pull private container images.
 	Registry registry.Provider
+
+	// Cloner provides an option to override the default clone
+	// image used to clone the repository when the pipeline
+	// initializes.
+	Cloner string
 }
 
 // Compile compiles the configuration file.
@@ -231,6 +236,11 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		step.Labels = labels
 		step.Volumes = append(step.Volumes, mount)
 		spec.Steps = append(spec.Steps, step)
+
+		// override default clone image.
+		if c.Cloner != "" {
+			step.Image = c.Cloner
+		}
 	}
 
 	// create steps

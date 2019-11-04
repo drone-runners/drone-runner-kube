@@ -168,6 +168,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Variant: args.Pipeline.Platform.Variant,
 			Version: args.Pipeline.Platform.Version,
 		},
+		Secrets: map[string]*engine.Secret{},
 		Volumes: []*engine.Volume{volume},
 	}
 
@@ -319,9 +320,18 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 
 	for _, step := range spec.Steps {
 		for _, s := range step.Secrets {
+			// if the secret was already fetched and stored in the
+			// secret map it can be skipped.
+			if _, ok := spec.Secrets[s.Name]; ok {
+				continue
+			}
 			secret, ok := c.findSecret(ctx, args, s.Name)
 			if ok {
-				s.Data = []byte(secret)
+				spec.Secrets[s.Name] = &engine.Secret{
+					Name: s.Name,
+					Data: secret,
+					Mask: true,
+				}
 			}
 		}
 	}

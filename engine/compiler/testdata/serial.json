@@ -80,8 +80,5 @@
       }
     }
   ],
-  "network": {
-    "id": "random",
-    "labels": {}
-  }
+  "secrets": {}
 }

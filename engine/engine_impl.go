@@ -18,6 +18,8 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 // Kubernetes implements a Kubernetes pipeline engine.
@@ -71,7 +73,12 @@ func (k *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
 	// 	}
 	// }
 
-	_, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
+	_, err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toSecret(spec))
+	if err != nil {
+		return err
+	}
+
+	_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
 	if err != nil {
 		return err
 	}
@@ -90,8 +97,19 @@ func (k *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
 	// 	}
 	// }
 
-	err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
-	return err
+	var result error
+
+	err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	return result
 }
 
 // Run runs the pipeline step.

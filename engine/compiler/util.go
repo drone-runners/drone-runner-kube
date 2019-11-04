@@ -76,16 +76,15 @@ func convertStaticEnv(src map[string]*manifest.Variable) map[string]string {
 // helper function converts the environment variables to a map,
 // returning only inline environment variables not derived from
 // a secret.
-func convertSecretEnv(src map[string]*manifest.Variable) []*engine.Secret {
-	dst := []*engine.Secret{}
+func convertSecretEnv(src map[string]*manifest.Variable) []*engine.SecretVar {
+	dst := []*engine.SecretVar{}
 	for k, v := range src {
 		if v == nil {
 			continue
 		}
 		if strings.TrimSpace(v.Secret) != "" {
-			dst = append(dst, &engine.Secret{
+			dst = append(dst, &engine.SecretVar{
 				Name: v.Secret,
-				Mask: true,
 				Env:  k,
 			})
 		}

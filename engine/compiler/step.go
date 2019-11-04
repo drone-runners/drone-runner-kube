@@ -58,9 +58,8 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		// if the setting parameter is sources from the
 		// secret we create a secret environment variable.
 		if value.Secret != "" {
-			dst.Secrets = append(dst.Secrets, &engine.Secret{
+			dst.Secrets = append(dst.Secrets, &engine.SecretVar{
 				Name: value.Secret,
-				Mask: true,
 				Env:  key,
 			})
 		} else {

@@ -116,25 +116,53 @@ func TestCompile_Secrets(t *testing.T) {
 	}
 
 	ir := compiler.Compile(nocontext, args)
-	got := ir.Steps[0].Secrets
-	want := []*engine.Secret{
-		{
-			Name: "my_password",
-			Env:  "PASSWORD",
-			Data: nil, // secret not found, data nil
-			Mask: true,
-		},
-		{
-			Name: "my_username",
-			Env:  "USERNAME",
-			Data: []byte("octocat"), // secret found
-			Mask: true,
-		},
+
+	// verify the reference to the secrets are stored in the
+	// pipeline step.
+	{
+		got := ir.Steps[0].Secrets
+		want := []*engine.SecretVar{
+			{
+				Name: "my_password",
+				Env:  "PASSWORD",
+				// Data: nil, // secret not found, data nil
+				// Mask: true,
+			},
+			{
+				Name: "my_username",
+				Env:  "USERNAME",
+				// Data: []byte("octocat"), // secret found
+				// Mask: true,
+			},
+		}
+		if diff := cmp.Diff(got, want); len(diff) != 0 {
+			// TODO(bradrydzewski) ordering is not guaranteed. this
+			// unit tests needs to be adjusted accordingly.
+			t.Skipf(diff)
+		}
 	}
-	if diff := cmp.Diff(got, want); len(diff) != 0 {
-		// TODO(bradrydzewski) ordering is not guaranteed. this
-		// unit tests needs to be adjusted accordingly.
-		t.Skipf(diff)
+
+	// verify the secret are stored in the pipeline
+	// specification with the expected value.
+	{
+		got := ir.Secrets
+		want := map[string]*engine.Secret{
+			"my_password": {
+				Name: "my_password",
+				Data: "", // secret not found, data empty
+				Mask: true,
+			},
+			"my_username": {
+				Name: "my_username",
+				Data: "octocat", // secret found
+				Mask: true,
+			},
+		}
+		if diff := cmp.Diff(got, want); len(diff) != 0 {
+			// TODO(bradrydzewski) ordering is not guaranteed. this
+			// unit tests needs to be adjusted accordingly.
+			t.Skipf(diff)
+		}
 	}
 }
 

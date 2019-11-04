@@ -109,11 +109,10 @@ func Test_convertSecretEnv(t *testing.T) {
 		"PASSWORD": &manifest.Variable{Secret: "password"},
 	}
 	envs := convertSecretEnv(vars)
-	want := []*engine.Secret{
+	want := []*engine.SecretVar{
 		{
 			Name: "password",
 			Env:  "PASSWORD",
-			Mask: true,
 		},
 	}
 	if diff := cmp.Diff(envs, want); diff != "" {

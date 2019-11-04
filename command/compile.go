@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/drone-runners/drone-runner-kube/command/internal"
+	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
@@ -33,6 +34,7 @@ type compileCommand struct {
 	Labels     map[string]string
 	Secrets    map[string]string
 	Clone      bool
+	Spec       bool
 	Config     string
 }
 
@@ -97,7 +99,7 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 		Environ:    c.Environ,
 		Labels:     c.Labels,
 		Privileged: append(c.Privileged, compiler.Privileged...),
-		Secret:     secret.StaticVars(c.Secrets),
+		Secret:     secret.Combine(),
 		Registry:   registry.Combine(),
 	}
 
@@ -109,8 +111,14 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 		Repo:     c.Repo,
 		Stage:    c.Stage,
 		System:   c.System,
+		Secret:   secret.StaticVars(c.Secrets),
 	}
 	spec := comp.Compile(nocontext, args)
+
+	if c.Spec {
+		engine.Dump(os.Stdout, spec)
+		return nil
+	}
 
 	// encode the pipeline in json format and print to the
 	// console for inspection.
@@ -147,6 +155,9 @@ func registerCompile(app *kingpin.Application) {
 
 	cmd.Flag("privileged", "privileged docker images").
 		StringsVar(&c.Privileged)
+
+	cmd.Flag("spec", "output the kubernetes spec").
+		BoolVar(&c.Spec)
 
 	// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

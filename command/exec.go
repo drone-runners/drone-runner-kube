@@ -123,6 +123,9 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Privileged: append(c.Privileged, compiler.Privileged...),
 		Secret:     secret.StaticVars(c.Secrets),
 		Registry:   registry.Combine(),
+		// Cloner: "",
+		// Placeholder: "",
+		// Namespace: "",
 	}
 
 	args := compiler.Args{
@@ -133,6 +136,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Repo:     c.Repo,
 		Stage:    c.Stage,
 		System:   c.System,
+		Secret:   secret.StaticVars(c.Secrets),
 	}
 	spec := comp.Compile(nocontext, args)
 

@@ -16,9 +16,9 @@ import (
 
 func TestReplace(t *testing.T) {
 	secrets := []*engine.Secret{
-		{Name: "DOCKER_USERNAME", Data: []byte("octocat"), Mask: false},
-		{Name: "DOCKER_PASSWORD", Data: []byte("correct-horse-batter-staple"), Mask: true},
-		{Name: "DOCKER_EMAIL", Data: []byte(""), Mask: true},
+		{Name: "DOCKER_USERNAME", Data: "octocat", Mask: false},
+		{Name: "DOCKER_PASSWORD", Data: "correct-horse-batter-staple", Mask: true},
+		{Name: "DOCKER_EMAIL", Data: "", Mask: true},
 	}
 
 	buf := new(bytes.Buffer)
@@ -35,8 +35,8 @@ func TestReplace(t *testing.T) {
 // mask, the io.WriteCloser is returned as-is.
 func TestReplaceNone(t *testing.T) {
 	secrets := []*engine.Secret{
-		{Name: "DOCKER_USERNAME", Data: []byte("octocat"), Mask: false},
-		{Name: "DOCKER_PASSWORD", Data: []byte("correct-horse-batter-staple"), Mask: false},
+		{Name: "DOCKER_USERNAME", Data: "octocat", Mask: false},
+		{Name: "DOCKER_PASSWORD", Data: "correct-horse-batter-staple", Mask: false},
 	}
 
 	buf := new(bytes.Buffer)

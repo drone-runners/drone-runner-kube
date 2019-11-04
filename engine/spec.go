@@ -9,10 +9,11 @@ type (
 	// required instructions for reproducible pipeline
 	// execution.
 	Spec struct {
-		PodSpec  PodSpec   `json:"pod_spec,omitempty"`
-		Platform Platform  `json:"platform,omitempty"`
-		Steps    []*Step   `json:"steps,omitempty"`
-		Volumes  []*Volume `json:"volumes,omitempty"`
+		PodSpec  PodSpec            `json:"pod_spec,omitempty"`
+		Platform Platform           `json:"platform,omitempty"`
+		Steps    []*Step            `json:"steps,omitempty"`
+		Volumes  []*Volume          `json:"volumes,omitempty"`
+		Secrets  map[string]*Secret `json:"secrets,omitempty"`
 	}
 
 	// Step defines a pipeline step.
@@ -34,7 +35,7 @@ type (
 		Privileged   bool              `json:"privileged,omitempty"`
 		Pull         PullPolicy        `json:"pull,omitempty"`
 		RunPolicy    RunPolicy         `json:"run_policy,omitempty"`
-		Secrets      []*Secret         `json:"secrets,omitempty"`
+		Secrets      []*SecretVar      `json:"secrets,omitempty"`
 		User         string            `json:"user,omitempty"`
 		Volumes      []*VolumeMount    `json:"volumes,omitempty"`
 		WorkingDir   string            `json:"working_dir,omitempty"`
@@ -51,9 +52,15 @@ type (
 	// Secret represents a secret variable.
 	Secret struct {
 		Name string `json:"name,omitempty"`
-		Env  string `json:"env,omitempty"`
-		Data []byte `json:"data,omitempty"`
+		Data string `json:"data,omitempty"`
 		Mask bool   `json:"mask,omitempty"`
+	}
+
+	// SecretVar represents an environment variable
+	// sources from a secret.
+	SecretVar struct {
+		Name string `json:"name,omitempty"`
+		Env  string `json:"env,omitempty"`
 	}
 
 	// State represents the process state.

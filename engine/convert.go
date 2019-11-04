@@ -87,10 +87,7 @@ func toContainers(spec *Spec) []v1.Container {
 				Privileged: boolptr(s.Privileged),
 			},
 			VolumeMounts: toVolumeMounts(spec, s),
-			Env:          toEnv(s),
-			// TODO(bradrydzewski) revisit how we want to pass sensitive data
-			// to the pipeline contianers.
-			// EnvFrom:      toEnvFrom(s),
+			Env:          toEnv(spec, s),
 		}
 
 		containers = append(containers, container)
@@ -99,22 +96,31 @@ func toContainers(spec *Spec) []v1.Container {
 	return containers
 }
 
-func toEnv(step *Step) []v1.EnvVar {
+func toEnv(spec *Spec, step *Step) []v1.EnvVar {
 	var envVars []v1.EnvVar
 
 	for k, v := range step.Envs {
+		if v == "" {
+			continue
+		}
 		envVars = append(envVars, v1.EnvVar{
 			Name:  k,
 			Value: v,
 		})
 	}
 
-	// TODO(bradrydzewski) revisit how we want to pass sensitive data
-	// to the pipeline contianers.
 	for _, secret := range step.Secrets {
 		envVars = append(envVars, v1.EnvVar{
-			Name:  secret.Env,
-			Value: string(secret.Data),
+			Name: secret.Env,
+			ValueFrom: &v1.EnvVarSource{
+				SecretKeyRef: &v1.SecretKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: spec.PodSpec.Name,
+					},
+					Key:      secret.Name,
+					Optional: boolptr(true),
+				},
+			},
 		})
 	}
 
@@ -142,15 +148,15 @@ func toEnvFrom(step *Step) []v1.EnvFromSource {
 	}
 }
 
-func toSecret(step *Step) *v1.Secret {
+func toSecret(spec *Spec) *v1.Secret {
 	stringData := make(map[string]string)
-	for _, secret := range step.Secrets {
-		stringData[secret.Env] = string(secret.Data)
+	for _, secret := range spec.Secrets {
+		stringData[secret.Name] = secret.Data
 	}
 
 	return &v1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: step.ID,
+			Name: spec.PodSpec.Name,
 		},
 		Type:       "Opaque",
 		StringData: stringData,

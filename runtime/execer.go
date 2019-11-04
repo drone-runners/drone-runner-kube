@@ -170,7 +170,7 @@ func (e *execer) exec(ctx context.Context, state *pipeline.State, spec *engine.S
 
 	// writer used to stream build logs.
 	wc := e.streamer.Stream(noContext, state, step.Name)
-	wc = replacer.New(wc, step.Secrets)
+	wc = replacer.New(wc, toSecretSlice(spec.Secrets))
 
 	// if the step is configured as a daemon, it is detached
 	// from the main process and executed separately.
@@ -239,4 +239,13 @@ func findStep(state *pipeline.State, name string) *drone.Step {
 		}
 	}
 	panic("step not found: " + name)
+}
+
+// helper function converts a map of secrets to a slice.
+func toSecretSlice(src map[string]*engine.Secret) []*engine.Secret {
+	var dst []*engine.Secret
+	for _, v := range src {
+		dst = append(dst, v)
+	}
+	return dst
 }

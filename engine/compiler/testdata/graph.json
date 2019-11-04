@@ -71,6 +71,7 @@
       "working_dir": "/drone/src"
     }
   ],
+  "secrets": {},
   "volumes": [
     {
       "temp": {
@@ -79,9 +80,5 @@
         "labels": {}
       }
     }
-  ],
-  "network": {
-    "id": "random",
-    "labels": {}
-  }
+  ]
 }

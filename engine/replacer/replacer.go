@@ -31,7 +31,7 @@ func New(w io.WriteCloser, secrets []*engine.Secret) io.WriteCloser {
 		}
 		name := strings.ToLower(secret.Name)
 		masked := fmt.Sprintf(maskedf, name)
-		oldnew = append(oldnew, string(secret.Data))
+		oldnew = append(oldnew, secret.Data)
 		oldnew = append(oldnew, masked)
 	}
 	if len(oldnew) == 0 {

@@ -1,0 +1,24 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: write
+  pull: if-not-exists
+  image: alpine
+  volumes:
+  - name: test
+    path: /tmp/memory
+  commands:
+  - ls -la /tmp
+  - ls -la /tmp/memory
+  - touch /tmp/memory/hello.txt
+  - df -T /tmp/memory
+
+volumes:
+- name: test
+  temp:
+    medium: memory

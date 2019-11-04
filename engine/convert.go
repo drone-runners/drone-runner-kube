@@ -100,9 +100,6 @@ func toEnv(spec *Spec, step *Step) []v1.EnvVar {
 	var envVars []v1.EnvVar
 
 	for k, v := range step.Envs {
-		if v == "" {
-			continue
-		}
 		envVars = append(envVars, v1.EnvVar{
 			Name:  k,
 			Value: v,

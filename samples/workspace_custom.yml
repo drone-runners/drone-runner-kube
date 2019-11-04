@@ -1,0 +1,24 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+clone:
+  disable: true
+
+workspace:
+  path: /drone/custom/path
+
+steps:
+- name: write
+  pull: if-not-exists
+  image: alpine
+  commands:
+  - pwd
+  - echo "hello" > greetings.txt
+
+- name: read
+  pull: if-not-exists
+  image: alpine
+  commands:
+  - pwd
+  - cat greetings.txt

@@ -1,0 +1,21 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: write
+  pull: if-not-exists
+  image: alpine
+  commands:
+  - echo "hello" > greetings.txt
+  - df -T /drone/src
+
+- name: read
+  pull: if-not-exists
+  image: alpine
+  commands:
+  - pwd
+  - cat greetings.txt

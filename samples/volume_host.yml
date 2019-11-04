@@ -1,0 +1,35 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: write
+  pull: if-not-exists
+  image: alpine
+  volumes:
+  - name: test
+    path: /tmp
+  commands:
+  - pwd
+  - echo "hello" > /tmp/greetings.txt
+
+- name: read
+  pull: if-not-exists
+  image: alpine
+  volumes:
+  - name: test
+    path: /tmp
+  commands:
+  - pwd
+  - cat /tmp/greetings.txt
+
+# once the pipeline finished, check the host machine
+# to see if exists /tmp/drone/test/greetings.txt
+
+volumes:
+- name: test
+  host:
+    path: /tmp/drone/test

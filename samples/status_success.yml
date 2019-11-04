@@ -1,0 +1,15 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: test
+  pull: if-not-exists
+  image: alpine
+  commands:
+  - echo hello
+  - echo world
+  - exit 0

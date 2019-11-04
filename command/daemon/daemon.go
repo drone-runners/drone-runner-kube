@@ -90,7 +90,10 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 	logrus.AddHook(hook)
 
 	poller := &runtime.Poller{
-		Client: cli,
+		// NOTE the single flight wrapper limits the number
+		// of open requests when polling the queue. This is
+		// an experimental feature and requires further testing.
+		Client: &client.SingleFlight{Client: cli},
 		Runner: &runtime.Runner{
 			Client:   cli,
 			Machine:  config.Runner.Name,

@@ -101,6 +101,20 @@ func TestLint(t *testing.T) {
 			repo:     "octocat/hello-world",
 		},
 		{
+			path:     "testdata/simple.yml",
+			trusted:  false,
+			invalid:  false,
+			patterns: map[string][]string{"default": []string{"*/*"}},
+			repo:     "octocat/hello-world",
+		},
+		{
+			path:     "testdata/simple.yml",
+			trusted:  false,
+			invalid:  false,
+			patterns: map[string][]string{"default": []string{"**"}},
+			repo:     "octocat/hello-world",
+		},
+		{
 			path:     "testdata/simple_ns.yml",
 			trusted:  false,
 			invalid:  false,

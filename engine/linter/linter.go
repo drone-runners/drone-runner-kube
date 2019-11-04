@@ -7,8 +7,8 @@ package linter
 import (
 	"errors"
 	"fmt"
-	"path/filepath"
 
+	"github.com/bmatcuk/doublestar"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 )
 
@@ -136,7 +136,7 @@ func checkNamespace(namespace, name string, mapping map[string][]string) error {
 		return nil
 	}
 	for _, pattern := range patterns {
-		if match, _ := filepath.Match(pattern, name); match {
+		if match, _ := doublestar.Match(pattern, name); match {
 			return nil
 		}
 	}

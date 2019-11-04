@@ -1,0 +1,21 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: test
+  pull: if-not-exists
+  image: redis
+  commands:
+  - sleep 5
+  - redis-cli -h localhost ping
+  - redis-cli -h localhost set FOO bar
+  - redis-cli -h localhost get FOO
+
+services:
+- name: redis
+  pull: if-not-exists
+  image: redis

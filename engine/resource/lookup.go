@@ -13,7 +13,7 @@ import (
 // Lookup returns the named pipeline from the Manifest.
 func Lookup(name string, manifest *manifest.Manifest) (*Pipeline, error) {
 	for _, resource := range manifest.Resources {
-		if resource.GetName() != name {
+		if !isNameMatch(resource.GetName(), name) {
 			continue
 		}
 		if pipeline, ok := resource.(*Pipeline); ok {
@@ -21,4 +21,9 @@ func Lookup(name string, manifest *manifest.Manifest) (*Pipeline, error) {
 		}
 	}
 	return nil, errors.New("resource not found")
+}
+
+// helper function returns true if the name matches.
+func isNameMatch(a, b string) bool {
+	return a == b || (a == "" && b == "default")
 }

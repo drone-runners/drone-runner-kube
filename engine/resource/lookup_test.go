@@ -43,3 +43,20 @@ func TestLookupNotFound(t *testing.T) {
 		t.Errorf("Expect resource not found error")
 	}
 }
+
+func TestNameMatch(t *testing.T) {
+	tests := []struct {
+		a, b  string
+		match bool
+	}{
+		{"a", "b", false},
+		{"a", "a", true},
+		{"", "default", true},
+	}
+	for _, test := range tests {
+		got, want := isNameMatch(test.a, test.b), test.match
+		if got != want {
+			t.Errorf("Expect %q and %q match is %v", test.a, test.b, want)
+		}
+	}
+}

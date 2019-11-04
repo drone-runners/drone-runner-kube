@@ -20,8 +20,6 @@ import (
 	"k8s.io/client-go/util/retry"
 )
 
-const placeholderImage = "drone/placeholder:1"
-
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
 	client *kubernetes.Clientset

@@ -109,7 +109,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 
 	// lint the pipeline and return an error if any
 	// linting rules are broken
-	lint := linter.New()
+	lint := linter.New(nil)
 	opts := linter.Opts{Trusted: c.Repo.Trusted}
 	err = lint.Lint(resource, opts)
 	if err != nil {

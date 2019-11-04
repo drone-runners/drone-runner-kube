@@ -187,7 +187,12 @@ func (s *Runner) Run(ctx context.Context, stage *drone.Stage) error {
 
 	// lint the pipeline configuration and fail the build
 	// if any linting rules are broken.
-	err = s.Linter.Lint(resource, linter.Opts{Trusted: data.Repo.Trusted})
+	err = s.Linter.Lint(resource, linter.Opts{
+		Trusted:   data.Repo.Trusted,
+		Namespace: data.Repo.Namespace,
+		Name:      data.Repo.Name,
+		Slug:      data.Repo.Slug,
+	})
 	if err != nil {
 		log.WithError(err).Error("cannot accept configuration")
 		state.FailAll(err)

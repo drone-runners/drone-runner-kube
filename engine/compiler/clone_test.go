@@ -40,12 +40,13 @@ func TestClone(t *testing.T) {
 	}
 	want := []*engine.Step{
 		{
-			ID:         "random",
-			Image:      "drone/git:latest",
-			Name:       "clone",
-			Pull:       engine.PullDefault,
-			RunPolicy:  engine.RunAlways,
-			WorkingDir: "/drone/src",
+			ID:          "random",
+			Image:       "drone/git:latest",
+			Placeholder: "drone/placeholder:1",
+			Name:        "clone",
+			Pull:        engine.PullDefault,
+			RunPolicy:   engine.RunAlways,
+			WorkingDir:  "/drone/src",
 			Volumes: []*engine.VolumeMount{
 				&engine.VolumeMount{
 					Name: "_workspace",
@@ -83,10 +84,11 @@ func TestCloneDisable(t *testing.T) {
 
 func TestCloneCreate(t *testing.T) {
 	want := &engine.Step{
-		Name:      "clone",
-		Image:     "drone/git:latest",
-		RunPolicy: engine.RunAlways,
-		Envs:      map[string]string{"PLUGIN_DEPTH": "50"},
+		Name:        "clone",
+		Image:       "drone/git:latest",
+		Placeholder: "drone/placeholder:1",
+		RunPolicy:   engine.RunAlways,
+		Envs:        map[string]string{"PLUGIN_DEPTH": "50"},
 	}
 	src := &resource.Pipeline{Clone: manifest.Clone{Depth: 50}}
 	got := createClone(src)

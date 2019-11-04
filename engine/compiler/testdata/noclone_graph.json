@@ -17,6 +17,7 @@
       "labels": {},
       "name": "build",
       "image": "docker.io/library/golang:latest",
+      "placeholder": "drone/placeholder:1",
       "volumes": [
         {
           "name": "_workspace",
@@ -41,6 +42,7 @@
       "labels": {},
       "name": "test",
       "image": "docker.io/library/golang:latest",
+      "placeholder": "drone/placeholder:1",
       "volumes": [
         {
           "name": "_workspace",

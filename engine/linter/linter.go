@@ -7,6 +7,7 @@ package linter
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
 
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 )
@@ -29,30 +30,31 @@ type Opts struct {
 	Trusted   bool
 	Namespace string
 	Name      string
+	Slug      string
 }
 
 // Linter evaluates the pipeline against a set of
 // rules and returns an error if one or more of the
 // rules are broken.
 type Linter struct {
+	patterns map[string][]string
 }
 
 // New returns a new Linter.
-func New() *Linter {
-	return new(Linter)
+func New(patterns map[string][]string) *Linter {
+	return &Linter{patterns: patterns}
 }
 
 // Lint executes the linting rules for the pipeline
 // configuration.
 func (l *Linter) Lint(pipeline *resource.Pipeline, opts Opts) error {
-	return checkPipeline(pipeline, opts.Trusted)
-}
-
-func checkPipeline(pipeline *resource.Pipeline, trusted bool) error {
-	if err := checkSteps(pipeline, trusted); err != nil {
+	if err := checkSteps(pipeline, opts.Trusted); err != nil {
 		return err
 	}
-	if err := checkVolumes(pipeline, trusted); err != nil {
+	if err := checkVolumes(pipeline, opts.Trusted); err != nil {
+		return err
+	}
+	if err := checkNamespace(pipeline.Metadata.Namespace, opts.Slug, l.patterns); err != nil {
 		return err
 	}
 	return nil
@@ -61,9 +63,6 @@ func checkPipeline(pipeline *resource.Pipeline, trusted bool) error {
 func checkSteps(pipeline *resource.Pipeline, trusted bool) error {
 	steps := append(pipeline.Services, pipeline.Steps...)
 	for _, step := range steps {
-		if step == nil {
-			return errors.New("linter: nil step")
-		}
 		if err := checkStep(step, trusted); err != nil {
 			return err
 		}
@@ -123,4 +122,23 @@ func checkEmptyDirVolume(volume *resource.VolumeEmptyDir, trusted bool) error {
 		return errors.New("linter: untrusted repositories cannot mount in-memory volumes")
 	}
 	return nil
+}
+
+func checkNamespace(namespace, name string, mapping map[string][]string) error {
+	if len(mapping) == 0 {
+		return nil
+	}
+	if len(namespace) == 0 {
+		return nil
+	}
+	patterns, ok := mapping[namespace]
+	if !ok {
+		return nil
+	}
+	for _, pattern := range patterns {
+		if match, _ := filepath.Match(pattern, name); match {
+			return nil
+		}
+	}
+	return errors.New("linter: pipeline restricted from using configured namespace")
 }

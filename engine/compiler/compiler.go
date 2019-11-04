@@ -114,6 +114,10 @@ type Compiler struct {
 	// used to sleep the pipeline container until it is ready
 	// for execution.
 	Placeholder string
+
+	// Namespace provides the default kubernetes namespace
+	// when no namespace is provided.
+	Namespace string
 }
 
 // Compile compiles the configuration file.
@@ -165,6 +169,11 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Version: args.Pipeline.Platform.Version,
 		},
 		Volumes: []*engine.Volume{volume},
+	}
+
+	// set default namespace
+	if spec.PodSpec.Namespace == "" {
+		spec.PodSpec.Namespace = c.Namespace
 	}
 
 	// add tolerations

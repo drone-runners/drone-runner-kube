@@ -6,8 +6,10 @@ package daemon
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
 
+	"github.com/buildkite/yaml"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -85,6 +87,13 @@ type Config struct {
 		Clone       string `envconfig:"DRONE_IMAGE_CLONE"`
 		Placeholder string `envconfig:"DRONE_IMAGE_PLACEHOLDER"`
 	}
+
+	Namespace struct {
+		Rules     map[string][]string `envconfig:"-"`
+		RulesMap  map[string]string   `envconfig:"DRONE_NAMESPACE_RULES"`
+		RulesFile string              `envconfig:"DRONE_NAMESPACE_RULES_FILE"`
+		Default   string              `envconfig:"DRONE_NAMESPACE_DEFAULT"`
+	}
 }
 
 func fromEnviron() (Config, error) {
@@ -104,6 +113,25 @@ func fromEnviron() (Config, error) {
 		config.Client.Proto,
 		config.Client.Host,
 	)
+
+	// namespace usage rules can be sourced from a separate
+	// file. These variables are loaded and appended to the map.
+	config.Namespace.Rules = map[string][]string{}
+	if file := config.Namespace.RulesFile; file != "" {
+		out, err := ioutil.ReadFile(file)
+		if err != nil {
+			return config, err
+		}
+		err = yaml.Unmarshal(out, &config.Namespace.Rules)
+		if err != nil {
+			return config, err
+		}
+	}
+	// namespace usage rules can be sourced from a separate
+	// file. These variables are loaded and appended to the map.
+	for k, v := range config.Namespace.RulesMap {
+		config.Namespace.Rules[k] = []string{v}
+	}
 
 	// environment variables can be sourced from a separate
 	// file. These variables are loaded and appended to the

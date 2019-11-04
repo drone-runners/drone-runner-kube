@@ -98,7 +98,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			Client:   cli,
 			Machine:  config.Runner.Name,
 			Reporter: tracer,
-			Linter:   linter.New(),
+			Linter:   linter.New(config.Namespace.Rules),
 			Match: match.Func(
 				config.Limit.Repos,
 				config.Limit.Events,
@@ -108,6 +108,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 				Cloner:      config.Images.Clone,
 				Placeholder: config.Images.Placeholder,
 				Environ:     config.Runner.Environ,
+				Namespace:   config.Namespace.Default,
 				Privileged:  append(config.Runner.Privileged, compiler.Privileged...),
 				Registry: registry.Combine(
 					registry.File(

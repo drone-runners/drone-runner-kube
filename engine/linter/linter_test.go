@@ -14,10 +14,12 @@ import (
 
 func TestLint(t *testing.T) {
 	tests := []struct {
-		path    string
-		trusted bool
-		invalid bool
-		message string
+		path     string
+		trusted  bool
+		invalid  bool
+		message  string
+		repo     string
+		patterns map[string][]string
 	}{
 		{
 			path:    "testdata/simple.yml",
@@ -89,6 +91,38 @@ func TestLint(t *testing.T) {
 			trusted: true,
 			invalid: false,
 		},
+		// linter should verify whether or not a repository can
+		// use a target namespace
+		{
+			path:     "testdata/simple.yml",
+			trusted:  false,
+			invalid:  false,
+			patterns: map[string][]string{"default": []string{"octocat/*"}},
+			repo:     "octocat/hello-world",
+		},
+		{
+			path:     "testdata/simple_ns.yml",
+			trusted:  false,
+			invalid:  false,
+			patterns: map[string][]string{"default": []string{"octocat/*"}},
+			repo:     "octocat/hello-world",
+		},
+		// no matching pattern, ok
+		{
+			path:     "testdata/simple_ns.yml",
+			trusted:  false,
+			invalid:  false,
+			patterns: map[string][]string{"unknown": []string{"octocat/*"}},
+			repo:     "octocat/hello-world",
+		},
+		{
+			path:     "testdata/simple_ns.yml",
+			trusted:  false,
+			invalid:  true,
+			patterns: map[string][]string{"default": []string{"octocat/*"}},
+			repo:     "spaceghost/hello-world",
+			message:  "linter: pipeline restricted from using configured namespace",
+		},
 
 		//
 		// The below checks were moved to the parser, however, we
@@ -127,8 +161,8 @@ func TestLint(t *testing.T) {
 				return
 			}
 
-			lint := New()
-			opts := Opts{Trusted: test.trusted}
+			lint := New(test.patterns)
+			opts := Opts{Trusted: test.trusted, Slug: test.repo}
 			err = lint.Lint(resources.Resources[0].(*resource.Pipeline), opts)
 			if err == nil && test.invalid == true {
 				t.Logf("yaml: %s", test.path)

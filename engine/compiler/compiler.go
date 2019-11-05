@@ -22,6 +22,7 @@ import (
 	"github.com/drone/runner-go/secret"
 
 	"github.com/dchest/uniuri"
+	"github.com/gosimple/slug"
 )
 
 // random generator function
@@ -221,11 +222,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		spec.PodSpec.Annotations = map[string]string{}
 	}
 
-	// set platform if needed
-	if arch == "arm" || arch == "arm64" {
-		spec.PodSpec.Labels["kubernetes.io/arch"] = arch
-	}
-
 	// add tolerations
 	for _, toleration := range args.Pipeline.Tolerations {
 		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{
@@ -279,6 +275,18 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			args.Netrc.Password,
 		)
 	}
+
+	// set platform if needed
+	if arch == "arm" || arch == "arm64" {
+		spec.PodSpec.Labels["kubernetes.io/arch"] = arch
+	}
+
+	// set drone labels
+	spec.PodSpec.Labels["io.drone"] = "true"
+	spec.PodSpec.Labels["io.drone.repo.namespace"] = slug.Make(args.Repo.Namespace)
+	spec.PodSpec.Labels["io.drone.repo.name"] = slug.Make(args.Repo.Name)
+	spec.PodSpec.Labels["io.drone.build.number"] = fmt.Sprint(args.Build.Number)
+	spec.PodSpec.Labels["io.drone.build.event"] = slug.Make(args.Build.Event)
 
 	match := manifest.Match{
 		Action:   args.Build.Action,

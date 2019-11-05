@@ -17,6 +17,7 @@ require (
 	github.com/golang/mock v1.3.1
 	github.com/google/go-cmp v0.3.0
 	github.com/googleapis/gnostic v0.2.0 // indirect
+	github.com/gosimple/slug v1.9.0
 	github.com/hashicorp/go-multierror v1.0.0
 	github.com/joho/godotenv v1.3.0
 	github.com/kelseyhightower/envconfig v1.4.0

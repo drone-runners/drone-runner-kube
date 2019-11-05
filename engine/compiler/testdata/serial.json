@@ -16,6 +16,10 @@
         {
           "name": "_workspace",
           "path": "/drone/src"
+        },
+        {
+          "name": "_statuses",
+          "path": "/etc"
         }
       ],
       "working_dir": "/drone/src"
@@ -41,6 +45,10 @@
         {
           "name": "_workspace",
           "path": "/drone/src"
+        },
+        {
+          "name": "_statuses",
+          "path": "/etc"
         }
       ],
       "working_dir": "/drone/src"
@@ -66,6 +74,10 @@
         {
           "name": "_workspace",
           "path": "/drone/src"
+        },
+        {
+          "name": "_statuses",
+          "path": "/etc"
         }
       ],
       "working_dir": "/drone/src"
@@ -77,6 +89,18 @@
         "id": "random",
         "name": "_workspace",
         "labels": {}
+      }
+    },
+    {
+      "downward_api": {
+        "id": "random",
+        "name": "_statuses",
+        "items": [
+          {
+            "path": "_statuses",
+            "field_path": "metadata.labels"
+          }
+        ]
       }
     }
   ],

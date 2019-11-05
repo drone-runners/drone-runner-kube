@@ -73,8 +73,9 @@ type (
 
 	// Volume that can be mounted by containers.
 	Volume struct {
-		EmptyDir *VolumeEmptyDir `json:"temp,omitempty"`
-		HostPath *VolumeHostPath `json:"host,omitempty"`
+		EmptyDir    *VolumeEmptyDir    `json:"temp,omitempty"`
+		HostPath    *VolumeHostPath    `json:"host,omitempty"`
+		DownwardAPI *VolumeDownwardAPI `json:"downward_api,omitempty"`
 	}
 
 	// VolumeMount describes a mounting of a Volume
@@ -102,6 +103,17 @@ type (
 		Name   string            `json:"name,omitempty"`
 		Path   string            `json:"path,omitempty"`
 		Labels map[string]string `json:"labels,omitempty"`
+	}
+	// VolumeDownwardAPI ...
+	VolumeDownwardAPI struct {
+		ID    string                  `json:"id,omitempty"`
+		Name  string                  `json:"name,omitempty"`
+		Items []VolumeDownwardAPIItem `json:"items,omitempty"`
+	}
+	// VolumeDownwardAPIItem ...
+	VolumeDownwardAPIItem struct {
+		Path      string `json:"path,omitempty"`
+		FieldPath string `json:"field_path,omitempty"`
 	}
 
 	// Auth defines dockerhub authentication credentials.

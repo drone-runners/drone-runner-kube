@@ -77,6 +77,30 @@ func toVolumes(spec *Spec) []v1.Volume {
 			}
 			volumes = append(volumes, volume)
 		}
+
+		if v.DownwardAPI != nil {
+			var items []v1.DownwardAPIVolumeFile
+
+			for _, item := range v.DownwardAPI.Items {
+				items = append(items, v1.DownwardAPIVolumeFile{
+					Path: item.Path,
+					FieldRef: &v1.ObjectFieldSelector{
+						FieldPath: item.FieldPath,
+					},
+				})
+			}
+
+			volume := v1.Volume{
+				Name: v.DownwardAPI.ID,
+				VolumeSource: v1.VolumeSource{
+					DownwardAPI: &v1.DownwardAPIVolumeSource{
+						Items: items,
+					},
+				},
+			}
+
+			volumes = append(volumes, volume)
+		}
 	}
 
 	return volumes
@@ -183,6 +207,7 @@ func toVolumeMounts(spec *Spec, step *Step) []v1.VolumeMount {
 			MountPath: v.Path,
 		})
 	}
+
 	return volumeMounts
 }
 

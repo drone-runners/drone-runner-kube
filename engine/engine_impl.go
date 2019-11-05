@@ -208,6 +208,9 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 		for i, container := range pod.Spec.Containers {
 			if container.Name == step.ID {
 				pod.Spec.Containers[i].Image = step.Image
+				for _, env := range statusesWhiteList {
+					pod.ObjectMeta.Labels[env] = step.Labels[env]
+				}
 			}
 		}
 

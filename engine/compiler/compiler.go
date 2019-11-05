@@ -26,7 +26,7 @@ import (
 
 // random generator function
 var random = func() string {
-	return uniuri.NewLenChars(20, []byte("abcdefghijklmnopqrstuvwxyz0123456789"))
+	return "drone-" + uniuri.NewLenChars(20, []byte("abcdefghijklmnopqrstuvwxyz0123456789"))
 }
 
 // Privileged provides a list of plugins that execute

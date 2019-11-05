@@ -28,14 +28,18 @@ import (
 type compileCommand struct {
 	*internal.Flags
 
-	Source     *os.File
-	Privileged []string
-	Environ    map[string]string
-	Labels     map[string]string
-	Secrets    map[string]string
-	Clone      bool
-	Spec       bool
-	Config     string
+	Source        *os.File
+	Privileged    []string
+	Environ       map[string]string
+	Labels        map[string]string
+	Secrets       map[string]string
+	Clone         bool
+	Spec          bool
+	Config        string
+	LimitCPU      int64
+	LimitMemory   int64
+	RequestCPU    int64
+	RequestMemory int64
 }
 
 func (c *compileCommand) run(*kingpin.ParseContext) error {
@@ -101,6 +105,16 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 		Privileged: append(c.Privileged, compiler.Privileged...),
 		Secret:     secret.Combine(),
 		Registry:   registry.Combine(),
+		Resources: compiler.Resources{
+			Limits: compiler.ResourceObject{
+				CPU:    c.LimitCPU,
+				Memory: c.LimitMemory,
+			},
+			Requests: compiler.ResourceObject{
+				CPU:    c.RequestCPU,
+				Memory: c.RequestMemory,
+			},
+		},
 	}
 
 	args := compiler.Args{
@@ -159,6 +173,18 @@ func registerCompile(app *kingpin.Application) {
 	cmd.Flag("spec", "output the kubernetes spec").
 		BoolVar(&c.Spec)
 
-	// shared pipeline flags
+	cmd.Flag("limit-cpu", "limit container cpu").
+		Int64Var(&c.LimitCPU)
+
+	cmd.Flag("limit-memory", "limit container memory").
+		Int64Var(&c.LimitMemory)
+
+	cmd.Flag("request-cpu", "request container cpu").
+		Int64Var(&c.RequestCPU)
+
+	cmd.Flag("request-memory", "request container memory").
+		Int64Var(&c.RequestMemory)
+
+		// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)
 }

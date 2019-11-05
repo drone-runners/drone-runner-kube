@@ -93,6 +93,7 @@ func toContainers(spec *Spec) []v1.Container {
 			Args:            s.Command,
 			ImagePullPolicy: toPullPolicy(s.Pull),
 			WorkingDir:      s.WorkingDir,
+			Resources:       toResources(s.Resources),
 			SecurityContext: &v1.SecurityContext{
 				Privileged: boolptr(s.Privileged),
 			},
@@ -185,32 +186,32 @@ func toVolumeMounts(spec *Spec, step *Step) []v1.VolumeMount {
 	return volumeMounts
 }
 
-// func toResources(step *engine.Step) v1.ResourceRequirements {
-// 	var resources v1.ResourceRequirements
-// 	if step.Resources != nil && step.Resources.Limits != nil {
-// 		resources.Limits = v1.ResourceList{}
-// 		if step.Resources.Limits.Memory > int64(0) {
-// 			resources.Limits[v1.ResourceMemory] = *resource.NewQuantity(
-// 				step.Resources.Limits.Memory, resource.BinarySI)
-// 		}
-// 		if step.Resources.Limits.CPU > int64(0) {
-// 			resources.Limits[v1.ResourceCPU] = *resource.NewMilliQuantity(
-// 				step.Resources.Limits.CPU, resource.DecimalSI)
-// 		}
-// 	}
-// 	if step.Resources != nil && step.Resources.Requests != nil {
-// 		resources.Requests = v1.ResourceList{}
-// 		if step.Resources.Requests.Memory > int64(0) {
-// 			resources.Requests[v1.ResourceMemory] = *resource.NewQuantity(
-// 				step.Resources.Requests.Memory, resource.BinarySI)
-// 		}
-// 		if step.Resources.Requests.CPU > int64(0) {
-// 			resources.Requests[v1.ResourceCPU] = *resource.NewMilliQuantity(
-// 				step.Resources.Requests.CPU, resource.DecimalSI)
-// 		}
-// 	}
-// 	return resources
-// }
+func toResources(src Resources) v1.ResourceRequirements {
+	var dst v1.ResourceRequirements
+	if src.Limits.Memory > 0 || src.Limits.CPU > 0 {
+		dst.Limits = v1.ResourceList{}
+		if src.Limits.Memory > int64(0) {
+			dst.Limits[v1.ResourceMemory] = *resource.NewQuantity(
+				src.Limits.Memory, resource.BinarySI)
+		}
+		if src.Limits.CPU > int64(0) {
+			dst.Limits[v1.ResourceCPU] = *resource.NewMilliQuantity(
+				src.Limits.CPU, resource.DecimalSI)
+		}
+	}
+	if src.Requests.Memory > 0 || src.Requests.CPU > 0 {
+		dst.Requests = v1.ResourceList{}
+		if src.Requests.Memory > int64(0) {
+			dst.Requests[v1.ResourceMemory] = *resource.NewQuantity(
+				src.Requests.Memory, resource.BinarySI)
+		}
+		if src.Requests.CPU > int64(0) {
+			dst.Requests[v1.ResourceCPU] = *resource.NewMilliQuantity(
+				src.Requests.CPU, resource.DecimalSI)
+		}
+	}
+	return dst
+}
 
 // LookupVolume is a helper function that will lookup
 // the id for a volume.

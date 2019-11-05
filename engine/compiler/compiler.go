@@ -40,85 +40,103 @@ var Privileged = []string{
 	"plugins/heroku",
 }
 
-// Args provides compiler arguments.
-type Args struct {
-	// Manifest provides the parsed manifest.
-	Manifest *manifest.Manifest
+type (
+	// Resources describes the compute resource requirements.
+	Resources struct {
+		Limits   ResourceObject
+		Requests ResourceObject
+	}
 
-	// Pipeline provides the parsed pipeline. This pipeline is
-	// the compiler source and is converted to the intermediate
-	// representation by the Compile method.
-	Pipeline *resource.Pipeline
+	// ResourceObject describes compute resource requirements.
+	ResourceObject struct {
+		CPU    int64
+		Memory int64
+	}
 
-	// Build provides the compiler with stage information that
-	// is converted to environment variable format and passed to
-	// each pipeline step. It is also used to clone the commit.
-	Build *drone.Build
+	// Args provides compiler arguments.
+	Args struct {
+		// Manifest provides the parsed manifest.
+		Manifest *manifest.Manifest
 
-	// Stage provides the compiler with stage information that
-	// is converted to environment variable format and passed to
-	// each pipeline step.
-	Stage *drone.Stage
+		// Pipeline provides the parsed pipeline. This pipeline is
+		// the compiler source and is converted to the intermediate
+		// representation by the Compile method.
+		Pipeline *resource.Pipeline
 
-	// Repo provides the compiler with repo information. This
-	// repo information is converted to environment variable
-	// format and passed to each pipeline step. It is also used
-	// to clone the repository.
-	Repo *drone.Repo
+		// Build provides the compiler with stage information that
+		// is converted to environment variable format and passed to
+		// each pipeline step. It is also used to clone the commit.
+		Build *drone.Build
 
-	// System provides the compiler with system information that
-	// is converted to environment variable format and passed to
-	// each pipeline step.
-	System *drone.System
+		// Stage provides the compiler with stage information that
+		// is converted to environment variable format and passed to
+		// each pipeline step.
+		Stage *drone.Stage
 
-	// Netrc provides netrc parameters that can be used by the
-	// default clone step to authenticate to the remote
-	// repository.
-	Netrc *drone.Netrc
+		// Repo provides the compiler with repo information. This
+		// repo information is converted to environment variable
+		// format and passed to each pipeline step. It is also used
+		// to clone the repository.
+		Repo *drone.Repo
 
-	// Secret returns a named secret value that can be injected
-	// into the pipeline step.
-	Secret secret.Provider
-}
+		// System provides the compiler with system information that
+		// is converted to environment variable format and passed to
+		// each pipeline step.
+		System *drone.System
 
-// Compiler compiles the Yaml configuration file to an
-// intermediate representation optimized for simple execution.
-type Compiler struct {
+		// Netrc provides netrc parameters that can be used by the
+		// default clone step to authenticate to the remote
+		// repository.
+		Netrc *drone.Netrc
 
-	// Environ provides a set of environment variables that
-	// should be added to each pipeline step by default.
-	Environ map[string]string
+		// Secret returns a named secret value that can be injected
+		// into the pipeline step.
+		Secret secret.Provider
+	}
 
-	// Labels provides a set of labels that should be added
-	// to each container by default.
-	Labels map[string]string
+	// Compiler compiles the Yaml configuration file to an
+	// intermediate representation optimized for simple execution.
+	Compiler struct {
 
-	// Privileged provides a list of docker images that
-	// are always privileged.
-	Privileged []string
+		// Environ provides a set of environment variables that
+		// should be added to each pipeline step by default.
+		Environ map[string]string
 
-	// Secret returns a named secret value that can be injected
-	// into the pipeline step.
-	Secret secret.Provider
+		// Labels provides a set of labels that should be added
+		// to each container by default.
+		Labels map[string]string
 
-	// Registry returns a list of registry credentials that can be
-	// used to pull private container images.
-	Registry registry.Provider
+		// Privileged provides a list of docker images that
+		// are always privileged.
+		Privileged []string
 
-	// Cloner provides an option to override the default clone
-	// image used to clone the repository when the pipeline
-	// initializes.
-	Cloner string
+		// Secret returns a named secret value that can be injected
+		// into the pipeline step.
+		Secret secret.Provider
 
-	// Placeholder provides the default placeholder image
-	// used to sleep the pipeline container until it is ready
-	// for execution.
-	Placeholder string
+		// Registry returns a list of registry credentials that can be
+		// used to pull private container images.
+		Registry registry.Provider
 
-	// Namespace provides the default kubernetes namespace
-	// when no namespace is provided.
-	Namespace string
-}
+		// Resources defines resource limits that are applied by
+		// default to all pipeline containers if none exist.
+		Resources Resources
+
+		// Cloner provides an option to override the default clone
+		// image used to clone the repository when the pipeline
+		// initializes.
+		Cloner string
+
+		// Placeholder provides the default placeholder image
+		// used to sleep the pipeline container until it is ready
+		// for execution.
+		Placeholder string
+
+		// Namespace provides the default kubernetes namespace
+		// when no namespace is provided.
+		Namespace string
+	}
+)
 
 // Compile compiles the configuration file.
 func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
@@ -393,6 +411,22 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			continue
 		}
 		spec.Volumes = append(spec.Volumes, src)
+	}
+
+	// apply default resources limits
+	for _, v := range spec.Steps {
+		if v.Resources.Requests.CPU == 0 {
+			v.Resources.Requests.CPU = c.Resources.Requests.CPU
+		}
+		if v.Resources.Requests.Memory == 0 {
+			v.Resources.Requests.Memory = c.Resources.Requests.Memory
+		}
+		if v.Resources.Limits.CPU == 0 {
+			v.Resources.Limits.CPU = c.Resources.Limits.CPU
+		}
+		if v.Resources.Limits.Memory == 0 {
+			v.Resources.Limits.Memory = c.Resources.Limits.Memory
+		}
 	}
 
 	return spec

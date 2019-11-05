@@ -92,6 +92,21 @@ func convertSecretEnv(src map[string]*manifest.Variable) []*engine.SecretVar {
 	return dst
 }
 
+// helper function converts the resource limits structure from the
+// yaml package to the resource limit structure used by the engine.
+func convertResources(src resource.Resources) engine.Resources {
+	return engine.Resources{
+		Limits: engine.ResourceObject{
+			CPU:    src.Limits.CPU,
+			Memory: int64(src.Limits.Memory),
+		},
+		Requests: engine.ResourceObject{
+			CPU:    src.Requests.CPU,
+			Memory: int64(src.Requests.Memory),
+		},
+	}
+}
+
 // helper function modifies the pipeline dependency graph to
 // account for the clone step.
 func configureCloneDeps(spec *engine.Spec) {

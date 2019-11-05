@@ -56,12 +56,6 @@ func TestParse(t *testing.T) {
 			},
 			NodeSelector: map[string]string{"foo": "bar"},
 			PullSecrets:  []string{"dockerconfigjson"},
-			Resources: &Resources{
-				Limits: &ResourceObject{
-					CPU:    0.5,
-					Memory: 524288000,
-				},
-			},
 			Trigger: manifest.Conditions{
 				Branch: manifest.Condition{
 					Include: []string{"master"},
@@ -88,6 +82,12 @@ func TestParse(t *testing.T) {
 					Environment: map[string]*manifest.Variable{
 						"GOOS":   &manifest.Variable{Value: "linux"},
 						"GOARCH": &manifest.Variable{Value: "arm64"},
+					},
+					Resources: Resources{
+						Limits: ResourceObject{
+							CPU:    1000,
+							Memory: 524288000,
+						},
 					},
 					Failure: "ignore",
 					When: manifest.Conditions{

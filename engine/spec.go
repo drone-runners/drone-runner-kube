@@ -19,7 +19,7 @@ type (
 	// Step defines a pipeline step.
 	Step struct {
 		ID           string            `json:"id,omitempty"`
-		Auth         *Auth             `json:"auth,omitempty"`
+		Auth         *Auth             `json:"auth,omitempty"` // TODO remove
 		Command      []string          `json:"args,omitempty"`
 		Detach       bool              `json:"detach,omitempty"`
 		DependsOn    []string          `json:"depends_on,omitempty"`
@@ -33,6 +33,7 @@ type (
 		Name         string            `json:"name,omitempty"`
 		Placeholder  string            `json:"placeholder,omitempty"`
 		Privileged   bool              `json:"privileged,omitempty"`
+		Resources    Resources         `json:"resources,omitempty"`
 		Pull         PullPolicy        `json:"pull,omitempty"`
 		RunPolicy    RunPolicy         `json:"run_policy,omitempty"`
 		Secrets      []*SecretVar      `json:"secrets,omitempty"`
@@ -108,6 +109,18 @@ type (
 		Address  string `json:"address,omitempty"`
 		Username string `json:"username,omitempty"`
 		Password string `json:"password,omitempty"`
+	}
+
+	// Resources describes the compute resource requirements.
+	Resources struct {
+		Limits   ResourceObject `json:"limits,omitempty"`
+		Requests ResourceObject `json:"requests,omitempty"`
+	}
+
+	// ResourceObject describes compute resource requirements.
+	ResourceObject struct {
+		CPU    int64 `json:"cpu"`
+		Memory int64 `json:"memory"`
 	}
 
 	// PodSpec ...

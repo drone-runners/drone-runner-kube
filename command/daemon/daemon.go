@@ -130,6 +130,16 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 						config.Secret.SkipVerify,
 					),
 				),
+				Resources: compiler.Resources{
+					Limits: compiler.ResourceObject{
+						CPU:    config.Resources.LimitCPU,
+						Memory: config.Resources.LimitMemory,
+					},
+					Requests: compiler.ResourceObject{
+						CPU:    config.Resources.RequestCPU,
+						Memory: config.Resources.RequestMemory,
+					},
+				},
 			},
 			Execer: runtime.NewExecer(
 				tracer,

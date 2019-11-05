@@ -45,7 +45,6 @@ type Pipeline struct {
 
 	Metadata           Metadata          `json:"metadata,omitempty"`
 	NodeSelector       map[string]string `json:"node_selector,omitempty"        yaml:"node_selector"`
-	Resources          *Resources        `json:"resources,omitempty"`
 	ServiceAccountName string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
 	Tolerations        []Toleration      `json:"tolerations,omitempty"`
 }
@@ -118,6 +117,7 @@ type (
 		Name        string                         `json:"name,omitempty"`
 		Privileged  bool                           `json:"privileged,omitempty"`
 		Pull        string                         `json:"pull,omitempty"`
+		Resources   Resources                      `json:"resource,omitempty"`
 		Settings    map[string]*manifest.Parameter `json:"settings,omitempty"`
 		Shell       string                         `json:"shell,omitempty"`
 		User        string                         `json:"user,omitempty"`
@@ -162,19 +162,19 @@ type (
 	// Resources describes the compute resource
 	// requirements.
 	Resources struct {
-		// Limits describes the maximum amount of compute
+		// Limit describes the maximum amount of compute
 		// resources allowed.
-		Limits *ResourceObject `json:"limits,omitempty"`
+		Limits ResourceObject `json:"limits,omitempty" yaml:"limits"`
 
-		// Requests describes the minimum amount of
+		// Request describes the minimum amount of
 		// compute resources required.
-		Requests *ResourceObject `json:"requests,omitempty"`
+		Requests ResourceObject `json:"requests,omitempty" yaml:"requests"`
 	}
 
 	// ResourceObject describes compute resource
 	// requirements.
 	ResourceObject struct {
-		CPU    float64            `json:"cpu" yaml:"cpu"`
+		CPU    int64              `json:"cpu" yaml:"cpu"`
 		Memory manifest.BytesSize `json:"memory"`
 	}
 )

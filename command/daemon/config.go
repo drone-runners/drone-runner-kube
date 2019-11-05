@@ -67,6 +67,13 @@ type Config struct {
 		Trusted bool     `envconfig:"DRONE_LIMIT_TRUSTED"`
 	}
 
+	Resources struct {
+		LimitCPU      int64 `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
+		LimitMemory   int64 `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
+		RequestCPU    int64 `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
+		RequestMemory int64 `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
+	}
+
 	Secret struct {
 		Endpoint   string `envconfig:"DRONE_SECRET_PLUGIN_ENDPOINT"`
 		Token      string `envconfig:"DRONE_SECRET_PLUGIN_TOKEN"`

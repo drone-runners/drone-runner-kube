@@ -42,6 +42,10 @@ steps:
   environment:
     GOOS: linux
     GOARCH: arm64
+  resources:
+    limits:
+      cpu: 1000
+      memory: 500MiB
   depends_on: [ clone ]
   when:
     event: [ push ]
@@ -51,11 +55,6 @@ services:
   image: redis:latest
   entrypoint: [ "/bin/redis-server" ]
   command: [ "--debug" ]
-
-resources:
-  limits:
-    cpu: 0.5
-    memory: 500MiB
 
 image_pull_secrets:
 - dockerconfigjson

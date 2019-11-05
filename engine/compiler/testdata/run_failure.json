@@ -26,7 +26,7 @@
         },
         {
           "name": "_statuses",
-          "path": "/etc"
+          "path": "/run/drone"
         }
       ],
       "working_dir": "/drone/src"

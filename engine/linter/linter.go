@@ -7,6 +7,8 @@ package linter
 import (
 	"errors"
 	"fmt"
+	"path/filepath"
+	"strings"
 
 	"github.com/bmatcuk/doublestar"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
@@ -79,8 +81,11 @@ func checkStep(step *resource.Step, trusted bool) error {
 	}
 	for _, mount := range step.Volumes {
 		switch mount.Name {
-		case "workspace", "_workspace", "_docker_socket":
+		case "workspace", "_workspace", "_docker_socket", "env":
 			return fmt.Errorf("linter: invalid volume name: %s", mount.Name)
+		}
+		if strings.HasPrefix(filepath.Clean(mount.MountPath), "/run/drone") {
+			return fmt.Errorf("linter: cannot mount volume at /run/drone")
 		}
 	}
 	return nil
@@ -103,7 +108,7 @@ func checkVolumes(pipeline *resource.Pipeline, trusted bool) error {
 		switch volume.Name {
 		case "":
 			return fmt.Errorf("linter: missing volume name")
-		case "workspace", "_workspace", "_docker_socket", "_statuses":
+		case "workspace", "_workspace", "_docker_socket", "env":
 			return fmt.Errorf("linter: invalid volume name: %s", volume.Name)
 		}
 	}

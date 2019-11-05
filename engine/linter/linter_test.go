@@ -78,6 +78,14 @@ func TestLint(t *testing.T) {
 			trusted: true,
 			invalid: false,
 		},
+		// user should not be trying to mount internal or restricted
+		// volume paths.
+		{
+			path:    "testdata/volume_restricted.yml",
+			trusted: false,
+			invalid: true,
+			message: "linter: cannot mount volume at /run/drone",
+		},
 		// user should not be able to set the securityContext
 		// unless the repository is trusted.
 		{

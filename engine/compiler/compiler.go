@@ -173,8 +173,8 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 
 	// create the statuses volume
 	statusMount := &engine.VolumeMount{
-		Name: "_statuses",
-		Path: "/etc",
+		Name: "env",
+		Path: "/run/drone",
 	}
 
 	// create the statuses DownwardAPI volume
@@ -184,7 +184,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Name: statusMount.Name,
 			Items: []engine.VolumeDownwardAPIItem{
 				{
-					Path:      "_statuses",
+					Path:      "env",
 					FieldPath: "metadata.labels",
 				},
 			},

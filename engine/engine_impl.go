@@ -208,8 +208,11 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 		for i, container := range pod.Spec.Containers {
 			if container.Name == step.ID {
 				pod.Spec.Containers[i].Image = step.Image
+				if pod.ObjectMeta.Labels == nil {
+					pod.ObjectMeta.Labels = map[string]string{}
+				}
 				for _, env := range statusesWhiteList {
-					pod.ObjectMeta.Labels[env] = step.Labels[env]
+					pod.ObjectMeta.Labels[env] = step.Envs[env]
 				}
 			}
 		}
@@ -220,3 +223,5 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 
 	return err
 }
+
+//(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?

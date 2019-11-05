@@ -1,0 +1,18 @@
+---
+kind: pipeline
+type: kubernetes
+name: linux
+
+steps:
+- name: test
+  image: golang
+  commands:
+  - go build
+  - go test
+  volumes:
+  - name: vol
+    path: /run/drone/env
+
+volumes:
+- name: vol
+  temp: {}

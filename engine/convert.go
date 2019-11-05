@@ -249,6 +249,10 @@ func lookupVolumeID(spec *Spec, name string) (string, bool) {
 		if v.HostPath != nil && v.HostPath.Name == name {
 			return v.HostPath.ID, true
 		}
+
+		if v.DownwardAPI != nil && v.DownwardAPI.Name == name {
+			return v.DownwardAPI.ID, true
+		}
 	}
 
 	return "", false

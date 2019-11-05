@@ -53,8 +53,8 @@ func TestClone(t *testing.T) {
 					Path: "/drone/src",
 				},
 				&engine.VolumeMount{
-					Name: "_statuses",
-					Path: "/etc",
+					Name: "env",
+					Path: "/run/drone",
 				},
 			},
 		},

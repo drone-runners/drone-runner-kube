@@ -29,7 +29,6 @@ type (
 		IgnoreStdout bool              `json:"ignore_stderr,omitempty"`
 		IgnoreStderr bool              `json:"ignore_stdout,omitempty"`
 		Image        string            `json:"image,omitempty"`
-		Labels       map[string]string `json:"labels,omitempty"`
 		Name         string            `json:"name,omitempty"`
 		Placeholder  string            `json:"placeholder,omitempty"`
 		Privileged   bool              `json:"privileged,omitempty"`
@@ -89,20 +88,18 @@ type (
 	// host node's filesystem into the container. This can
 	// be used as a shared scratch space.
 	VolumeEmptyDir struct {
-		ID        string            `json:"id,omitempty"`
-		Name      string            `json:"name,omitempty"`
-		Medium    string            `json:"medium,omitempty"`
-		SizeLimit int64             `json:"size_limit,omitempty"`
-		Labels    map[string]string `json:"labels,omitempty"`
+		ID        string `json:"id,omitempty"`
+		Name      string `json:"name,omitempty"`
+		Medium    string `json:"medium,omitempty"`
+		SizeLimit int64  `json:"size_limit,omitempty"`
 	}
 
 	// VolumeHostPath mounts a file or directory from the
 	// host node's filesystem into your container.
 	VolumeHostPath struct {
-		ID     string            `json:"id,omitempty"`
-		Name   string            `json:"name,omitempty"`
-		Path   string            `json:"path,omitempty"`
-		Labels map[string]string `json:"labels,omitempty"`
+		ID   string `json:"id,omitempty"`
+		Name string `json:"name,omitempty"`
+		Path string `json:"path,omitempty"`
 	}
 	// VolumeDownwardAPI ...
 	VolumeDownwardAPI struct {

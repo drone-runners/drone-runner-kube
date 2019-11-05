@@ -166,9 +166,8 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	// create the workspace volume
 	workVolume := &engine.Volume{
 		EmptyDir: &engine.VolumeEmptyDir{
-			ID:     random(),
-			Name:   workMount.Name,
-			Labels: annotations,
+			ID:   random(),
+			Name: workMount.Name,
 		},
 	}
 
@@ -298,7 +297,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		step.ID = random()
 		step.Envs = environ.Combine(envs, step.Envs)
 		step.WorkingDir = workspace
-		step.Labels = annotations
 		step.Volumes = append(step.Volumes, workMount, statusMount)
 		spec.Steps = append(spec.Steps, step)
 
@@ -319,7 +317,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		dst.Detach = true
 		dst.Envs = environ.Combine(envs, dst.Envs)
 		dst.Volumes = append(dst.Volumes, workMount, statusMount)
-		dst.Labels = annotations
 		setupScript(src, dst, os)
 		setupWorkdir(src, dst, workspace)
 		spec.Steps = append(spec.Steps, dst)
@@ -341,7 +338,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		dst := createStep(args.Pipeline, src)
 		dst.Envs = environ.Combine(envs, dst.Envs)
 		dst.Volumes = append(dst.Volumes, workMount, statusMount)
-		dst.Labels = annotations
 		setupScript(src, dst, os)
 		setupWorkdir(src, dst, workspace)
 		spec.Steps = append(spec.Steps, dst)
@@ -431,7 +427,6 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 				Name:      v.Name,
 				Medium:    v.EmptyDir.Medium,
 				SizeLimit: int64(v.EmptyDir.SizeLimit),
-				Labels:    annotations,
 			}
 		} else if v.HostPath != nil {
 			src.HostPath = &engine.VolumeHostPath{

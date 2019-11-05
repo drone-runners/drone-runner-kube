@@ -60,7 +60,7 @@ func TestClone(t *testing.T) {
 		},
 	}
 	got := c.Compile(nocontext, args)
-	ignore := cmpopts.IgnoreFields(engine.Step{}, "Envs", "Labels")
+	ignore := cmpopts.IgnoreFields(engine.Step{}, "Envs")
 	if diff := cmp.Diff(got.Steps, want, ignore); len(diff) != 0 {
 		t.Errorf(diff)
 	}

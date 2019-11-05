@@ -64,6 +64,13 @@ func NewInCluster() (*Kubernetes, error) {
 
 // Setup the pipeline environment.
 func (k *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
+	if spec.PullSecret != nil {
+		_, err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toDockerConfigSecret(spec))
+		if err != nil {
+			return err
+		}
+	}
+
 	_, err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toSecret(spec))
 	if err != nil {
 		return err
@@ -80,6 +87,13 @@ func (k *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
 // Destroy the pipeline environment.
 func (k *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
 	var result error
+
+	if spec.PullSecret != nil {
+		err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PullSecret.Name, &metav1.DeleteOptions{})
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
+	}
 
 	err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
 	if err != nil {

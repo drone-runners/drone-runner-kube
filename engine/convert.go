@@ -27,6 +27,7 @@ func toPod(spec *Spec) *v1.Pod {
 			Containers:         toContainers(spec),
 			NodeSelector:       spec.PodSpec.NodeSelector,
 			Tolerations:        toTolerations(spec),
+			ImagePullSecrets:   toImagePullSecrets(spec),
 		},
 	}
 }
@@ -193,6 +194,28 @@ func toSecret(spec *Spec) *v1.Secret {
 		Type:       "Opaque",
 		StringData: stringData,
 	}
+}
+
+func toDockerConfigSecret(spec *Spec) *v1.Secret {
+	return &v1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: spec.PullSecret.Name,
+		},
+		Type: "kubernetes.io/dockerconfigjson",
+		StringData: map[string]string{
+			".dockerconfigjson": spec.PullSecret.Data,
+		},
+	}
+}
+
+func toImagePullSecrets(spec *Spec) []v1.LocalObjectReference {
+	var pullSecrets []v1.LocalObjectReference
+	if spec.PullSecret != nil {
+		pullSecrets = []v1.LocalObjectReference{{
+			Name: spec.PullSecret.Name,
+		}}
+	}
+	return pullSecrets
 }
 
 func toVolumeMounts(spec *Spec, step *Step) []v1.VolumeMount {

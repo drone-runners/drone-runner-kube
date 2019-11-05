@@ -9,17 +9,17 @@ type (
 	// required instructions for reproducible pipeline
 	// execution.
 	Spec struct {
-		PodSpec  PodSpec            `json:"pod_spec,omitempty"`
-		Platform Platform           `json:"platform,omitempty"`
-		Steps    []*Step            `json:"steps,omitempty"`
-		Volumes  []*Volume          `json:"volumes,omitempty"`
-		Secrets  map[string]*Secret `json:"secrets,omitempty"`
+		PodSpec    PodSpec            `json:"pod_spec,omitempty"`
+		Platform   Platform           `json:"platform,omitempty"`
+		Steps      []*Step            `json:"steps,omitempty"`
+		Volumes    []*Volume          `json:"volumes,omitempty"`
+		Secrets    map[string]*Secret `json:"secrets,omitempty"`
+		PullSecret *Secret            `json:"pull_secrets,omitempty"`
 	}
 
 	// Step defines a pipeline step.
 	Step struct {
 		ID           string            `json:"id,omitempty"`
-		Auth         *Auth             `json:"auth,omitempty"` // TODO remove
 		Command      []string          `json:"args,omitempty"`
 		Detach       bool              `json:"detach,omitempty"`
 		DependsOn    []string          `json:"depends_on,omitempty"`
@@ -111,13 +111,6 @@ type (
 	VolumeDownwardAPIItem struct {
 		Path      string `json:"path,omitempty"`
 		FieldPath string `json:"field_path,omitempty"`
-	}
-
-	// Auth defines dockerhub authentication credentials.
-	Auth struct {
-		Address  string `json:"address,omitempty"`
-		Username string `json:"username,omitempty"`
-		Password string `json:"password,omitempty"`
 	}
 
 	// Resources describes the compute resource requirements.

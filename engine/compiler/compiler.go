@@ -411,17 +411,12 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		}
 	}
 
-	for _, step := range spec.Steps {
-	STEPS:
-		for _, cred := range creds {
-			if image.MatchHostname(step.Image, cred.Address) {
-				step.Auth = &engine.Auth{
-					Address:  cred.Address,
-					Username: cred.Username,
-					Password: cred.Password,
-				}
-				break STEPS
-			}
+	// if registry credentials provides, encode the credentials
+	// as a docker-config-json file and create secret.
+	if len(creds) != 0 {
+		spec.PullSecret = &engine.Secret{
+			Name: random(),
+			Data: auths.Encode(creds...),
 		}
 	}
 

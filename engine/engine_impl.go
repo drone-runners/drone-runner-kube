@@ -212,7 +212,7 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 					pod.ObjectMeta.Labels = map[string]string{}
 				}
 				for _, env := range statusesWhiteList {
-					pod.ObjectMeta.Labels[env] = step.Envs[env]
+					pod.ObjectMeta.Annotations[env] = step.Envs[env]
 				}
 			}
 		}

@@ -186,7 +186,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Items: []engine.VolumeDownwardAPIItem{
 				{
 					Path:      "env",
-					FieldPath: "metadata.labels",
+					FieldPath: "metadata.annotations",
 				},
 			},
 		},

@@ -1,7 +1,9 @@
 {
   "platform": {},
   "pod_spec": {
-    "name": "random"
+    "name": "random",
+    "labels": {},
+    "annotations": {}
   },
   "steps": [
     {

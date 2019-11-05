@@ -141,6 +141,7 @@ type (
 // Compile compiles the configuration file.
 func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	os := args.Pipeline.Platform.OS
+	arch := args.Pipeline.Platform.Arch
 
 	// create the workspace paths
 	workspace := createWorkspace(args.Pipeline)
@@ -210,9 +211,20 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		Volumes: []*engine.Volume{workVolume, statusVolume},
 	}
 
-	// set default namespace
+	// set default namespace and ensure maps are non-nil
 	if spec.PodSpec.Namespace == "" {
 		spec.PodSpec.Namespace = c.Namespace
+	}
+	if spec.PodSpec.Labels == nil {
+		spec.PodSpec.Labels = map[string]string{}
+	}
+	if spec.PodSpec.Annotations == nil {
+		spec.PodSpec.Annotations = map[string]string{}
+	}
+
+	// set platform if needed
+	if arch == "arm" || arch == "arm64" {
+		spec.PodSpec.Labels["kubernetes.io/arch"] = arch
 	}
 
 	// add tolerations

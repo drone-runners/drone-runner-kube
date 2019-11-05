@@ -27,10 +27,19 @@ func Dump(w io.Writer, spec *Spec) {
 	{
 		io.WriteString(w, documentBegin)
 		res := toSecret(spec)
-		// res.Namespace = spec.PodSpec.Namespace
-		// res.Name = spec.PodSpec.Name
-		// res.Kind = "Secret"
-		// res.Type = "Opaque"
+		res.Kind = "Secret"
+		raw, _ := yaml.Marshal(res)
+		w.Write(raw)
+	}
+
+	//
+	// Pull Secret Encoding.
+	//
+
+	if spec.PullSecret != nil {
+		io.WriteString(w, documentBegin)
+		res := toDockerConfigSecret(spec)
+		res.Kind = "Secret"
 		raw, _ := yaml.Marshal(res)
 		w.Write(raw)
 	}
@@ -42,9 +51,7 @@ func Dump(w io.Writer, spec *Spec) {
 	{
 		io.WriteString(w, documentBegin)
 		res := toPod(spec)
-		// res.Namespace = spec.Podspec.Namespace
-		// res.Name = spec.PodSpec.Name
-		// res.Kind = "Pod"
+		res.Kind = "Pod"
 		raw, _ := yaml.Marshal(res)
 		w.Write(raw)
 	}

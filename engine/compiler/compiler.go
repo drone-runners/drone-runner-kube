@@ -173,7 +173,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 
 	// create the statuses volume
 	statusMount := &engine.VolumeMount{
-		Name: "env",
+		Name: "_status",
 		Path: "/run/drone",
 	}
 

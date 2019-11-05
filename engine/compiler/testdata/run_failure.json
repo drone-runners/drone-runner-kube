@@ -25,7 +25,7 @@
           "path": "/drone/src"
         },
         {
-          "name": "_statuses",
+          "name": "_status",
           "path": "/run/drone"
         }
       ],
@@ -43,10 +43,10 @@
     {
       "downward_api": {
         "id": "random",
-        "name": "_statuses",
+        "name": "_status",
         "items": [
           {
-            "path": "_statuses",
+            "path": "env",
             "field_path": "metadata.labels"
           }
         ]

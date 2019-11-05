@@ -49,7 +49,7 @@
         "items": [
           {
             "path": "env",
-            "field_path": "metadata.labels"
+            "field_path": "metadata.annotations"
           }
         ]
       }

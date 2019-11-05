@@ -174,7 +174,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	// create the statuses volume
 	statusMount := &engine.VolumeMount{
 		Name: "_statuses",
-		Path: "/etc/",
+		Path: "/etc",
 	}
 
 	// create the statuses DownwardAPI volume
@@ -287,7 +287,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		step.Envs = environ.Combine(envs, step.Envs)
 		step.WorkingDir = workspace
 		step.Labels = labels
-		step.Volumes = append(step.Volumes, workMount)
+		step.Volumes = append(step.Volumes, workMount, statusMount)
 		spec.Steps = append(spec.Steps, step)
 
 		// override default clone image.
@@ -306,7 +306,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		dst := createStep(args.Pipeline, src)
 		dst.Detach = true
 		dst.Envs = environ.Combine(envs, dst.Envs)
-		dst.Volumes = append(dst.Volumes, workMount)
+		dst.Volumes = append(dst.Volumes, workMount, statusMount)
 		dst.Labels = labels
 		setupScript(src, dst, os)
 		setupWorkdir(src, dst, workspace)
@@ -328,7 +328,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	for _, src := range args.Pipeline.Steps {
 		dst := createStep(args.Pipeline, src)
 		dst.Envs = environ.Combine(envs, dst.Envs)
-		dst.Volumes = append(dst.Volumes, workMount)
+		dst.Volumes = append(dst.Volumes, workMount, statusMount)
 		dst.Labels = labels
 		setupScript(src, dst, os)
 		setupWorkdir(src, dst, workspace)

@@ -103,7 +103,7 @@ func checkVolumes(pipeline *resource.Pipeline, trusted bool) error {
 		switch volume.Name {
 		case "":
 			return fmt.Errorf("linter: missing volume name")
-		case "workspace", "_workspace", "_docker_socket":
+		case "workspace", "_workspace", "_docker_socket", "_statuses":
 			return fmt.Errorf("linter: invalid volume name: %s", volume.Name)
 		}
 	}

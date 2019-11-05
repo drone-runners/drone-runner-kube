@@ -9,6 +9,15 @@ import (
 	"encoding/json"
 )
 
+var statusesWhiteList = []string{
+	"DRONE_FAILED_STEPS",
+	"DRONE_FAILED_STAGES",
+	"DRONE_STAGE_STATUS",
+	"DRONE_BUILD_STATUS",
+	"DRONE_BUILD_FINISHED",
+	"DRONE_STAGE_FINISHED",
+}
+
 // PullPolicy defines the container image pull policy.
 type PullPolicy int
 

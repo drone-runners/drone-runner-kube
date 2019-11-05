@@ -157,17 +157,37 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	)
 
 	// create the workspace mount
-	mount := &engine.VolumeMount{
+	workMount := &engine.VolumeMount{
 		Name: "_workspace",
 		Path: workspace,
 	}
 
 	// create the workspace volume
-	volume := &engine.Volume{
+	workVolume := &engine.Volume{
 		EmptyDir: &engine.VolumeEmptyDir{
 			ID:     random(),
-			Name:   mount.Name,
+			Name:   workMount.Name,
 			Labels: labels,
+		},
+	}
+
+	// create the statuses volume
+	statusMount := &engine.VolumeMount{
+		Name: "_statuses",
+		Path: "/etc/",
+	}
+
+	// create the statuses DownwardAPI volume
+	statusVolume := &engine.Volume{
+		DownwardAPI: &engine.VolumeDownwardAPI{
+			ID:   random(),
+			Name: statusMount.Name,
+			Items: []engine.VolumeDownwardAPIItem{
+				{
+					Path:      "_statuses",
+					FieldPath: "metadata.labels",
+				},
+			},
 		},
 	}
 
@@ -187,7 +207,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Version: args.Pipeline.Platform.Version,
 		},
 		Secrets: map[string]*engine.Secret{},
-		Volumes: []*engine.Volume{volume},
+		Volumes: []*engine.Volume{workVolume, statusVolume},
 	}
 
 	// set default namespace
@@ -230,10 +250,10 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	envs["DRONE_WORKSPACE"] = workspace
 
 	// create volume reference variables
-	if volume.EmptyDir != nil {
-		envs["DRONE_DOCKER_VOLUME_ID"] = volume.EmptyDir.ID
+	if workVolume.EmptyDir != nil {
+		envs["DRONE_DOCKER_VOLUME_ID"] = workVolume.EmptyDir.ID
 	} else {
-		envs["DRONE_DOCKER_VOLUME_PATH"] = volume.HostPath.Path
+		envs["DRONE_DOCKER_VOLUME_PATH"] = workVolume.HostPath.Path
 	}
 
 	// create the netrc environment variables
@@ -267,7 +287,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		step.Envs = environ.Combine(envs, step.Envs)
 		step.WorkingDir = workspace
 		step.Labels = labels
-		step.Volumes = append(step.Volumes, mount)
+		step.Volumes = append(step.Volumes, workMount)
 		spec.Steps = append(spec.Steps, step)
 
 		// override default clone image.
@@ -286,7 +306,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		dst := createStep(args.Pipeline, src)
 		dst.Detach = true
 		dst.Envs = environ.Combine(envs, dst.Envs)
-		dst.Volumes = append(dst.Volumes, mount)
+		dst.Volumes = append(dst.Volumes, workMount)
 		dst.Labels = labels
 		setupScript(src, dst, os)
 		setupWorkdir(src, dst, workspace)
@@ -308,7 +328,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	for _, src := range args.Pipeline.Steps {
 		dst := createStep(args.Pipeline, src)
 		dst.Envs = environ.Combine(envs, dst.Envs)
-		dst.Volumes = append(dst.Volumes, mount)
+		dst.Volumes = append(dst.Volumes, workMount)
 		dst.Labels = labels
 		setupScript(src, dst, os)
 		setupWorkdir(src, dst, workspace)

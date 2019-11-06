@@ -1,0 +1,10 @@
+baseURL: https://docker-runner.docs.drone.io
+languageCode: en-us
+title: Drone Docker Runner
+theme: drone-hugo-theme
+
+pygmentsUseClasses: true
+pygmentsCodefences: true
+
+outputs:
+  home: ["HTML", "JSON"]

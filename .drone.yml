@@ -1,0 +1,31 @@
+kind: pipeline
+type: docker
+name: documentation
+
+steps:
+- name: download
+  image: alpine/git
+  pull: if-not-exists
+  commands:
+  - git clone https://github.com/drone/drone-hugo-theme.git themes/drone-hugo-theme
+
+- name: build
+  image: plugins/hugo
+  settings:
+    hugo_version: 0.55.6
+    config: config.yaml
+
+- name: publish
+  image: lucap/drone-netlify
+  settings:
+    path: ./public
+    site_id:
+      from_secret: netlify_site_id
+    token:
+      from_secret: netlify_token
+
+trigger:
+  branch:
+  - none
+  event:
+  - push

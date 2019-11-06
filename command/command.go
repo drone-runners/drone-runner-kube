@@ -22,7 +22,7 @@ var nocontext = context.Background()
 // Command parses the command line arguments and then executes a
 // subcommand program.
 func Command() {
-	app := kingpin.New("drone", "drone exec runner")
+	app := kingpin.New("drone", "drone kubernetes runner")
 	registerCompile(app)
 	registerExec(app)
 	daemon.Register(app)

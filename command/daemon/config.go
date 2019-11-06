@@ -70,8 +70,8 @@ type Config struct {
 	Resources struct {
 		LimitCPU      int64 `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
 		LimitMemory   int64 `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
-		RequestCPU    int64 `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
-		RequestMemory int64 `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
+		RequestCPU    int64 `envconfig:"DRONE_RESOURCE_REQUEST_CPU"`
+		RequestMemory int64 `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY"`
 	}
 
 	Secret struct {

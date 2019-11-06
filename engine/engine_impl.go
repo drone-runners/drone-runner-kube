@@ -158,11 +158,15 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:
 			pod, ok := e.Object.(*v1.Pod)
-			if ok {
-				for _, cs := range pod.Status.ContainerStatuses {
-					if cs.Name == step.ID && cs.Image != step.Placeholder && (cs.State.Running != nil || cs.State.Terminated != nil) {
-						return true, nil
-					}
+			if !ok || pod.ObjectMeta.Name != spec.PodSpec.Name {
+				return false, nil
+			}
+			for _, cs := range pod.Status.ContainerStatuses {
+				if cs.Name != step.ID {
+					continue
+				}
+				if (cs.Image != step.Placeholder && cs.State.Running != nil) || (cs.State.Terminated != nil) {
+					return true, nil
 				}
 			}
 		}
@@ -178,9 +182,15 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 	err := k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:
-			pod := e.Object.(*v1.Pod)
+			pod, ok := e.Object.(*v1.Pod)
+			if !ok || pod.ObjectMeta.Name != spec.PodSpec.Name {
+				return false, nil
+			}
 			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name == step.ID && cs.Image != step.Placeholder && (cs.State.Terminated != nil) {
+				if cs.Name != step.ID {
+					continue
+				}
+				if cs.State.Terminated != nil {
 					state.ExitCode = int(cs.State.Terminated.ExitCode)
 					return true, nil
 				}

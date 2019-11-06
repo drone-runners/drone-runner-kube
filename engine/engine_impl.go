@@ -164,9 +164,6 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 						return true, nil
 					}
 				}
-				if pod.Status.Phase == v1.PodFailed {
-					return true, nil
-				}
 			}
 		}
 		return false, nil
@@ -178,7 +175,6 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 		Exited:    true,
 		OOMKilled: false,
 	}
-	println("WAIT FOR TERMINATED")
 	err := k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:

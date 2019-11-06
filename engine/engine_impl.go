@@ -157,9 +157,14 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 	return k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:
-			pod := e.Object.(*v1.Pod)
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name == step.ID && cs.Image != step.Placeholder && (cs.State.Running != nil || cs.State.Terminated != nil) {
+			pod, ok := e.Object.(*v1.Pod)
+			if ok {
+				for _, cs := range pod.Status.ContainerStatuses {
+					if cs.Name == step.ID && cs.Image != step.Placeholder && (cs.State.Running != nil || cs.State.Terminated != nil) {
+						return true, nil
+					}
+				}
+				if pod.Status.Phase == v1.PodFailed {
 					return true, nil
 				}
 			}
@@ -173,6 +178,7 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 		Exited:    true,
 		OOMKilled: false,
 	}
+	println("WAIT FOR TERMINATED")
 	err := k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:

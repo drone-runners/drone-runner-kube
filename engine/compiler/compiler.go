@@ -12,6 +12,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 
+	"github.com/asaskevich/govalidator"
 	"github.com/drone/drone-go/drone"
 	"github.com/drone/runner-go/clone"
 	"github.com/drone/runner-go/environ"
@@ -319,6 +320,8 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		}
 	}
 
+	var hostnames []string
+
 	// create steps
 	for _, src := range args.Pipeline.Services {
 		dst := createStep(args.Pipeline, src)
@@ -338,6 +341,19 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		// override default placeholder image.
 		if c.Placeholder != "" {
 			dst.Placeholder = c.Placeholder
+		}
+
+		if govalidator.IsHost(src.Name) {
+			hostnames = append(hostnames, src.Name)
+		}
+	}
+
+	if len(hostnames) > 0 {
+		spec.PodSpec.HostAliases = []engine.HostAlias{
+			{
+				IP:        "127.0.0.1",
+				Hostnames: hostnames,
+			},
 		}
 	}
 

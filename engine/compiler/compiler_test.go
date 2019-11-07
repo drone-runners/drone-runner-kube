@@ -40,6 +40,11 @@ func TestCompile_Serial(t *testing.T) {
 	testCompile(t, "testdata/serial.yml", "testdata/serial.json")
 }
 
+// This test verifies the pipeline services.
+func TestCompile_Services(t *testing.T) {
+	testCompile(t, "testdata/service.yml", "testdata/service.json")
+}
+
 // This test verifies the pipeline dependency graph. It also
 // verifies that pipeline steps with no dependencies depend on
 // the initial clone step.

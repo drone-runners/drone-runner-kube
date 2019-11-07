@@ -16,6 +16,7 @@ In the below example we demonstrate a pipeline that launches a Docker service co
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

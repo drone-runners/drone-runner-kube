@@ -12,10 +12,11 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Basic Example
 
-In the below example we demonstrate a pipeline that launches a rethinkdb service container. The database server will be available at `database:28015`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a rethinkdb service container. The server can be reached at `localhost:28015`.
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -23,60 +24,9 @@ steps:
   image: node:9
   commands:
   - npm install -s -g recli
-  - recli -h database -j 'r.db("rethinkdb").table("stats")'
+  - recli -h database -j 'r.db("localhost").table("stats")'
 
 services:
 - name: database
   image: rethinkdb:2
-  command: [ rethinkdb, --bind, all ]
-  ports:
-  - 28015
-```
-
-# Common Problems
-
-## Incorrect Hostname
-
-You cannot use `127.0.0.1` or `localhost` to connect with the database. If you are unable to connect please verify you are using the correct hostname, corresponding with the container name. 
-
-Bad:
-
-```
-kind: pipeline
-name: default
-
-steps:
-- name: test
-  image: node:9
-  commands:
-  - npm install -s -g recli
-  - recli -h localhost -j 'r.db("rethinkdb").table("stats")'
-
-services:
-- name: database
-  image: rethinkdb:2
-  command: [ rethinkdb, --bind, all ]
-  ports:
-  - 28015
-```
-
-Good:
-
-```
-kind: pipeline
-name: default
-
-steps:
-- name: test
-  image: node:9
-  commands:
-  - npm install -s -g recli
-  - recli -h database -j 'r.db("rethinkdb").table("stats")'
-
-services:
-- name: database
-  image: rethinkdb:2
-  command: [ rethinkdb, --bind, all ]
-  ports:
-  - 28015
 ```

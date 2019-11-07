@@ -9,7 +9,7 @@ draft: true
 
 ```
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

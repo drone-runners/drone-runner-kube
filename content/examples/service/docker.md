@@ -16,6 +16,7 @@ In the below example we demonstrate a pipeline that connects to the host machine
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

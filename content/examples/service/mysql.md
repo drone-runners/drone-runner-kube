@@ -13,10 +13,11 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Basic Example
 
-In the below example we demonstrate a pipeline that launches a MySQL service container. The database server will be available at `database:3306`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a MySQL service container. The server will be available at `localhost:3306`.
 
-{{< highlight yaml "hl_lines=10-16" >}}
+{{< highlight yaml "linenos=table,hl_lines=11-17" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -24,13 +25,11 @@ steps:
   image: mysql
   commands:
   - sleep 15
-  - mysql -u root -h database --execute="SELECT VERSION();"
+  - mysql -u root --execute="SELECT VERSION();"
 
 services:
 - name: database
   image: mysql
-  ports:
-  - 3306
   environment:
     MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
     MYSQL_DATABASE: test
@@ -44,8 +43,6 @@ If you need to start the mysql container with additional runtime options you can
 services:
 - name: database
   image: mysql
-  ports:
-  - 3306
   entrypoint: [ "mysqld" ]
   command: [ "--character-set-server=utf8mb4" ]
 ```
@@ -56,12 +53,10 @@ The official MySQL image provides environment variables used at startup
 to create the default username, password, database and more. Please see the
 official image [documentation](https://hub.docker.com/_/mysql/) for more details.
 
-{{< highlight yaml "hl_lines=4-6" >}}
+{{< highlight yaml "linenos=table,hl_lines=4-6" >}}
 services:
 - name: database
   image: mysql
-  ports:
-  - 3306
   environment:
     MYSQL_DATABASE: test
     MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
@@ -69,14 +64,13 @@ services:
 
 # Common Problems
 
-## Initialization
-
 If you are unable to connect to the MySQL container please make sure you
 are giving MySQL adequate time to initialize and begin accepting
 connections.
 
-{{< highlight yaml "hl_lines=8" >}}
+{{< highlight yaml "linenos=table,hl_lines=9" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -86,34 +80,3 @@ steps:
   - sleep 15
   - mysql -u root -h database
 {{< / highlight >}}
-
-## Incorrect Hostname
-
-You cannot use `127.0.0.1` or `localhost` to connect with the Mysql container. If you are unable to connect to Mysql please verify you are using the correct hostname, corresponding with the name of the mysql service container. 
-
-Bad:
-
-```
-steps:
-- name: test
-  image: mysql
-  commands:
-  - sleep 15
-  - mysql -u root -h localhost
-```
-
-Good:
-
-```
-steps:
-- name: test
-  image: mysql
-  commands:
-  - sleep 15
-  - mysql -u root -h database
-
-services:
-- name: database
-  image: mysql
-```
-

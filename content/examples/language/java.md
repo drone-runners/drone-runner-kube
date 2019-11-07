@@ -17,6 +17,7 @@ In the below example we demonstrate a pipeline that executes `mvn install` and `
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

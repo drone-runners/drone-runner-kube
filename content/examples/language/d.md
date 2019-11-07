@@ -15,6 +15,7 @@ In the below example we demonstrate a pipeline that executes `dub test` command 
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

@@ -14,6 +14,7 @@ In the below example we demonstrate a pipeline that executes the `lein test` com
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

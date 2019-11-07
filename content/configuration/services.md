@@ -12,7 +12,7 @@ Drone supports launching detached service containers as part of your pipeline. T
 
 {{< highlight text "linenos=table,hl_lines=5-7" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 services:
@@ -20,18 +20,18 @@ services:
   image: redis
 {{< / highlight >}}
 
-Service containers are reachable at a hostname identical to the container name. In our previous example, the redis container name is _cache_, and can be accessed from the pipeline at `tcp://redis:6379`
+Service containers share the same network as your pipeline steps and can be access at the localhost address. In our previous example, the redis container can be accessed from the pipeline at `tcp://127.0.0.1:6379`
 
 {{< highlight text "linenos=table,hl_lines=9" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:
 - name: ping
   image: redis
   commands:
-  - redis-cli -h cache ping
+  - redis-cli -h 127.0.0.1 ping
 
 services:
 - name: cache
@@ -44,8 +44,9 @@ It is important to note the service container exit code is ignored, and a non-ze
 
 Services can also be defined directly in the pipeline, as detached pipeline steps. This can be useful when you need direct control over when the service is started, relative to other steps in your pipeline.
 
-{{< highlight text "linenos=table,hl_lines=7" >}}
+{{< highlight text "linenos=table,hl_lines=8" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -56,33 +57,12 @@ steps:
 - name: ping
   image: redis
   commands:
-  - redis-cli -h cache ping
+  - redis-cli ping
 {{< / highlight >}}
 
 # Common Problems
 
 This section highlights some common problems that users encounter when configuring services. If you continue to experience issues please also check the faq. You might also want to compare your yaml to our example service configurations.
-
-## Incorrect Hostname
-
-It is import to remember that you cannot use the `localhost` or `127.0.0.1` address to connect to services from your pipeline. Service containers are assigned their own IP address and hostname. The hostname is based on the service container name.
-
-{{< highlight patch >}}
-kind: pipeline
-type: docker
-name: default
-
-steps:
-  - name: ping
-    image: redis
-    commands:
--   - redis-cli -h 127.0.0.1 ping
-+   - redis-cli -h cache ping
-
-services:
-  - name: cache
-    image: redis
-{{< / highlight >}}
 
 ## Initialization
 
@@ -92,7 +72,7 @@ Be sure to give the service adequate time to initialize before attempting to con
 
 {{< highlight patch >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

@@ -17,6 +17,7 @@ In the below example we demonstrate a pipeline that executes `sbt` commands. The
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -36,6 +37,7 @@ You can use Drone's multi-pipeline feature to concurrently test against multiple
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: scala211
 
 steps:
@@ -47,6 +49,7 @@ steps:
 
 ---
 kind: pipeline
+type: kubernetes
 name: scala210
 
 steps:
@@ -64,6 +67,7 @@ If you find this syntax too verbose we recommend using jsonnet. If you are unfam
 ```
 local Pipeline(name, image) = {
   kind: "pipeline",
+  type: "kubernetes",
   name: name,
   steps: [
     {

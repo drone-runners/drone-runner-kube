@@ -15,6 +15,7 @@ In the below example we demonstrate a pipeline that executes `R` commands to ins
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

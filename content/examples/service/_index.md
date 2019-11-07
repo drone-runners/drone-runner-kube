@@ -4,7 +4,7 @@ title: Services
 author: bradrydzewski
 weight: 2
 layout: list_li
-hide_children: true
+hide_children: false
 description: |
   Example pipelines for popular programming languages.
 ---

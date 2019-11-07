@@ -11,7 +11,7 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Basic Example
 
-In the below example we demonstrate a pipeline that launches a Nats service container. The nats service will be available at `nats:4222`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a Nats service container. The service will be available at `localhost:4222`.
 
 ```
 kind: pipeline
@@ -22,13 +22,10 @@ steps:
   image: ruby:2
   commands:
   - gem install nats
-  - nats-pub -s tcp://nats:4222 greeting 'hello'
-  - nats-pub -s tcp://nats:4222 greeting 'world'
+  - nats-pub greeting 'hello'
+  - nats-pub greeting 'world'
 
 services:
 - name: nats
   image: nats:1.3.0
-  ports:
-  - 4222
-  - 8222
 ```

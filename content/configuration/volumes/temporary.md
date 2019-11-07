@@ -12,7 +12,7 @@ Temporary mounts are docker volumes that are created before the pipeline stars a
 
 {{< highlight text "linenos=table,hl_lines=8-10 17-19 23-25" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

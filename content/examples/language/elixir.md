@@ -15,6 +15,7 @@ In the below example we demonstrate a pipeline that executes a series of `mix` c
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -35,6 +36,7 @@ If you decide to split your pipeline into multiple steps you need to make sure e
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -68,6 +70,7 @@ You can use Drone's multi-pipeline feature to concurrently test against multiple
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: elixir-1-5
 
 steps:
@@ -81,6 +84,7 @@ steps:
 
 ---
 kind: pipeline
+type: kubernetes
 name: elixir-1-4
 
 steps:
@@ -100,6 +104,7 @@ If you find this syntax too verbose we recommend using jsonnet. If you are unfam
 ```
 local Pipeline(name, image) = {
   kind: "pipeline",
+  type: "kubernetes",
   name: name,
   steps: [
     {

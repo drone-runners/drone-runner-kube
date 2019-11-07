@@ -12,17 +12,18 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Example
 
-In the below example we demonstrate a pipeline that launches a vault service container. The vault server will be available at `vault:8200`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a vault service container. The server can be reached at `localhost:8200`
 
 ```
 kind: pipeline
+type: kubernetes
 step: default
 
 steps:
 - name: test
   image: vault:1.0.0-beta2
   environment:
-    VAULT_ADDR: http://vault:8200
+    VAULT_ADDR: http://localhost:8200
     VAULT_TOKEN: dummy
   commands:
   - sleep 5
@@ -34,6 +35,4 @@ services:
   image: vault:1.0.0-beta2
   environment:
     VAULT_DEV_ROOT_TOKEN_ID: dummy
-  ports:
-  - 8200
 ```

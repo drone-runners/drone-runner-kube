@@ -14,7 +14,7 @@ Example commit substitution:
 
 {{< highlight text "linenos=table,hl_lines=9" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

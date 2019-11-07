@@ -9,7 +9,7 @@ description: |
   Configure the administrative dashboard.
 ---
 
-The Docker runner features a user interface (web interface) for read only access to recent runtime information and log activity. The user interface simplifies troubleshooting and access to system information.
+The Kubernetes runner features a user interface (web interface) for read only access to recent runtime information and log activity. The user interface simplifies troubleshooting and access to system information.
 
 ![runner dashboard](../../../screenshots/runner_dashboard.png)
 

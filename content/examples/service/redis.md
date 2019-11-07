@@ -13,10 +13,11 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Basic Example
 
-In the below example we demonstrate a pipeline that launches a Redis service container. The database server will be available at `redis:6379`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a Redis service container. The server can be reached at `localhost:6379`.
 
-{{< highlight yaml "hl_lines=13-15" >}}
+{{< highlight yaml "linenos=table,hl_lines=13-16" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -24,27 +25,24 @@ steps:
   image: redis
   commands:
   - sleep 5
-  - redis-cli -h redis ping
-  - redis-cli -h redis set FOO bar
-  - redis-cli -h redis get FOO
+  - redis-cli -h localhost ping
+  - redis-cli -h localhost set FOO bar
+  - redis-cli -h localhost get FOO
 
 services:
 - name: redis
   image: redis
-  ports:
-  - 6379
 {{< / highlight >}}
 
 # Common Problems
 
-## Initialization
-
-If you are unable to connect to the Postgres container please make sure you
-are giving Postgres adequate time to initialize and begin accepting
+If you are unable to connect to the Redis container please make sure you
+are giving Redis adequate time to initialize and begin accepting
 connections.
 
-{{< highlight yaml "hl_lines=8" >}}
+{{< highlight yaml "linenos=table,hl_lines=9" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -52,32 +50,5 @@ steps:
   image: redis
   commands:
   - sleep 15
-  - redis-cli -h redis ping
-{{< / highlight >}}
-
-## Incorrect Hostname
-
-You cannot use `127.0.0.1` or `localhost` to connect with the Redis container. If you are unable to connect to the Redis container please verify you are using the correct hostname, corresponding with the name of the redis service container. 
-
-Bad:
-
-```
-steps:
-- name: test
-  image: redis
-  commands:
-  - sleep 15
   - redis-cli -h localhost ping
-```
-
-Good:
-
-```
-steps:
-- name: test
-  image: redis
-  commands:
-  - sleep 15
-  - redis-cli -h redis ping
-```
-
+{{< / highlight >}}

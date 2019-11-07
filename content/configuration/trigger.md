@@ -14,7 +14,7 @@ Example limits pipeline execution by branch:
 
 {{< highlight text "linenos=table,hl_lines=12-14" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

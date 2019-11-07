@@ -8,7 +8,7 @@ draft: true
 
 {{< highlight text "linenos=table,hl_lines=7" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

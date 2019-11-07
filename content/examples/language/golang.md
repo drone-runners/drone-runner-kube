@@ -1,6 +1,6 @@
 ---
 date: 2000-01-01T00:00:00+00:00
-title: Go (with Modules)
+title: Go
 title_in_header: Example Go Pipeline
 author: bradrydzewski
 weight: 1
@@ -15,6 +15,7 @@ In the below example we demonstrate a pipeline that executes `go test` and `go b
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -31,8 +32,9 @@ Please note that you can use any Docker image in your pipeline from any Docker r
 
 If you decide to split your pipeline into multiple steps you need to make sure each step has access to project dependencies. Dependencies are downloaded to `/go` which is outside the shared workspace. Create a named volume to share this directory with all pipeline steps:
 
-{{< highlight yaml "hl_lines=7-9 15-17 21-23" >}}
+{{< highlight yaml "hl_lines=8-10 16-18 22-24" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -64,6 +66,7 @@ You can use Drone's multi-pipeline feature to concurrently test against multiple
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: go-1-11
 
 steps:
@@ -75,6 +78,7 @@ steps:
 
 ---
 kind: pipeline
+type: kubernetes
 name: go-1-10
 
 steps:
@@ -92,6 +96,7 @@ If you find this syntax too verbose we recommend using jsonnet. If you are unfam
 ```
 local Pipeline(name, image) = {
   kind: "pipeline",
+  type: "kubernetes",
   name: name,
   steps: [
     {
@@ -118,6 +123,7 @@ You can use Drone's multi-pipeline feature to concurrently test your code on mul
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: test-on-amd64
 
 platform:
@@ -132,6 +138,7 @@ steps:
 
 ---
 kind: pipeline
+type: kubernetes
 name: test-on-arm64
 
 platform:

@@ -1,12 +1,14 @@
 ---
 date: 2000-01-01T00:00:00+00:00
-title: Docker runner
+title: Kubernetes runner
 author: bradrydzewski
 weight: 1
 expand: configuration/_index.md
 ---
 
-The Docker runner is a daemon that executes build pipelines inside Docker containers. This documentation provides details for installing, configuring and using the Docker runner.
+The Kubernetes runner is a daemon that executes continuous-integration and continuous-delivery pipelines inside Kubernetes pods. This documentation provides details for installing, configuring and using the Kubernetes runner.
+
+{{< alert "nocloud" >}} Please note kubernetes pipelines are disabled on Drone Cloud. This feature is only available when self-hosting {{< / alert >}}
 
 If you want to install this runner:
 

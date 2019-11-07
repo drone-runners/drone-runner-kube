@@ -6,6 +6,7 @@ weight: 4
 toc: false
 type: spec
 hide_children: true
+draft: true
 
 description: |
   Yaml specification document.

@@ -12,11 +12,12 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Basic Example
 
-In the below example we demonstrate a pipeline that launches a CouchDB service container. The database server will be available at `database:5984`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a CouchDB service container. The server will be available at `localhost:5984`.
 
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: default
 
 platform:
@@ -28,27 +29,24 @@ steps:
   image: couchdb:2.2
   commands:
   - sleep 15
-  - curl http://database:5984
+  - curl http://localhost:5984
 
 services:
 - name: database
   image: couchdb:2.2
-  ports:
-  - 5984
 
 ...
 ```
 
 # Common Problems
 
-## Initialization
-
 If you are unable to connect to the CouchDB container please make sure you
 are giving the instance adequate time to initialize and begin accepting
 connections.
 
-{{< highlight yaml "hl_lines=8" >}}
+{{< highlight yaml "linenos=table,hl_lines=9" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -56,43 +54,5 @@ steps:
   image: coucdb:2.2
   commands:
   - sleep 15
-  - curl http://database:5984
-{{< / highlight >}}
-
-## Incorrect Hostname
-
-You cannot use `127.0.0.1` or `localhost` to connect with the database. If you are unable to connect to the database please verify you are using the correct hostname, corresponding with the name of the container. 
-
-Bad:
-
-```
-steps:
-- name: test
-  image: couchdb:2.2
-  commands:
-  - sleep 15
   - curl http://localhost:5984
-
-services:
-- name: database
-  image: couchdb:2.2
-  ports:
-  - 5984
-```
-
-Good:
-
-```
-steps:
-- name: test
-  image: couchdb:2.2
-  commands:
-  - sleep 15
-  - curl http://database:5984
-
-services:
-- name: database
-  image: couchdb:2.2
-  ports:
-  - 5984
-```
+{{< / highlight >}}

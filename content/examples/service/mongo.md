@@ -13,10 +13,11 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Basic Example
 
-In the below example we demonstrate a pipeline that launches a Mongo service container. The database server will be available at `mongo:27017`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a Mongo service container. The server will be available at `localhost:27017`.
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -24,26 +25,23 @@ steps:
   image: mongo:4
   commands:
   - sleep 5
-  - mongo --host mongo --eval "db.version()"
+  - mongo --eval "db.version()"
 
 services:
 - name: mongo
   image: mongo:4
   command: [ --smallfiles ]
-  ports:
-  - 27017
 ```
 
 # Common Problems
-
-## Initialization
 
 If you are unable to connect to the Mongo container please make sure you
 are giving the instance adequate time to initialize and begin accepting
 connections.
 
-{{< highlight yaml "hl_lines=8" >}}
+{{< highlight yaml "linenos=table,hl_lines=9" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -51,45 +49,5 @@ steps:
   image: mongo:4
   commands:
   - sleep 5
-  - mongo --host localhost --eval "db.version()"
+  - mongo --eval "db.version()"
 {{< / highlight >}}
-
-## Incorrect Hostname
-
-You cannot use `127.0.0.1` or `localhost` to connect with the Mongo container. If you are unable to connect to Mongo please verify you are using the correct hostname, corresponding with the name of the container. 
-
-Bad:
-
-```
-steps:
-- name: ping
-  image: mongo:4
-  commands:
-  - sleep 5
-  - mongo --host localhost --eval "db.version()"
-
-services:
-- name: mongo
-  image: mongo:4
-  command: [ --smallfiles ]
-  ports:
-  - 27017
-```
-
-Good:
-
-```
-steps:
-- name: ping
-  image: mongo:4
-  commands:
-  - sleep 5
-  - mongo --host mongo --eval "db.version()"
-
-services:
-- name: mongo
-  image: mongo:4
-  command: [ --smallfiles ]
-  ports:
-  - 27017
-```

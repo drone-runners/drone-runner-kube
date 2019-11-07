@@ -12,7 +12,7 @@ Conditions can be used to limit pipeline step execution at runtime. For example,
 
 {{< highlight text "linenos=table,hl_lines=11-14" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

@@ -17,6 +17,7 @@ In the below example we demonstrate a pipeline that executes `gradle assemble` a
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

@@ -16,7 +16,7 @@ The default clone configuration does use the `--depth` flag. You can enforce a c
 
 {{< highlight text "linenos=table,hl_lines=5-6" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 clone:
@@ -36,7 +36,7 @@ The default clone configuration does not use the `--tags` flag. If you would lik
 
 {{< highlight text "linenos=table,hl_lines=6-9" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:
@@ -57,15 +57,16 @@ steps:
 
 The default clone behavior does not use the `--recursive` flag and does not fetch submodules. If you would like to fetch submodules you should handle this as a step in your pipeline. For example:
 
-{{< highlight text "linenos=table,hl_lines=6-9" >}}
+{{< highlight text "linenos=table,hl_lines=6-10" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:
 - name: submodules
   image: alpine/git
   commands:
+  - git submodule init
   - git submodule update --recursive --remote
 
 - name: build
@@ -81,7 +82,7 @@ The default clone behavior can be disabled and custom clone logic implemented, w
 
 {{< highlight text "linenos=table,hl_lines=9-13 5-6" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 clone:

@@ -15,6 +15,7 @@ In the below example we demonstrate a pipeline that executes `rebar` commands. T
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -35,6 +36,7 @@ You can use Drone's multi-pipeline feature to concurrently test against multiple
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: erlang21
 
 steps:
@@ -47,6 +49,7 @@ steps:
 
 ---
 kind: pipeline
+type: kubernetes
 name: erlang20
 
 steps:
@@ -65,6 +68,7 @@ If you find this syntax too verbose we recommend using jsonnet. If you are unfam
 ```
 local Pipeline(version) = {
   kind: "pipeline",
+  type: "kubernetes",
   name: "erlang"+version,
   steps: [
     {

@@ -14,7 +14,7 @@ Example configuration:
 
 {{< highlight text "linenos=table" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:
@@ -67,7 +67,7 @@ The container exit code is used to determine whether the step is passing or fail
 
 The environment section provides the ability to define environment variables scoped to individual pipeline steps.
 
-{{< highlight text "linenos=table,hl_lines=3-5,linenostart=5" >}}
+{{< highlight text "linenos=table,hl_lines=4-6,linenostart=5" >}}
 steps:
 - name: backend
   image: golang

@@ -16,7 +16,7 @@ This setting is only available to trusted repositories, since mounting host mach
 
 {{< highlight text "linenos=table,hl_lines=8-10 15-18" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

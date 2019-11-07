@@ -14,7 +14,7 @@ Example Slack plugin:
 
 {{< highlight text "linenos=table,hl_lines=12-15" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

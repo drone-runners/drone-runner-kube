@@ -14,6 +14,7 @@ In the below example we demonstrate a pipeline that installs the project dependn
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

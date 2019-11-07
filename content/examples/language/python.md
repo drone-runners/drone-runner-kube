@@ -16,6 +16,7 @@ In the below example we demonstrate a pipeline that executes `pip install` and `
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -35,6 +36,7 @@ You can use Drone's multi-pipeline feature to concurrently test against multiple
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: python-2
 
 steps:
@@ -46,6 +48,7 @@ steps:
 
 ---
 kind: pipeline
+type: kubernetes
 name: python-3-3
 
 steps:
@@ -57,6 +60,7 @@ steps:
 
 ---
 kind: pipeline
+type: kubernetes
 name: python-3-4
 
 steps:
@@ -73,6 +77,7 @@ If you find this syntax too verbose we recommend using jsonnet. If you are unfam
 ```
 local Pipeline(name, image) = {
   kind: "pipeline",
+  type: "kubernetes",
   name: name,
   steps: [
     {
@@ -102,6 +107,7 @@ You can use Drone's multi-pipeline feature to concurrently test your code on mul
 ```
 ---
 kind: pipeline
+type: kubernetes
 name: test-on-amd64
 
 platform:
@@ -116,6 +122,7 @@ steps:
 
 ---
 kind: pipeline
+type: kubernetes
 name: test-on-arm64
 
 platform:

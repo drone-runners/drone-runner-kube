@@ -15,6 +15,7 @@ In the below example we demonstrate a pipeline that executes `pub get` and `pub 
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:

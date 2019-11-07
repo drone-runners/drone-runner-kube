@@ -12,7 +12,7 @@ Pipeline steps are defined as a series of Docker containers. Each step must ther
 
 {{< highlight text "linenos=table,hl_lines=7" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

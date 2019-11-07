@@ -10,16 +10,10 @@ description: |
 
 Drone provides the ability to define environment variables scoped to individual build steps. Example pipeline step with custom environment variables:
 
-{{< highlight text "linenos=table,hl_lines=16-18" >}}
+{{< highlight text "linenos=table,hl_lines=10-12" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
-
-server:
-  host: 1.2.3.4
-  user: root
-  password:
-    from_secret: password
 
 steps:
 - name: build

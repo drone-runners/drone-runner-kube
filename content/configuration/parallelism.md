@@ -12,7 +12,7 @@ Pipeline steps are executed sequentially by default. You can optionally describe
 
 {{< highlight text "linenos=table,hl_lines=23-25" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 steps:

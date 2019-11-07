@@ -10,10 +10,11 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Basic Example
 
-In the below example we demonstrate a pipeline that launches a Memcached service container. The memecache server will be available at `cache:11211`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a Memcached service container. The server will be available at `localhost:11211`.
 
 ```
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -22,12 +23,10 @@ steps:
   commands:
   - apt-get update -qq
   - apt-get install -y -qq telnet > /dev/null
-  - (sleep 1; echo "stats"; sleep 2; echo "quit";) | telnet cache 11211 || true
+  - (sleep 1; echo "stats"; sleep 2; echo "quit";) | telnet localhost 11211 || true
 
 services:
 - name: cache
   image: memcached:alpine
   command: [ -vv ]
-  ports:
-  - 11211
 ```

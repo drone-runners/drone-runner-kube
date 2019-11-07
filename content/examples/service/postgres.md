@@ -13,23 +13,22 @@ This guide covers configuring continuous integration pipelines for projects that
 
 # Basic Example
 
-In the below example we demonstrate a pipeline that launches a Postgres service container. The database server will be available at `database:5432`, where the hostname matches the service container name.
+In the below example we demonstrate a pipeline that launches a Postgres service container. The server will be available at `localhost:5432`
 
-{{< highlight yaml "hl_lines=10-16" >}}
+{{< highlight yaml "linenos=table,hl_lines=10-16" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
 - name: test
   image: postgres:9-alpine
   commands:
-  - psql -U postgres -d test -h database
+  - psql -U postgres -d test
 
 services:
 - name: database
   image: postgres:9-alpine
-  ports:
-  - 5432
   environment:
     POSTGRES_USER: postgres
     POSTGRES_DB: test
@@ -41,12 +40,10 @@ The official Postgres image provides environment variables used at startup
 to create the default username, password, database and more. Please see the
 official image [documentation](https://hub.docker.com/_/postgres/) for more details.
 
-{{< highlight yaml "hl_lines=6-8" >}}
+{{< highlight yaml "linenos=table,hl_lines=5-7" >}}
 services:
 - name: database
   image: postgres
-  ports:
-  - 5432
   environment:
     POSTGRES_USER: postgres
     POSTGRES_DB: test
@@ -54,14 +51,13 @@ services:
 
 # Common Problems
 
-## Initialization
-
 If you are unable to connect to the Postgres container please make sure you
 are giving Postgres adequate time to initialize and begin accepting
 connections.
 
-{{< highlight yaml "hl_lines=8" >}}
+{{< highlight yaml "linenos=table,hl_lines=9" >}}
 kind: pipeline
+type: kubernetes
 name: default
 
 steps:
@@ -69,32 +65,5 @@ steps:
   image: postgres
   commands:
   - sleep 15
-  - psql -U postgres -d test -h database
+  - psql -U postgres -d test
 {{< / highlight >}}
-
-## Incorrect Hostname
-
-You cannot use `127.0.0.1` or `localhost` to connect with the Postgres container. If you are unable to connect to the Postgres container please verify you are using the correct hostname, corresponding with the name of the postgres service container. 
-
-Bad:
-
-```
-steps:
-- name: test
-  image: postgres
-  commands:
-  - sleep 15
-  - psql -U postgres -d test -h localhost
-```
-
-Good:
-
-```
-steps:
-- name: test
-  image: postgres
-  commands:
-  - sleep 15
-  - psql -U postgres -d test -h database
-```
-

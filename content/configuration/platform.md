@@ -14,7 +14,7 @@ Example linux arm64 pipeline:
 
 {{< highlight text "linenos=table,hl_lines=5-7" >}}
 kind: pipeline
-type: docker
+type: kubernetes
 name: default
 
 platform:
@@ -28,25 +28,3 @@ steps:
   - go build
   - go test
 {{< / highlight >}}
-
-If you are running Docker pipelines on windows you must specify the operating system version number.
-
-Example windows 1809 pipeline:
-
-{{< highlight text "linenos=table,linenostart=5,hl_lines=4" >}}
-platform:
-  os: windows
-  arch: amd64
-  version: 1809
-{{< / highlight >}}
-
-# Supported Platforms
-
-os          | arch    | version
-------------|---------|---
-`linux`     | `amd64` |
-`linux`     | `arm`   |
-`linux`     | `arm64` |
-`windows`   | `amd64` | `1809`
-`windows`   | `amd64` | `1903`
-`windows`   | `amd64` | `1909 (coming soon)`

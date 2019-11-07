@@ -4,7 +4,7 @@ title: Languages
 author: bradrydzewski
 weight: 1
 layout: list_li
-hide_children: true
+hide_children: false
 description: |
   Example pipelines using popular databases and services.
 ---

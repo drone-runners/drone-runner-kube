@@ -1,6 +1,6 @@
-baseURL: https://docker-runner.docs.drone.io
+baseURL: https://kube-runner.docs.drone.io
 languageCode: en-us
-title: Drone Docker Runner
+title: Drone Kubernetes Runner
 theme: drone-hugo-theme
 
 pygmentsUseClasses: true

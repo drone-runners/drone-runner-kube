@@ -49,12 +49,15 @@ func toHostAliases(spec *Spec) []v1.HostAlias {
 func toTolerations(spec *Spec) []v1.Toleration {
 	var tolerations []v1.Toleration
 	for _, toleration := range spec.PodSpec.Tolerations {
-		tolerations = append(tolerations, v1.Toleration{
-			Operator:          v1.TolerationOperator(toleration.Operator),
-			Effect:            v1.TaintEffect(toleration.Effect),
-			TolerationSeconds: int64ptr(int64(toleration.TolerationSeconds)),
-			Value:             toleration.Value,
-		})
+		t := v1.Toleration{
+			Operator: v1.TolerationOperator(toleration.Operator),
+			Effect:   v1.TaintEffect(toleration.Effect),
+			Value:    toleration.Value,
+		}
+		if toleration.TolerationSeconds != nil {
+			t.TolerationSeconds = int64ptr(int64(*toleration.TolerationSeconds))
+		}
+		tolerations = append(tolerations, t)
 	}
 	return tolerations
 }

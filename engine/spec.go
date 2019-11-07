@@ -148,7 +148,7 @@ type (
 		Effect            string `json:"effect,omitempty"`
 		Key               string `json:"key,omitempty"`
 		Operator          string `json:"operator,omitempty"`
-		TolerationSeconds int    `json:"toleration_seconds,omitempty"`
+		TolerationSeconds *int   `json:"toleration_seconds,omitempty"`
 		Value             string `json:"value,omitempty"`
 	}
 )

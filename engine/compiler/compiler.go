@@ -137,6 +137,10 @@ type (
 		// Namespace provides the default kubernetes namespace
 		// when no namespace is provided.
 		Namespace string
+
+		// ServiceAccount provides the default kubernetes Service Account
+		// when no Service Account is provided.
+		ServiceAccount string
 	}
 )
 
@@ -221,6 +225,10 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	}
 	if spec.PodSpec.Annotations == nil {
 		spec.PodSpec.Annotations = map[string]string{}
+	}
+	// set default service account
+	if spec.PodSpec.ServiceAccountName == "" {
+		spec.PodSpec.ServiceAccountName = c.ServiceAccount
 	}
 
 	// add tolerations

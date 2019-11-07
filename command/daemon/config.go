@@ -95,6 +95,10 @@ type Config struct {
 		Placeholder string `envconfig:"DRONE_IMAGE_PLACEHOLDER"`
 	}
 
+	ServiceAccount struct {
+		Default string `envconfig:"DRONE_SERVICE_ACCOUNT_DEFAULT"`
+	}
+
 	Namespace struct {
 		Rules     map[string][]string `envconfig:"-"`
 		RulesMap  map[string]string   `envconfig:"DRONE_NAMESPACE_RULES"`

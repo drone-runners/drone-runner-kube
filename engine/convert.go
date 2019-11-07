@@ -28,8 +28,22 @@ func toPod(spec *Spec) *v1.Pod {
 			NodeSelector:       spec.PodSpec.NodeSelector,
 			Tolerations:        toTolerations(spec),
 			ImagePullSecrets:   toImagePullSecrets(spec),
+			HostAliases:        toHostAliases(spec),
 		},
 	}
+}
+
+func toHostAliases(spec *Spec) []v1.HostAlias {
+	var hostAliases []v1.HostAlias
+	for _, hostAlias := range spec.PodSpec.HostAliases {
+		if len(hostAlias.Hostnames) > 0 {
+			hostAliases = append(hostAliases, v1.HostAlias{
+				IP:        hostAlias.IP,
+				Hostnames: hostAlias.Hostnames,
+			})
+		}
+	}
+	return hostAliases
 }
 
 func toTolerations(spec *Spec) []v1.Toleration {

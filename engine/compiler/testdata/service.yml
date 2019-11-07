@@ -1,0 +1,16 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+
+services:
+- name: mysql
+  image: mysql
+
+- name: redis service
+  image: redis

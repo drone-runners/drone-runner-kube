@@ -15,6 +15,8 @@ type (
 		Volumes    []*Volume          `json:"volumes,omitempty"`
 		Secrets    map[string]*Secret `json:"secrets,omitempty"`
 		PullSecret *Secret            `json:"pull_secrets,omitempty"`
+		// Envs the same envs in multiple steps
+		Envs       map[string]string  `json:"envs,omitempty"`
 	}
 
 	// Step defines a pipeline step.

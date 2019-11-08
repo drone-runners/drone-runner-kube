@@ -76,6 +76,11 @@ func (k *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
 		return err
 	}
 
+	_, err = k.client.CoreV1().ConfigMaps(spec.PodSpec.Namespace).Create(toConfigMap(spec))
+	if err != nil {
+		return err
+	}
+
 	_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
 	if err != nil {
 		return err
@@ -96,6 +101,11 @@ func (k *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
 	}
 
 	err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
+	if err != nil {
+		result = multierror.Append(result, err)
+	}
+
+	err = k.client.CoreV1().ConfigMaps(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		result = multierror.Append(result, err)
 	}

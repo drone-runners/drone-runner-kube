@@ -210,6 +210,8 @@ func testCompile(t *testing.T, source, golden string) *engine.Spec {
 	}
 
 	got := compiler.Compile(nocontext, args)
+	// skip: not need to compare envs
+	got.Envs = nil
 
 	raw, err := ioutil.ReadFile(golden)
 	if err != nil {

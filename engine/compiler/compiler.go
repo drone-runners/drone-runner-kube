@@ -8,11 +8,12 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/util/validation"
+
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/drone/drone-go/drone"
 	"github.com/drone/runner-go/clone"
 	"github.com/drone/runner-go/environ"
@@ -351,7 +352,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			dst.Placeholder = c.Placeholder
 		}
 
-		if govalidator.IsHost(src.Name) {
+		if len(validation.IsDNS1123Subdomain(src.Name)) == 0 {
 			hostnames = append(hostnames, src.Name)
 		}
 	}

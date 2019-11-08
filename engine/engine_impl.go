@@ -7,10 +7,12 @@ package engine
 import (
 	"context"
 	"io"
+	"time"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
@@ -21,6 +23,13 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 )
+
+var backoff = wait.Backoff{
+	Steps:    5,
+	Duration: 500 * time.Millisecond,
+	Factor:   1.0,
+	Jitter:   0.1,
+}
 
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
@@ -225,7 +234,7 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 }
 
 func (k *Kubernetes) start(spec *Spec, step *Step) error {
-	err := retry.RetryOnConflict(retry.DefaultRetry, func() error {
+	err := retry.RetryOnConflict(backoff, func() error {
 		pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Get(spec.PodSpec.Name, metav1.GetOptions{})
 		if err != nil {
 			return err

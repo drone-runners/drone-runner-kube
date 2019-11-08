@@ -54,13 +54,6 @@ type Config struct {
 		Privileged []string          `envconfig:"DRONE_RUNNER_PRIVILEGED_IMAGES"`
 	}
 
-	Platform struct {
-		OS      string `envconfig:"DRONE_PLATFORM_OS"    default:"linux"`
-		Arch    string `envconfig:"DRONE_PLATFORM_ARCH"  default:"amd64"`
-		Kernel  string `envconfig:"DRONE_PLATFORM_KERNEL"`
-		Variant string `envconfig:"DRONE_PLATFORM_VARIANT"`
-	}
-
 	Limit struct {
 		Repos   []string `envconfig:"DRONE_LIMIT_REPOS"`
 		Events  []string `envconfig:"DRONE_LIMIT_EVENTS"`

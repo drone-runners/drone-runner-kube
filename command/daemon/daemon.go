@@ -150,13 +150,9 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			),
 		},
 		Filter: &client.Filter{
-			Kind:    resource.Kind,
-			Type:    resource.Type,
-			OS:      config.Platform.OS,
-			Arch:    config.Platform.Arch,
-			Variant: config.Platform.Variant,
-			Kernel:  config.Platform.Kernel,
-			Labels:  config.Runner.Labels,
+			Kind:   resource.Kind,
+			Type:   resource.Type,
+			Labels: config.Runner.Labels,
 		},
 	}
 

@@ -6,4 +6,8 @@ weight: 2
 toc: false
 ---
 
+{{< alert "nocloud" >}}
+Please note kubernetes pipelines are disabled on Drone Cloud. This feature is only available when self-hosting
+{{< / alert >}}
+
 Here are the articles in this section:

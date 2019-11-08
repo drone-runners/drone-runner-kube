@@ -25,7 +25,5 @@ steps:
       from_secret: netlify_token
 
 trigger:
-  branch:
-  - none
   event:
   - push

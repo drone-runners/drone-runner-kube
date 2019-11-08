@@ -5,10 +5,10 @@ author: bradrydzewski
 weight: 9
 toc: false
 description: |
-  Route pipelines to specific servers.
+  Route pipelines to specific nodes.
 ---
 
-The `node_selector` section can be used to route pipelines to specific Kubernetes nodes, or groups of nodes, that have matching labels. This can be useful when you need to route pipelines to runners with special configurations or hardware.
+The `node_selector` section can be used to route pipelines to specific Kubernetes nodes, or groups of nodes, that have matching labels. This can be useful when you need to route pipelines to nodes with special configurations or hardware.
 
 {{< highlight text "linenos=table,hl_lines=11-14" >}}
 kind: pipeline

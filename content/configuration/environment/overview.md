@@ -25,6 +25,26 @@ steps:
     GOARCH: amd64
 {{< / highlight >}}
 
+Drone also provides the ability to define environment variables scoped to the entire pipeline, injected into all pipeline steps.
+
+{{< highlight text "linenos=table,hl_lines=5-7" >}}
+kind: pipeline
+type: kubernetes
+name: default
+
+environment:
+  GOOS: linux
+  GOARCH: amd64
+
+steps:
+- name: build
+  commands:
+  - go build
+  - go test
+{{< / highlight >}}
+
+# Metadata
+
 Drone automatically injects environment variables containing repository and commit metadata into each pipeline step. See the environment variable index for a full list of variables.
 
 {{< link "/configuration/environment/variables" >}}

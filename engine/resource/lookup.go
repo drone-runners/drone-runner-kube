@@ -25,5 +25,7 @@ func Lookup(name string, manifest *manifest.Manifest) (*Pipeline, error) {
 
 // helper function returns true if the name matches.
 func isNameMatch(a, b string) bool {
-	return a == b || (a == "" && b == "default")
+	return a == b ||
+		(a == "" && b == "default") ||
+		(b == "" && a == "default")
 }

@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"github.com/buildkite/yaml"
+	"github.com/docker/go-units"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -61,10 +62,10 @@ type Config struct {
 	}
 
 	Resources struct {
-		LimitCPU      int64 `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
-		LimitMemory   int64 `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
-		RequestCPU    int64 `envconfig:"DRONE_RESOURCE_REQUEST_CPU"`
-		RequestMemory int64 `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY"`
+		LimitCPU      int64     `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
+		LimitMemory   BytesSize `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
+		RequestCPU    int64     `envconfig:"DRONE_RESOURCE_REQUEST_CPU"`
+		RequestMemory BytesSize `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY"`
 	}
 
 	Secret struct {
@@ -159,4 +160,15 @@ func fromEnviron() (Config, error) {
 	}
 
 	return config, nil
+}
+
+type BytesSize int64
+
+func (b *BytesSize) Decode(value string) error {
+	intType, err := units.RAMInBytes(value)
+	if err != nil {
+		return err
+	}
+	*b = BytesSize(intType)
+	return nil
 }

@@ -109,6 +109,8 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 				Placeholder:    config.Images.Placeholder,
 				Environ:        config.Runner.Environ,
 				Namespace:      config.Namespace.Default,
+				Labels:         config.Labels.Default,
+				Annotations:    config.Annotations.Default,
 				ServiceAccount: config.ServiceAccount.Default,
 				Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
 				Registry: registry.Combine(

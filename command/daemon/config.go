@@ -92,6 +92,14 @@ type Config struct {
 		Default string `envconfig:"DRONE_SERVICE_ACCOUNT_DEFAULT"`
 	}
 
+	Annotations struct {
+		Default map[string]string `envconfig:"DRONE_ANNOTATIONS_DEFAULT"`
+	}
+
+	Labels struct {
+		Default map[string]string `envconfig:"DRONE_LABELS_DEFAULT"`
+	}
+
 	Namespace struct {
 		Rules     map[string][]string `envconfig:"-"`
 		RulesMap  map[string]string   `envconfig:"DRONE_NAMESPACE_RULES"`

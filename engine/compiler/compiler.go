@@ -109,6 +109,10 @@ type (
 		// to each container by default.
 		Labels map[string]string
 
+		// Annotations provides a set of annotations that should be added
+		// to each container by default.
+		Annotations map[string]string
+
 		// Privileged provides a list of docker images that
 		// are always privileged.
 		Privileged []string
@@ -153,15 +157,21 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	// create the workspace paths
 	workspace := createWorkspace(args.Pipeline)
 
-	// create system labels
-	annotations := labels.Combine(
+	// create labels
+	podLabels := labels.Combine(
 		c.Labels,
+		args.Pipeline.Metadata.Labels,
+	)
+
+	// create annotations
+	podAnnotations := labels.Combine(
+		c.Annotations,
 		labels.FromRepo(args.Repo),
 		labels.FromBuild(args.Build),
 		labels.FromStage(args.Stage),
 		labels.FromSystem(args.System),
 		labels.WithTimeout(args.Repo),
-		args.Pipeline.Metadata.Labels,
+		args.Pipeline.Metadata.Annotations,
 	)
 
 	// create the workspace mount
@@ -202,8 +212,8 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		PodSpec: engine.PodSpec{
 			Name:               random(),
 			Namespace:          args.Pipeline.Metadata.Namespace,
-			Labels:             args.Pipeline.Metadata.Labels,
-			Annotations:        labels.Combine(args.Pipeline.Metadata.Annotations, annotations),
+			Labels:             podLabels,
+			Annotations:        podAnnotations,
 			NodeSelector:       args.Pipeline.NodeSelector,
 			ServiceAccountName: args.Pipeline.ServiceAccountName,
 		},

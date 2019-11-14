@@ -214,6 +214,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Namespace:          args.Pipeline.Metadata.Namespace,
 			Labels:             podLabels,
 			Annotations:        podAnnotations,
+			NodeName:           args.Pipeline.NodeName,
 			NodeSelector:       args.Pipeline.NodeSelector,
 			ServiceAccountName: args.Pipeline.ServiceAccountName,
 		},

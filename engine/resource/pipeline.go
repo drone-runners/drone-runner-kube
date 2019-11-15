@@ -44,6 +44,7 @@ type Pipeline struct {
 	Workspace   Workspace         `json:"workspace,omitempty"`
 
 	Metadata           Metadata          `json:"metadata,omitempty"`
+	NodeName           string            `json:"node_name,omitempty" yaml:"node_name"`
 	NodeSelector       map[string]string `json:"node_selector,omitempty"        yaml:"node_selector"`
 	ServiceAccountName string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
 	Tolerations        []Toleration      `json:"tolerations,omitempty"`

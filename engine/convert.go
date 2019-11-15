@@ -25,6 +25,7 @@ func toPod(spec *Spec) *v1.Pod {
 			RestartPolicy:      v1.RestartPolicyNever,
 			Volumes:            toVolumes(spec),
 			Containers:         toContainers(spec),
+			NodeName:           spec.PodSpec.NodeName,
 			NodeSelector:       spec.PodSpec.NodeSelector,
 			Tolerations:        toTolerations(spec),
 			ImagePullSecrets:   toImagePullSecrets(spec),

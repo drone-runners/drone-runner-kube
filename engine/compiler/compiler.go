@@ -392,6 +392,11 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			dst.RunPolicy = engine.RunNever
 		}
 
+		// override default placeholder image.
+		if c.Placeholder != "" {
+			dst.Placeholder = c.Placeholder
+		}
+
 		// if the pipeline step has an approved image, it is
 		// automatically defaulted to run with escalalated
 		// privileges.

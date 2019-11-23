@@ -6,6 +6,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"time"
 
@@ -138,12 +139,17 @@ func (k *Kubernetes) Run(ctx context.Context, spec *Spec, step *Step, output io.
 }
 
 func (k *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func(e watch.Event) (bool, error)) error {
+	label := fmt.Sprintf("io.drone.name=%s", spec.PodSpec.Name)
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
-			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).List(metav1.ListOptions{})
+			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).List(metav1.ListOptions{
+				LabelSelector: label,
+			})
 		},
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).Watch(metav1.ListOptions{})
+			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).Watch(metav1.ListOptions{
+				LabelSelector: label,
+			})
 		},
 	}
 

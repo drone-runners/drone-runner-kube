@@ -304,6 +304,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 
 	// set drone labels
 	spec.PodSpec.Labels["io.drone"] = "true"
+	spec.PodSpec.Labels["io.drone.name"] = spec.PodSpec.Name
 	spec.PodSpec.Labels["io.drone.repo.namespace"] = slug.Make(args.Repo.Namespace)
 	spec.PodSpec.Labels["io.drone.repo.name"] = slug.Make(args.Repo.Name)
 	spec.PodSpec.Labels["io.drone.build.number"] = fmt.Sprint(args.Build.Number)

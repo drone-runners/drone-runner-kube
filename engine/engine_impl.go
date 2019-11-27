@@ -5,6 +5,7 @@
 package engine
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -240,8 +241,7 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 	}
 	defer readCloser.Close()
 
-	_, err = io.Copy(output, readCloser)
-	return err
+	return streamLogs(output, readCloser)
 }
 
 func (k *Kubernetes) start(spec *Spec, step *Step) error {
@@ -268,4 +268,20 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 	})
 
 	return err
+}
+
+func streamLogs(dst io.Writer, src io.ReadCloser) error {
+	r := bufio.NewReader(src)
+	for {
+		bytes, err := r.ReadBytes('\n')
+		if _, err := dst.Write(bytes); err != nil {
+			return err
+		}
+		if err != nil {
+			if err != io.EOF {
+				return err
+			}
+			return nil
+		}
+	}
 }

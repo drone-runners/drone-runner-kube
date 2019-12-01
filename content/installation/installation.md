@@ -21,11 +21,11 @@ The Kubernetes runner is configured using environment variables. This article re
 - __DRONE_RPC_SECRET__
   : provides the shared secret used to authenticate with your Drone server. This must match the secret defined in your Drone server configuration.
 
-# Step 3 - Authenticate
+# Step 2 - Authenticate
 
 The Kubernetes runner uses in-cluster authentication to communicate with the Kubernetes API. Please ensure the Kubernetes runner is associated with a service account when deployed to your cluster.
 
-# Step 2 - Install
+# Step 3 - Install
 
 The following is a rudimentary manifest file used to configure and install the Kubernetes runner. _Remember to replace the environment variables below with the correct values._
 
@@ -107,7 +107,7 @@ spec:
           value: super-duper-secret
 {{< / highlight >}}
 
-# Step 3 - Verify
+# Step 4 - Verify
 
 Use the `kubectl logs drone -c runner` command to view the logs and verify the runner successfully established a connection with the Drone server.
 

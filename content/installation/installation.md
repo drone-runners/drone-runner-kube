@@ -27,27 +27,85 @@ The Kubernetes runner uses in-cluster authentication to communicate with the Kub
 
 # Step 2 - Install
 
-The following is a rudimentary example of a PodSpec used to configure and install the Kubernetes runner. _Remember to replace the environment variables below with the correct values._
+The following is a rudimentary manifest file used to configure and install the Kubernetes runner. _Remember to replace the environment variables below with the correct values._
 
-```
-apiVersion: v1
-kind: Pod
+Here are the sample rbac rules:
+
+{{< highlight text "linenos=table" >}}
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: default
+  name: drone
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - pods/log
+  verbs:
+  - get
+  - create
+  - delete
+  - list
+  - watch
+  - update
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: drone
+  namespace: default
+subjects:
+- kind: ServiceAccount
+  name: default
+  namespace: default
+roleRef:
+  kind: Role
+  name: drone
+  apiGroup: rbac.authorization.k8s.io
+{{< / highlight >}}
+
+And here is the example deployment:
+
+{{< highlight text "linenos=table,hl_lines=24 26 28" >}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: drone
+  labels:
+    app.kubernetes.io/name: drone
 spec:
-  containers:
-  - name: runner
-    image: drone/drone-runner-kube:latest
-    ports:
-    - containerPort: 3000
-    env:
-    - name: DRONE_RPC_HOST
-      value: drone.company.com
-    - name: DRONE_RPC_PROTO
-      value: http
-    - name: DRONE_RPC_SECRET
-      value: super-duper-secret
-```
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: drone
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: drone
+    spec:
+      containers:
+      - name: runner
+        image: drone/drone-runner-kube:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: DRONE_RPC_HOST
+          value: drone.company.com
+        - name: DRONE_RPC_PROTO
+          value: http
+        - name: DRONE_RPC_SECRET
+          value: super-duper-secret
+{{< / highlight >}}
 
 # Step 3 - Verify
 

@@ -30,7 +30,26 @@ func toPod(spec *Spec) *v1.Pod {
 			Tolerations:        toTolerations(spec),
 			ImagePullSecrets:   toImagePullSecrets(spec),
 			HostAliases:        toHostAliases(spec),
+			DNSConfig:          toDnsConfig(spec),
 		},
+	}
+}
+
+func toDnsConfig(spec *Spec) *v1.PodDNSConfig {
+	var dnsOptions []v1.PodDNSConfigOption
+	if len(spec.PodSpec.DnsConfig.Options) > 0 {
+		for _, option := range spec.PodSpec.DnsConfig.Options {
+			o := v1.PodDNSConfigOption{
+				Name:  option.Name,
+				Value: option.Value,
+			}
+			dnsOptions = append(dnsOptions, o)
+		}
+	}
+	return &v1.PodDNSConfig{
+		Nameservers: spec.PodSpec.DnsConfig.Nameservers,
+		Searches:    spec.PodSpec.DnsConfig.Searches,
+		Options:     dnsOptions,
 	}
 }
 

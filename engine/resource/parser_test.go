@@ -19,6 +19,8 @@ func TestParse(t *testing.T) {
 		return
 	}
 
+	var dns_config_ptr string = "1"
+
 	want := []manifest.Resource{
 		&manifest.Signature{
 			Kind: "signature",
@@ -53,6 +55,16 @@ func TestParse(t *testing.T) {
 			},
 			Clone: manifest.Clone{
 				Depth: 50,
+			},
+			DnsConfig: DnsConfig{
+				Nameservers: []string{"1.1.1.1"},
+				Searches:    []string{"test.local"},
+				Options: []DNSConfigOptions{
+					{
+						Name:  "ndots",
+						Value: &dns_config_ptr,
+					},
+				},
 			},
 			NodeSelector: map[string]string{"foo": "bar"},
 			PullSecrets:  []string{"dockerconfigjson"},

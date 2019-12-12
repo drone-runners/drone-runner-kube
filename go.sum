@@ -41,10 +41,14 @@ github.com/docker/go-units v0.4.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDD
 github.com/docker/spdystream v0.0.0-20160310174837-449fdfce4d96/go.mod h1:Qh8CwZgvJUkLughtfhJv5dyTYa91l1fOUCrgjqmcifM=
 github.com/drone/drone-go v1.0.5-0.20190504210458-4d6116b897ba h1:GKiT4UPBligLXJAP1zRllHvTUygAAlgS3t9LM9aasp0=
 github.com/drone/drone-go v1.0.5-0.20190504210458-4d6116b897ba/go.mod h1:GxyeGClYohaKNYJv/ZpsmVHtMJ7WhoT+uDaJNcDIrk4=
+github.com/drone/drone-go v1.1.1-0.20191119212130-1d2e07e87e79 h1:jW+dJ8HrZ1CbazlsYoriOOCQnVJ2NkfNczLHs6UMU6I=
+github.com/drone/drone-go v1.1.1-0.20191119212130-1d2e07e87e79/go.mod h1:GxyeGClYohaKNYJv/ZpsmVHtMJ7WhoT+uDaJNcDIrk4=
 github.com/drone/envsubst v1.0.2 h1:dpYLMAspQHW0a8dZpLRKe9jCNvIGZPhCPrycZzIHdqo=
 github.com/drone/envsubst v1.0.2/go.mod h1:bkZbnc/2vh1M12Ecn7EYScpI4YGYU0etwLJICOWi8Z0=
 github.com/drone/runner-go v1.4.0 h1:zAeYtlKQGvJr2ehfLzQWblzWzvfdkNaapbr6x536fLA=
 github.com/drone/runner-go v1.4.0/go.mod h1:61VgQWhZbNPXp01lBuR7PAztTMySGLnMzK/4oYE3D9Y=
+github.com/drone/runner-go v1.5.1 h1:VkNPLzNkMvQiunnj3oc1SjcYO80ZzENF5+u5zbWE9xg=
+github.com/drone/runner-go v1.5.1/go.mod h1:ZIhsNU4EHG7R7J+OXeXuwwAxlxOBYLCc0gCkbbhWb/o=
 github.com/drone/signal v1.0.0 h1:NrnM2M/4yAuU/tXs6RP1a1ZfxnaHwYkd0kJurA1p6uI=
 github.com/drone/signal v1.0.0/go.mod h1:S8t92eFT0g4WUgEc/LxG+LCuiskpMNsG0ajAMGnyZpc=
 github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=

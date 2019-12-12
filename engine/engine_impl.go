@@ -5,12 +5,13 @@
 package engine
 
 import (
-	"bufio"
 	"context"
 	"fmt"
 	"io"
 	"time"
 
+	"github.com/drone/runner-go/livelog"
+	"github.com/hashicorp/go-multierror"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,8 +24,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 var backoff = wait.Backoff{
@@ -241,7 +240,7 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 	}
 	defer readCloser.Close()
 
-	return streamLogs(output, readCloser)
+	return livelog.Copy(output, readCloser)
 }
 
 func (k *Kubernetes) start(spec *Spec, step *Step) error {
@@ -268,20 +267,4 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 	})
 
 	return err
-}
-
-func streamLogs(dst io.Writer, src io.ReadCloser) error {
-	r := bufio.NewReader(src)
-	for {
-		bytes, err := r.ReadBytes('\n')
-		if _, err := dst.Write(bytes); err != nil {
-			return err
-		}
-		if err != nil {
-			if err != io.EOF {
-				return err
-			}
-			return nil
-		}
-	}
 }

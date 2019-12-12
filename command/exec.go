@@ -26,7 +26,7 @@ import (
 	"github.com/drone/runner-go/logger"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline"
-	"github.com/drone/runner-go/pipeline/console"
+	"github.com/drone/runner-go/pipeline/streamer/console"
 	"github.com/drone/runner-go/registry"
 	"github.com/drone/runner-go/secret"
 	"github.com/drone/signal"

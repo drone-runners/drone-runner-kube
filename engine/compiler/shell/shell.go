@@ -36,6 +36,7 @@ func Script(commands []string) string {
 const optionScript = `
 if [ ! -z "${DRONE_NETRC_FILE}" ]; then
 	echo $DRONE_NETRC_FILE > $HOME/.netrc
+	chmod 600 $HOME/.netrc
 fi
 
 unset DRONE_SCRIPT

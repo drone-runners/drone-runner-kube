@@ -10,19 +10,20 @@ import (
 	"io"
 	"time"
 
+	"github.com/drone/runner-go/livelog"
+	"github.com/hashicorp/go-multierror"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
 	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
-
-	"github.com/hashicorp/go-multierror"
 )
 
 var backoff = wait.Backoff{
@@ -221,22 +222,25 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 }
 
 func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
+	opts := &v1.PodLogOptions{
+		Follow:    true,
+		Container: step.ID,
+	}
+
 	req := k.client.CoreV1().RESTClient().Get().
 		Namespace(spec.PodSpec.Namespace).
 		Name(spec.PodSpec.Name).
 		Resource("pods").
 		SubResource("log").
-		Param("follow", "true").
-		Param("container", step.ID)
+		VersionedParams(opts, scheme.ParameterCodec)
 
 	readCloser, err := req.Stream()
 	if err != nil {
 		return err
 	}
-
 	defer readCloser.Close()
-	_, err = io.Copy(output, readCloser)
-	return err
+
+	return livelog.Copy(output, readCloser)
 }
 
 func (k *Kubernetes) start(spec *Spec, step *Step) error {

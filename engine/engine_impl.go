@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
 	"time"
 
 	"github.com/drone/runner-go/livelog"
@@ -181,7 +182,10 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 				if cs.Name != step.ID {
 					continue
 				}
-				if (cs.Image != step.Placeholder && cs.State.Running != nil) || (cs.State.Terminated != nil) {
+				if strings.HasSuffix(cs.Image, step.Placeholder) {
+					continue
+				}
+				if (cs.State.Running != nil) || (cs.State.Terminated != nil) {
 					return true, nil
 				}
 			}

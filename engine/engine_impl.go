@@ -10,6 +10,7 @@ import (
 	"io"
 	"time"
 
+	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone/runner-go/livelog"
 	"github.com/hashicorp/go-multierror"
 	v1 "k8s.io/api/core/v1"
@@ -181,7 +182,7 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 				if cs.Name != step.ID {
 					continue
 				}
-				if (cs.Image != step.Placeholder && cs.State.Running != nil) || (cs.State.Terminated != nil) {
+				if (!image.Match(cs.Image, step.Placeholder) && cs.State.Running != nil) || (cs.State.Terminated != nil) {
 					return true, nil
 				}
 			}

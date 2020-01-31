@@ -5,6 +5,7 @@
 package image
 
 import (
+	"net/url"
 	"strings"
 
 	"github.com/docker/distribution/reference"
@@ -70,6 +71,16 @@ func MatchHostname(image, hostname string) bool {
 	}
 	if hostname == "index.docker.io" {
 		hostname = "docker.io"
+	}
+	// the auth address could be a fully qualified
+	// url in which case, we should parse so we can
+	// extract the domain name.
+	if strings.HasPrefix(hostname, "http://") ||
+		strings.HasPrefix(hostname, "https://") {
+		parsed, err := url.Parse(hostname)
+		if err == nil {
+			hostname = parsed.Host
+		}
 	}
 	return reference.Domain(named) == hostname
 }

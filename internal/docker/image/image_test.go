@@ -250,6 +250,11 @@ func Test_matchHostname(t *testing.T) {
 			hostname: "1.2.3.4:8000",
 			want:     false,
 		},
+		{
+			image:    "012345678910.dkr.ecr.us-east-1.amazonaws.com/foo:latest",
+			hostname: "https://012345678910.dkr.ecr.us-east-1.amazonaws.com",
+			want:     true,
+		},
 	}
 	for _, test := range testdata {
 		got, want := MatchHostname(test.image, test.hostname), test.want

@@ -51,6 +51,7 @@ func toTolerations(spec *Spec) []v1.Toleration {
 	var tolerations []v1.Toleration
 	for _, toleration := range spec.PodSpec.Tolerations {
 		t := v1.Toleration{
+			Key:      toleration.Key,
 			Operator: v1.TolerationOperator(toleration.Operator),
 			Effect:   v1.TaintEffect(toleration.Effect),
 			Value:    toleration.Value,

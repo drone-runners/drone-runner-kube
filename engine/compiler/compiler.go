@@ -246,6 +246,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	// add tolerations
 	for _, toleration := range args.Pipeline.Tolerations {
 		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{
+			Key:               toleration.Key,
 			Operator:          toleration.Operator,
 			Effect:            toleration.Effect,
 			TolerationSeconds: toleration.TolerationSeconds,

@@ -5,7 +5,7 @@
 
 3. Build binaries
 
-    sh scripts/build_all.sh
+    ./scripts/build.sh
 
 4. Build images
 

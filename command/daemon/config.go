@@ -76,7 +76,7 @@ type Config struct {
 
 	Registry struct {
 		Endpoint   string `envconfig:"DRONE_REGISTRY_PLUGIN_ENDPOINT"`
-		Token      string `envconfig:"DRONE_REGISTRY_PLUGIN_SECRET"`
+		Token      string `envconfig:"DRONE_REGISTRY_PLUGIN_TOKEN"`
 		SkipVerify bool   `envconfig:"DRONE_REGISTRY_PLUGIN_SKIP_VERIFY"`
 	}
 
@@ -109,7 +109,23 @@ type Config struct {
 	}
 }
 
+// legacy environment variables. the key is the legacy
+// variable name, and the value is the new variable name.
+var legacy = map[string]string{
+	"DRONE_REGISTRY_ENDPOINT":      "DRONE_REGISTRY_PLUGIN_ENDPOINT",
+	"DRONE_REGISTRY_SECRET":        "DRONE_REGISTRY_PLUGIN_TOKEN",
+	"DRONE_REGISTRY_PLUGIN_SECRET": "DRONE_REGISTRY_PLUGIN_TOKEN",
+}
+
 func fromEnviron() (Config, error) {
+	// loop through legacy environment variable and, if set
+	// rewrite to the new variable name.
+	for k, v := range legacy {
+		if s, ok := os.LookupEnv(k); ok {
+			os.Setenv(v, s)
+		}
+	}
+
 	var config Config
 	err := envconfig.Process("", &config)
 	if err != nil {

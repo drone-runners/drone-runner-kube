@@ -48,6 +48,7 @@ type Pipeline struct {
 	NodeSelector       map[string]string `json:"node_selector,omitempty"        yaml:"node_selector"`
 	ServiceAccountName string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
 	Tolerations        []Toleration      `json:"tolerations,omitempty"`
+	DnsConfig          DnsConfig         `json:"dns_config,omitempty" yaml:"dns_config"`
 }
 
 // GetVersion returns the resource version.
@@ -94,6 +95,17 @@ type (
 		Namespace   string            `json:"namespace,omitempty"`
 		Annotations map[string]string `json:"annotations,omitempty"`
 		Labels      map[string]string `json:"labels,omitempty"`
+	}
+	// DnsConfig defines Kubernetes pod dnsConfig
+	DnsConfig struct {
+		Nameservers []string           `json:"nameservers,omitempty"`
+		Searches    []string           `json:"searches,omitempty"`
+		Options     []DNSConfigOptions `json:"options,omitempty"`
+	}
+
+	DNSConfigOptions struct {
+		Name  string  `json:"name,omitempty"`
+		Value *string `json:"value,omitempty" yaml:"value"`
 	}
 
 	// Toleration defines Kubernetes pod tolerations

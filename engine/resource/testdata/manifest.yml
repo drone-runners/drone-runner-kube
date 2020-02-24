@@ -31,6 +31,15 @@ workspace:
 clone:
   depth: 50
 
+dns_config:
+  nameservers:
+    - 1.1.1.1
+  searches:
+    - test.local
+  options:
+    - name: ndots
+      value: 1
+
 steps:
 - name: build
   image: golang

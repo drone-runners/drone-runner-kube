@@ -242,7 +242,21 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 	if spec.PodSpec.ServiceAccountName == "" {
 		spec.PodSpec.ServiceAccountName = c.ServiceAccount
 	}
+	// add dns_config
+	if len(args.Pipeline.DnsConfig.Nameservers) > 0 {
+		spec.PodSpec.DnsConfig.Nameservers = args.Pipeline.DnsConfig.Nameservers
+	}
 
+	if len(args.Pipeline.DnsConfig.Searches) > 0 {
+		spec.PodSpec.DnsConfig.Searches = args.Pipeline.DnsConfig.Searches
+	}
+
+	for _, dnsconfig := range args.Pipeline.DnsConfig.Options {
+		spec.PodSpec.DnsConfig.Options = append(spec.PodSpec.DnsConfig.Options, engine.DNSConfigOptions{
+			Name:  dnsconfig.Name,
+			Value: dnsconfig.Value,
+		})
+	}
 	// add tolerations
 	for _, toleration := range args.Pipeline.Tolerations {
 		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{

@@ -80,8 +80,9 @@ type (
 	// VolumeMount describes a mounting of a Volume
 	// within a container.
 	VolumeMount struct {
-		Name string `json:"name,omitempty"`
-		Path string `json:"path,omitempty"`
+		Name     string `json:"name,omitempty"`
+		Path     string `json:"path,omitempty"`
+		ReadOnly bool   `json:"read_only,omitempty"`
 	}
 
 	// VolumeEmptyDir mounts a temporary directory from the
@@ -97,9 +98,10 @@ type (
 	// VolumeHostPath mounts a file or directory from the
 	// host node's filesystem into your container.
 	VolumeHostPath struct {
-		ID   string `json:"id,omitempty"`
-		Name string `json:"name,omitempty"`
-		Path string `json:"path,omitempty"`
+		ID       string `json:"id,omitempty"`
+		Name     string `json:"name,omitempty"`
+		Path     string `json:"path,omitempty"`
+		ReadOnly bool   `json:"read_only,omitempty"`
 	}
 	// VolumeDownwardAPI ...
 	VolumeDownwardAPI struct {

@@ -30,6 +30,7 @@ type compileCommand struct {
 
 	Source        *os.File
 	Privileged    []string
+	Volumes       map[string]string
 	Environ       map[string]string
 	Labels        map[string]string
 	Secrets       map[string]string
@@ -103,6 +104,7 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 		Environ:    c.Environ,
 		Labels:     c.Labels,
 		Privileged: append(c.Privileged, compiler.Privileged...),
+		Volumes:    c.Volumes,
 		Secret:     secret.Combine(),
 		Registry:   registry.Combine(),
 		Resources: compiler.Resources{
@@ -147,6 +149,7 @@ func registerCompile(app *kingpin.Application) {
 	c.Environ = map[string]string{}
 	c.Secrets = map[string]string{}
 	c.Labels = map[string]string{}
+	c.Volumes = map[string]string{}
 
 	cmd := app.Command("compile", "compile the yaml file").
 		Action(c.run)
@@ -166,6 +169,9 @@ func registerCompile(app *kingpin.Application) {
 
 	cmd.Flag("labels", "container labels").
 		StringMapVar(&c.Labels)
+
+	cmd.Flag("volumes", "container volumes").
+		StringMapVar(&c.Volumes)
 
 	cmd.Flag("privileged", "privileged docker images").
 		StringsVar(&c.Privileged)

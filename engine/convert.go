@@ -266,6 +266,7 @@ func toVolumeMounts(spec *Spec, step *Step) []v1.VolumeMount {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      id,
 			MountPath: v.Path,
+			ReadOnly:  v.ReadOnly,
 		})
 	}
 

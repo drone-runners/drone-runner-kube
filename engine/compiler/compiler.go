@@ -489,17 +489,16 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		v = strings.TrimSuffix(v, ":ro")
 		volume := &engine.Volume{
 			HostPath: &engine.VolumeHostPath{
-				ID:       id,
-				Name:     id,
-				Path:     k,
-				ReadOnly: ro,
+				ID:   id,
+				Name: id,
+				Path: k,
 			},
 		}
 		spec.Volumes = append(spec.Volumes, volume)
 		for _, step := range spec.Steps {
 			mount := &engine.VolumeMount{
-				Name: id,
-				Path: v,
+				Name:     id,
+				Path:     v,
 				ReadOnly: ro,
 			}
 			step.Volumes = append(step.Volumes, mount)

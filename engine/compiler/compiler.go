@@ -7,6 +7,7 @@ package compiler
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/util/validation"
 
@@ -116,6 +117,10 @@ type (
 		// Privileged provides a list of docker images that
 		// are always privileged.
 		Privileged []string
+
+		// Volumes provides a set of volumes that should be
+		// mounted to each pipeline container.
+		Volumes map[string]string
 
 		// Secret returns a named secret value that can be injected
 		// into the pipeline step.
@@ -474,6 +479,29 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		spec.PullSecret = &engine.Secret{
 			Name: random(),
 			Data: auths.Encode(creds...),
+		}
+	}
+
+	// append global volumes to the steps.
+	for k, v := range c.Volumes {
+		id := random()
+		ro := strings.HasSuffix(v, ":ro")
+		v = strings.TrimSuffix(v, ":ro")
+		volume := &engine.Volume{
+			HostPath: &engine.VolumeHostPath{
+				ID:   id,
+				Name: id,
+				Path: k,
+			},
+		}
+		spec.Volumes = append(spec.Volumes, volume)
+		for _, step := range spec.Steps {
+			mount := &engine.VolumeMount{
+				Name:     id,
+				Path:     v,
+				ReadOnly: ro,
+			}
+			step.Volumes = append(step.Volumes, mount)
 		}
 	}
 

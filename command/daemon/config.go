@@ -170,6 +170,9 @@ func fromEnviron() (Config, error) {
 		if err != nil {
 			return config, err
 		}
+		if config.Runner.Environ == nil {
+			config.Runner.Environ = map[string]string{}	
+		}
 		for k, v := range envs {
 			config.Runner.Environ[k] = v
 		}

@@ -80,8 +80,9 @@ type (
 	// VolumeMount describes a mounting of a Volume
 	// within a container.
 	VolumeMount struct {
-		Name string `json:"name,omitempty"`
-		Path string `json:"path,omitempty"`
+		Name     string `json:"name,omitempty"`
+		Path     string `json:"path,omitempty"`
+		ReadOnly bool   `json:"read_only,omitempty"`
 	}
 
 	// VolumeEmptyDir mounts a temporary directory from the
@@ -136,6 +137,7 @@ type (
 		Tolerations        []Toleration      `json:"tolerations,omitempty"`
 		ServiceAccountName string            `json:"service_account_name,omitempty"`
 		HostAliases        []HostAlias       `json:"host_aliases,omitempty"`
+		DnsConfig          DnsConfig         `json:"dns_config,omitempty"`
 	}
 
 	// HostAlias ...
@@ -151,5 +153,16 @@ type (
 		Operator          string `json:"operator,omitempty"`
 		TolerationSeconds *int   `json:"toleration_seconds,omitempty"`
 		Value             string `json:"value,omitempty"`
+	}
+	// DnsConfig
+	DnsConfig struct {
+		Nameservers []string           `json:"nameservers,omitempty"`
+		Searches    []string           `json:"searches,omitempty"`
+		Options     []DNSConfigOptions `json:"options,omitempty"`
+	}
+
+	DNSConfigOptions struct {
+		Name  string  `json:"name,omitempty"`
+		Value *string `json:"value,omitempty"`
 	}
 )

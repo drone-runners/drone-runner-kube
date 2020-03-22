@@ -43,6 +43,7 @@ type execCommand struct {
 	Include    []string
 	Exclude    []string
 	Privileged []string
+	Volumes    map[string]string
 	Environ    map[string]string
 	Labels     map[string]string
 	Secrets    map[string]string
@@ -123,6 +124,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Environ:    c.Environ,
 		Labels:     c.Labels,
 		Privileged: append(c.Privileged, compiler.Privileged...),
+		Volumes:    c.Volumes,
 		Secret:     secret.StaticVars(c.Secrets),
 		Registry:   registry.Combine(),
 		Namespace:  c.Namespace,
@@ -260,6 +262,7 @@ func registerExec(app *kingpin.Application) {
 	c.Environ = map[string]string{}
 	c.Secrets = map[string]string{}
 	c.Labels = map[string]string{}
+	c.Volumes = map[string]string{}
 
 	cmd := app.Command("exec", "executes a pipeline").
 		Action(c.run)
@@ -285,6 +288,9 @@ func registerExec(app *kingpin.Application) {
 
 	cmd.Flag("labels", "container labels").
 		StringMapVar(&c.Labels)
+
+	cmd.Flag("volumes", "container volumes").
+		StringMapVar(&c.Volumes)
 
 	cmd.Flag("privileged", "privileged docker images").
 		StringsVar(&c.Privileged)

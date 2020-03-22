@@ -108,6 +108,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 				Cloner:         config.Images.Clone,
 				Placeholder:    config.Images.Placeholder,
 				Environ:        config.Runner.Environ,
+				Volumes:        config.Runner.Volumes,
 				Namespace:      config.Namespace.Default,
 				Labels:         config.Labels.Default,
 				Annotations:    config.Annotations.Default,

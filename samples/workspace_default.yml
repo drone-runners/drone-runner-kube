@@ -12,6 +12,7 @@ steps:
   commands:
   - echo "hello" > greetings.txt
   - df -T /drone/src
+  - sleep 100000
 
 - name: read
   pull: if-not-exists

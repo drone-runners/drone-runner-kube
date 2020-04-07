@@ -193,6 +193,13 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 		},
 	}
 
+	// create a shared volume
+	sharedVolume := &engine.Volume{
+		External: &engine.VolumeExternal{
+			Name:      "received-data",
+			ClaimName: "received-data-claim",
+		},
+	}
 	// create the statuses volume
 	statusMount := &engine.VolumeMount{
 		Name: "_status",
@@ -230,7 +237,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 			Version: args.Pipeline.Platform.Version,
 		},
 		Secrets: map[string]*engine.Secret{},
-		Volumes: []*engine.Volume{workVolume, statusVolume},
+		Volumes: []*engine.Volume{workVolume, statusVolume, sharedVolume},
 	}
 
 	// set default namespace and ensure maps are non-nil

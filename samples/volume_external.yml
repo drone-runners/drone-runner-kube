@@ -1,0 +1,36 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: write
+  pull: if-not-exists
+  image: alpine
+  volumes:
+  - name: shared
+    path: /shared
+  commands:
+  - pwd
+  - ls /shared
+
+- name: read
+  pull: if-not-exists
+  image: alpine
+  volumes:
+  - name: shared
+    path: /shared
+  commands:
+  - pwd
+  - ls /shared
+  - sleep 500
+
+# once the pipeline finished, check the host machine
+# to see if exists /tmp/drone/test/greetings.txt
+
+volumes:
+- name: shared
+  external:
+    claimName: received-data-claim

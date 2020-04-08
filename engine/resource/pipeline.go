@@ -144,6 +144,7 @@ type (
 		Name     string          `json:"name,omitempty"`
 		EmptyDir *VolumeEmptyDir `json:"temp,omitempty" yaml:"temp"`
 		HostPath *VolumeHostPath `json:"host,omitempty" yaml:"host"`
+		External *VolumeExternal `json:"external,omitempty" yaml:"external"`
 	}
 
 	// VolumeMount describes a mounting of a Volume
@@ -165,6 +166,12 @@ type (
 	// host node's filesystem into your container.
 	VolumeHostPath struct {
 		Path string `json:"path,omitempty"`
+	}
+
+	// VolumeExternal mounts an already existing
+	// persistentVolumeClaim.
+	VolumeExternal struct {
+		ClaimName string `json:"claimName,omitempty" yaml:"claimName"`
 	}
 
 	// Workspace represents the pipeline workspace configuration.

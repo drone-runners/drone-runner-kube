@@ -117,6 +117,7 @@ type (
 
 	// VolumeExternal ...
 	VolumeExternal struct {
+		ID        string `json:"id,omitempty"`
 		Name      string `json:"name,omitempty"`
 		ClaimName string `json:"claimName,omitempty"`
 	}

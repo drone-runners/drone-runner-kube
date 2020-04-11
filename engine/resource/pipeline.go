@@ -133,7 +133,8 @@ type (
 		Resources   Resources                      `json:"resource,omitempty"`
 		Settings    map[string]*manifest.Parameter `json:"settings,omitempty"`
 		Shell       string                         `json:"shell,omitempty"`
-		User        string                         `json:"user,omitempty"`
+		User        *int64                         `json:"user,omitempty"`
+		Group       *int64                         `json:"group,omitempty"`
 		Volumes     []*VolumeMount                 `json:"volumes,omitempty"`
 		When        manifest.Conditions            `json:"when,omitempty"`
 		WorkingDir  string                         `json:"working_dir,omitempty" yaml:"working_dir"`

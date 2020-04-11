@@ -36,7 +36,8 @@ type (
 		Pull         PullPolicy        `json:"pull,omitempty"`
 		RunPolicy    RunPolicy         `json:"run_policy,omitempty"`
 		Secrets      []*SecretVar      `json:"secrets,omitempty"`
-		User         string            `json:"user,omitempty"`
+		User         *int64            `json:"user,omitempty"`
+		Group        *int64            `json:"group,omitempty"`
 		Volumes      []*VolumeMount    `json:"volumes,omitempty"`
 		WorkingDir   string            `json:"working_dir,omitempty"`
 	}

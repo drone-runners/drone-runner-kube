@@ -157,11 +157,9 @@ func toContainers(spec *Spec) []v1.Container {
 			ImagePullPolicy: toPullPolicy(s.Pull),
 			WorkingDir:      s.WorkingDir,
 			Resources:       toResources(s.Resources),
-			SecurityContext: &v1.SecurityContext{
-				Privileged: boolptr(s.Privileged),
-			},
-			VolumeMounts: toVolumeMounts(spec, s),
-			Env:          toEnv(spec, s),
+			SecurityContext: toSecurityContext(s),
+			VolumeMounts:    toVolumeMounts(spec, s),
+			Env:             toEnv(spec, s),
 		}
 
 		containers = append(containers, container)
@@ -298,6 +296,14 @@ func toResources(src Resources) v1.ResourceRequirements {
 		}
 	}
 	return dst
+}
+
+func toSecurityContext(s *Step) *v1.SecurityContext {
+	return &v1.SecurityContext{
+		Privileged: boolptr(s.Privileged),
+		RunAsUser: s.User,
+		RunAsGroup: s.Group,
+	}
 }
 
 // LookupVolume is a helper function that will lookup

@@ -118,6 +118,39 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestParseWithUserGroup(t *testing.T)  {
+	got, err := manifest.ParseFile("testdata/manifest-with-user-group.yml")
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	want := []manifest.Resource{
+		&Pipeline{
+			Kind:    "pipeline",
+			Type:    "kubernetes",
+			Name:    "default",
+			Version: "1",
+			Steps: []*Step{
+				{
+					Name:      "build",
+					Image:     "golang",
+					Commands: []string{
+						"go build",
+					},
+					User: int64ptr(1000),
+					Group: int64ptr(1000),
+				},
+			},
+		},
+	}
+
+	if diff := cmp.Diff(got.Resources, want); diff != "" {
+		t.Error("manifest step does not have proper user/group values")
+		t.Log(diff)
+	}
+
+}
 func TestParseErr(t *testing.T) {
 	_, err := manifest.ParseFile("testdata/malformed.yml")
 	if err == nil {
@@ -192,4 +225,8 @@ func TestLint(t *testing.T) {
 	if err := lint(p); err == nil {
 		t.Errorf("Expect error when empty name")
 	}
+}
+
+func int64ptr(x int64) *int64 {
+	return &x
 }

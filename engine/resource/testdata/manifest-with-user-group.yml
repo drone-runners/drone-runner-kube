@@ -1,0 +1,15 @@
+---
+kind: pipeline
+type: kubernetes
+name: default
+version: 1
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+  user: 1000
+  group: 1000
+
+...

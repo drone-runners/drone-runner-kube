@@ -118,7 +118,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func TestParseWithUserGroup(t *testing.T)  {
+func TestParseWithUserGroup(t *testing.T) {
 	got, err := manifest.ParseFile("testdata/manifest-with-user-group.yml")
 	if err != nil {
 		t.Error(err)
@@ -133,12 +133,12 @@ func TestParseWithUserGroup(t *testing.T)  {
 			Version: "1",
 			Steps: []*Step{
 				{
-					Name:      "build",
-					Image:     "golang",
+					Name:  "build",
+					Image: "golang",
 					Commands: []string{
 						"go build",
 					},
-					User: int64ptr(1000),
+					User:  int64ptr(1000),
 					Group: int64ptr(1000),
 				},
 			},
@@ -149,8 +149,8 @@ func TestParseWithUserGroup(t *testing.T)  {
 		t.Error("manifest step does not have proper user/group values")
 		t.Log(diff)
 	}
-
 }
+
 func TestParseErr(t *testing.T) {
 	_, err := manifest.ParseFile("testdata/malformed.yml")
 	if err == nil {

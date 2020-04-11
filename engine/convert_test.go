@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-func TestSecurityContext(t *testing.T)  {
+func TestSecurityContext(t *testing.T) {
 	test := &Step{
 		Privileged: true,
-		User: int64ptr(1000),
-		Group: int64ptr(1000),
+		User:       int64ptr(1000),
+		Group:      int64ptr(1000),
 	}
 
 	want := v1.SecurityContext{
@@ -24,7 +24,7 @@ func TestSecurityContext(t *testing.T)  {
 
 	got := toSecurityContext(test)
 
-	failed :=  *want.Privileged != *got.Privileged || *want.RunAsUser != *got.RunAsUser || *want.RunAsGroup != *got.RunAsGroup
+	failed := *want.Privileged != *got.Privileged || *want.RunAsUser != *got.RunAsUser || *want.RunAsGroup != *got.RunAsGroup
 
 	if failed {
 		t.Error("security context was not converted to expected values")

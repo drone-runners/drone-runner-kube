@@ -253,7 +253,7 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 func (k *Kubernetes) start(spec *Spec, step *Step) error {
 	err := retry.RetryOnConflict(backoff, func() error {
 		// We protect this read/modify/write with a mutex to reduce the
-		// change of a self-inflicted concurrent modification error
+		// chance of a self-inflicted concurrent modification error
 		// when a DAG in a pipeline is fanning out and we have a lot of
 		// steps to Start at once.
 		k.updateMutex.Lock()

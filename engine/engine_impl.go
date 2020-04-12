@@ -40,7 +40,7 @@ type Kubernetes struct {
 	client *kubernetes.Clientset
 	// Protects concurrent calls to PodInterface.Update to reduce the
 	// chance of a self-inflicted concurrent modification error.
-	updateMutex *sync.Mutex
+	updateMutex sync.Mutex
 }
 
 // NewFromConfig returns a new out-of-cluster engine.
@@ -57,8 +57,7 @@ func NewFromConfig(path string) (*Kubernetes, error) {
 		return nil, err
 	}
 	return &Kubernetes{
-		client:      clientset,
-		updateMutex: &sync.Mutex{},
+		client: clientset,
 	}, nil
 }
 
@@ -75,8 +74,7 @@ func NewInCluster() (*Kubernetes, error) {
 		return nil, err
 	}
 	return &Kubernetes{
-		client:      clientset,
-		updateMutex: &sync.Mutex{},
+		client: clientset,
 	}, nil
 }
 

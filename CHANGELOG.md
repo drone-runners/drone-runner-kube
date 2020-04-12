@@ -3,3 +3,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- `User` and `Group` fields to **step** definition to change the default user and group of a container.

@@ -4,6 +4,10 @@
 
 package engine
 
+import (
+	"sync"
+)
+
 type (
 	// Spec provides the pipeline spec. This provides the
 	// required instructions for reproducible pipeline
@@ -15,6 +19,10 @@ type (
 		Volumes    []*Volume          `json:"volumes,omitempty"`
 		Secrets    map[string]*Secret `json:"secrets,omitempty"`
 		PullSecret *Secret            `json:"pull_secrets,omitempty"`
+		// Runtime field to gate updating of the pod that this pipeline
+		// is running on. Helps to avoid self-inflicted 409 Conflict
+		// responses from the kubernetes api server.
+		podUpdateMutex sync.Mutex
 	}
 
 	// Step defines a pipeline step.

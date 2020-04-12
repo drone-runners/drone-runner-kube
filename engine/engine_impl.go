@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"sync"
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
@@ -38,9 +37,6 @@ var backoff = wait.Backoff{
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
 	client *kubernetes.Clientset
-	// Protects concurrent calls to PodInterface.Update to reduce the
-	// chance of a self-inflicted concurrent modification error.
-	updateMutex sync.Mutex
 }
 
 // NewFromConfig returns a new out-of-cluster engine.
@@ -254,8 +250,8 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 		// chance of a self-inflicted concurrent modification error
 		// when a DAG in a pipeline is fanning out and we have a lot of
 		// steps to Start at once.
-		k.updateMutex.Lock()
-		defer k.updateMutex.Unlock()
+		spec.podUpdateMutex.Lock()
+		defer spec.podUpdateMutex.Unlock()
 		pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Get(spec.PodSpec.Name, metav1.GetOptions{})
 		if err != nil {
 			return err

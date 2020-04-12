@@ -4,6 +4,11 @@
 
 package engine
 
+import (
+	"github.com/drone/runner-go/environ"
+	"github.com/drone/runner-go/pipeline/runtime"
+)
+
 type (
 	// Spec provides the pipeline spec. This provides the
 	// required instructions for reproducible pipeline
@@ -25,7 +30,7 @@ type (
 		DependsOn    []string          `json:"depends_on,omitempty"`
 		Entrypoint   []string          `json:"entrypoint,omitempty"`
 		Envs         map[string]string `json:"environment,omitempty"`
-		IgnoreErr    bool              `json:"ignore_err,omitempty"`
+		ErrPolicy    runtime.ErrPolicy `json:"err_policy,omitempty"`
 		IgnoreStdout bool              `json:"ignore_stderr,omitempty"`
 		IgnoreStderr bool              `json:"ignore_stdout,omitempty"`
 		Image        string            `json:"image,omitempty"`
@@ -34,8 +39,9 @@ type (
 		Privileged   bool              `json:"privileged,omitempty"`
 		Resources    Resources         `json:"resources,omitempty"`
 		Pull         PullPolicy        `json:"pull,omitempty"`
-		RunPolicy    RunPolicy         `json:"run_policy,omitempty"`
+		RunPolicy    runtime.RunPolicy `json:"run_policy,omitempty"`
 		Secrets      []*SecretVar      `json:"secrets,omitempty"`
+		SpecSecrets  []*Secret         `json:"spec_secrets,omitempty"`
 		User         *int64            `json:"user,omitempty"`
 		Group        *int64            `json:"group,omitempty"`
 		Volumes      []*VolumeMount    `json:"volumes,omitempty"`
@@ -167,3 +173,38 @@ type (
 		Value *string `json:"value,omitempty"`
 	}
 )
+
+//
+// implements the Spec interface
+//
+
+func (s *Spec) StepLen() int              { return len(s.Steps) }
+func (s *Spec) StepAt(i int) runtime.Step { return s.Steps[i] }
+
+//
+// implements the Secret interface
+//
+
+func (s *Secret) GetName() string  { return s.Name }
+func (s *Secret) GetValue() string { return string(s.Data) }
+func (s *Secret) IsMasked() bool   { return s.Mask }
+
+//
+// implements the Step interface
+//
+
+func (s *Step) GetName() string                  { return s.Name }
+func (s *Step) GetDependencies() []string        { return s.DependsOn }
+func (s *Step) GetEnviron() map[string]string    { return s.Envs }
+func (s *Step) SetEnviron(env map[string]string) { s.Envs = env }
+func (s *Step) GetErrPolicy() runtime.ErrPolicy  { return s.ErrPolicy }
+func (s *Step) GetRunPolicy() runtime.RunPolicy  { return s.RunPolicy }
+func (s *Step) GetSecretAt(i int) runtime.Secret { return s.SpecSecrets[i] }
+func (s *Step) GetSecretLen() int                { return len(s.SpecSecrets) }
+func (s *Step) IsDetached() bool                 { return s.Detach }
+func (s *Step) Clone() runtime.Step {
+	dst := new(Step)
+	*dst = *s
+	dst.Envs = environ.Combine(s.Envs)
+	return dst
+}

@@ -12,6 +12,8 @@ import (
 
 	"github.com/bmatcuk/doublestar"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
+	"github.com/drone/drone-go/drone"
+	"github.com/drone/runner-go/manifest"
 )
 
 // ErrDuplicateStepName is returned when two Pipeline steps
@@ -49,14 +51,15 @@ func New(patterns map[string][]string) *Linter {
 
 // Lint executes the linting rules for the pipeline
 // configuration.
-func (l *Linter) Lint(pipeline *resource.Pipeline, opts Opts) error {
-	if err := checkSteps(pipeline, opts.Trusted); err != nil {
+func (l *Linter) Lint(pm manifest.Resource, repo *drone.Repo) error {
+	pipeline := pm.(*resource.Pipeline)
+	if err := checkSteps(pipeline, repo.Trusted); err != nil {
 		return err
 	}
-	if err := checkVolumes(pipeline, opts.Trusted); err != nil {
+	if err := checkVolumes(pipeline, repo.Trusted); err != nil {
 		return err
 	}
-	if err := checkNamespace(pipeline.Metadata.Namespace, opts.Slug, l.patterns); err != nil {
+	if err := checkNamespace(pipeline.Metadata.Namespace, repo.Slug, l.patterns); err != nil {
 		return err
 	}
 	return nil

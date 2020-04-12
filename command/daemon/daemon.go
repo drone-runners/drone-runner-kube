@@ -13,7 +13,6 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/match"
-	"github.com/drone-runners/drone-runner-kube/runtime"
 
 	"github.com/drone/runner-go/client"
 	"github.com/drone/runner-go/handler/router"
@@ -21,6 +20,8 @@ import (
 	loghistory "github.com/drone/runner-go/logger/history"
 	"github.com/drone/runner-go/pipeline/reporter/history"
 	"github.com/drone/runner-go/pipeline/reporter/remote"
+	"github.com/drone/runner-go/pipeline/runtime"
+	"github.com/drone/runner-go/poller"
 	"github.com/drone/runner-go/registry"
 	"github.com/drone/runner-go/secret"
 	"github.com/drone/runner-go/server"
@@ -89,69 +90,72 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 	hook := loghistory.New()
 	logrus.AddHook(hook)
 
-	poller := &runtime.Poller{
+	runner := &runtime.Runner{
+		Client:   cli,
+		Machine:  config.Runner.Name,
+		Reporter: tracer,
+		Lookup:   resource.Lookup,
+		Lint:     linter.New(config.Namespace.Rules).Lint,
+		Match: match.Func(
+			config.Limit.Repos,
+			config.Limit.Events,
+			config.Limit.Trusted,
+		),
+		Compiler: &compiler.Compiler{
+			Cloner:         config.Images.Clone,
+			Placeholder:    config.Images.Placeholder,
+			Environ:        config.Runner.Environ,
+			Volumes:        config.Runner.Volumes,
+			Namespace:      config.Namespace.Default,
+			Labels:         config.Labels.Default,
+			Annotations:    config.Annotations.Default,
+			ServiceAccount: config.ServiceAccount.Default,
+			Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
+			Registry: registry.Combine(
+				registry.File(
+					config.Docker.Config,
+				),
+				registry.External(
+					config.Registry.Endpoint,
+					config.Registry.Token,
+					config.Registry.SkipVerify,
+				),
+			),
+			Secret: secret.Combine(
+				secret.StaticVars(
+					config.Runner.Secrets,
+				),
+				secret.External(
+					config.Secret.Endpoint,
+					config.Secret.Token,
+					config.Secret.SkipVerify,
+				),
+			),
+			Resources: compiler.Resources{
+				Limits: compiler.ResourceObject{
+					CPU:    config.Resources.LimitCPU,
+					Memory: int64(config.Resources.LimitMemory),
+				},
+				Requests: compiler.ResourceObject{
+					CPU:    config.Resources.RequestCPU,
+					Memory: int64(config.Resources.RequestMemory),
+				},
+			},
+		},
+		Exec: runtime.NewExecer(
+			tracer,
+			remote,
+			engine,
+			config.Runner.Procs,
+		).Exec,
+	}
+
+	poller := &poller.Poller{
 		// NOTE the single flight wrapper limits the number
 		// of open requests when polling the queue. This is
 		// an experimental feature and requires further testing.
-		Client: &client.SingleFlight{Client: cli},
-		Runner: &runtime.Runner{
-			Client:   cli,
-			Machine:  config.Runner.Name,
-			Reporter: tracer,
-			Linter:   linter.New(config.Namespace.Rules),
-			Match: match.Func(
-				config.Limit.Repos,
-				config.Limit.Events,
-				config.Limit.Trusted,
-			),
-			Compiler: &compiler.Compiler{
-				Cloner:         config.Images.Clone,
-				Placeholder:    config.Images.Placeholder,
-				Environ:        config.Runner.Environ,
-				Volumes:        config.Runner.Volumes,
-				Namespace:      config.Namespace.Default,
-				Labels:         config.Labels.Default,
-				Annotations:    config.Annotations.Default,
-				ServiceAccount: config.ServiceAccount.Default,
-				Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
-				Registry: registry.Combine(
-					registry.File(
-						config.Docker.Config,
-					),
-					registry.External(
-						config.Registry.Endpoint,
-						config.Registry.Token,
-						config.Registry.SkipVerify,
-					),
-				),
-				Secret: secret.Combine(
-					secret.StaticVars(
-						config.Runner.Secrets,
-					),
-					secret.External(
-						config.Secret.Endpoint,
-						config.Secret.Token,
-						config.Secret.SkipVerify,
-					),
-				),
-				Resources: compiler.Resources{
-					Limits: compiler.ResourceObject{
-						CPU:    config.Resources.LimitCPU,
-						Memory: int64(config.Resources.LimitMemory),
-					},
-					Requests: compiler.ResourceObject{
-						CPU:    config.Resources.RequestCPU,
-						Memory: int64(config.Resources.RequestMemory),
-					},
-				},
-			},
-			Execer: runtime.NewExecer(
-				tracer,
-				remote,
-				engine,
-				config.Runner.Procs,
-			),
-		},
+		Client:   &client.SingleFlight{Client: cli},
+		Dispatch: runner.Run,
 		Filter: &client.Filter{
 			Kind:   resource.Kind,
 			Type:   resource.Type,

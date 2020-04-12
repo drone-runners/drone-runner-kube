@@ -12,6 +12,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone/drone-go/drone"
 	"github.com/drone/runner-go/manifest"
+	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/drone/runner-go/registry"
 	"github.com/drone/runner-go/secret"
 
@@ -29,7 +30,7 @@ func TestClone(t *testing.T) {
 		Registry: registry.Static(nil),
 		Secret:   secret.Static(nil),
 	}
-	args := Args{
+	args := runtime.CompilerArgs{
 		Repo:     &drone.Repo{},
 		Build:    &drone.Build{},
 		Stage:    &drone.Stage{},
@@ -45,7 +46,7 @@ func TestClone(t *testing.T) {
 			Placeholder: "drone/placeholder:1",
 			Name:        "clone",
 			Pull:        engine.PullDefault,
-			RunPolicy:   engine.RunAlways,
+			RunPolicy:   runtime.RunAlways,
 			WorkingDir:  "/drone/src",
 			Volumes: []*engine.VolumeMount{
 				&engine.VolumeMount{
@@ -59,7 +60,7 @@ func TestClone(t *testing.T) {
 			},
 		},
 	}
-	got := c.Compile(nocontext, args)
+	got := c.Compile(nocontext, args).(*engine.Spec)
 	ignore := cmpopts.IgnoreFields(engine.Step{}, "Envs")
 	if diff := cmp.Diff(got.Steps, want, ignore); len(diff) != 0 {
 		t.Errorf(diff)
@@ -71,7 +72,7 @@ func TestCloneDisable(t *testing.T) {
 		Registry: registry.Static(nil),
 		Secret:   secret.Static(nil),
 	}
-	args := Args{
+	args := runtime.CompilerArgs{
 		Repo:     &drone.Repo{},
 		Build:    &drone.Build{},
 		Stage:    &drone.Stage{},
@@ -80,7 +81,7 @@ func TestCloneDisable(t *testing.T) {
 		Manifest: &manifest.Manifest{},
 		Pipeline: &resource.Pipeline{Clone: manifest.Clone{Disable: true}},
 	}
-	got := c.Compile(nocontext, args)
+	got := c.Compile(nocontext, args).(*engine.Spec)
 	if len(got.Steps) != 0 {
 		t.Errorf("Expect no clone step added when disabled")
 	}
@@ -91,7 +92,7 @@ func TestCloneCreate(t *testing.T) {
 		Name:        "clone",
 		Image:       "drone/git:latest",
 		Placeholder: "drone/placeholder:1",
-		RunPolicy:   engine.RunAlways,
+		RunPolicy:   runtime.RunAlways,
 		Envs:        map[string]string{"PLUGIN_DEPTH": "50"},
 	}
 	src := &resource.Pipeline{Clone: manifest.Clone{Depth: 50}}

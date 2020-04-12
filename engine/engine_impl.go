@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
@@ -28,15 +29,18 @@ import (
 )
 
 var backoff = wait.Backoff{
-	Steps:    5,
+	Steps:    15,
 	Duration: 500 * time.Millisecond,
 	Factor:   1.0,
-	Jitter:   0.1,
+	Jitter:   0.5,
 }
 
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
 	client *kubernetes.Clientset
+	// Protects concurrent calls to PodInterface.Update to reduce the
+	// chance of a self-inflicted concurrent modification error.
+	updateMutex *sync.Mutex
 }
 
 // NewFromConfig returns a new out-of-cluster engine.
@@ -53,7 +57,8 @@ func NewFromConfig(path string) (*Kubernetes, error) {
 		return nil, err
 	}
 	return &Kubernetes{
-		client: clientset,
+		client:      clientset,
+		updateMutex: &sync.Mutex{},
 	}, nil
 }
 
@@ -70,7 +75,8 @@ func NewInCluster() (*Kubernetes, error) {
 		return nil, err
 	}
 	return &Kubernetes{
-		client: clientset,
+		client:      clientset,
+		updateMutex: &sync.Mutex{},
 	}, nil
 }
 
@@ -246,6 +252,12 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 
 func (k *Kubernetes) start(spec *Spec, step *Step) error {
 	err := retry.RetryOnConflict(backoff, func() error {
+		// We protect this read/modify/write with a mutex to reduce the
+		// change of a self-inflicted concurrent modification error
+		// when a DAG in a pipeline is fanning out and we have a lot of
+		// steps to Start at once.
+		k.updateMutex.Lock()
+		defer k.updateMutex.Unlock()
 		pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Get(spec.PodSpec.Name, metav1.GetOptions{})
 		if err != nil {
 			return err

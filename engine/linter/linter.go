@@ -105,8 +105,8 @@ func checkVolumes(pipeline *resource.Pipeline, trusted bool) error {
 				return err
 			}
 		}
-		if volume.External != nil {
-			err := checkExternalVolume(volume.External, trusted)
+		if volume.Claim != nil {
+			err := checkClaimVolume(volume.Claim, trusted)
 			if err != nil {
 				return err
 			}
@@ -128,7 +128,7 @@ func checkHostPathVolume(volume *resource.VolumeHostPath, trusted bool) error {
 	return nil
 }
 
-func checkExternalVolume(volume *resource.VolumeExternal, trusted bool) error {
+func checkClaimVolume(volume *resource.VolumeClaim, trusted bool) error {
 	if trusted == false {
 		return errors.New("linter: untrusted repositories cannot mount PVC")
 	}

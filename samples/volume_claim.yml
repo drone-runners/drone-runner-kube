@@ -24,13 +24,13 @@ steps:
     path: /shared
   commands:
   - pwd
-  - ls /shared
   - sleep 500
+  - ls /shared
 
 # once the pipeline finished, check the host machine
 # to see if exists /tmp/drone/test/greetings.txt
 
 volumes:
 - name: shared
-  external:
+  claim:
     claimName: received-data-claim

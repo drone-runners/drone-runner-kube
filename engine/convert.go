@@ -117,12 +117,12 @@ func toVolumes(spec *Spec) []v1.Volume {
 			volumes = append(volumes, volume)
 		}
 
-		if v.External != nil {
+		if v.Claim != nil {
 			volume := v1.Volume{
-				Name: v.External.ID,
+				Name: v.Claim.ID,
 				VolumeSource: v1.VolumeSource{
 					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
-						ClaimName: v.External.ClaimName,
+						ClaimName: v.Claim.ClaimName,
 						ReadOnly:  true,
 					},
 				},
@@ -325,8 +325,8 @@ func lookupVolumeID(spec *Spec, name string) (string, bool) {
 			return v.HostPath.ID, true
 		}
 
-		if v.External != nil && v.External.Name == name {
-			return v.External.ID, true
+		if v.Claim != nil && v.Claim.Name == name {
+			return v.Claim.ID, true
 		}
 
 		if v.DownwardAPI != nil && v.DownwardAPI.Name == name {

@@ -32,5 +32,5 @@ steps:
 
 volumes:
 - name: shared
-  external:
+  claim:
     claimName: received-data-claim

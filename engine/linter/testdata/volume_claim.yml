@@ -33,4 +33,4 @@ steps:
 volumes:
 - name: shared
   claim:
-    claimName: received-data-claim
+    name: received-data-claim

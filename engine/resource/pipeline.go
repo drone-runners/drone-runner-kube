@@ -171,7 +171,7 @@ type (
 	// VolumeClaim mounts an already existing
 	// persistentVolumeClaim.
 	VolumeClaim struct {
-		ClaimName string `json:"claimName,omitempty" yaml:"claimName"`
+		ClaimName string `json:"name,omitempty" yaml:"name"`
 	}
 
 	// Workspace represents the pipeline workspace configuration.

@@ -527,6 +527,7 @@ func (c *Compiler) Compile(ctx context.Context, args Args) *engine.Spec {
 				ID:        id,
 				Name:      v.Name,
 				ClaimName: v.Claim.ClaimName,
+				ReadOnly:  v.Claim.ReadOnly,
 			}
 		} else {
 			continue

@@ -14,7 +14,7 @@ steps:
     path: /shared
   commands:
   - pwd
-  - ls /shared
+  - echo "hello" > /shared/greetings.txt
 
 - name: read
   pull: if-not-exists
@@ -25,12 +25,10 @@ steps:
   commands:
   - pwd
   - ls /shared
-  - sleep 500
-
-# once the pipeline finished, check the host machine
-# to see if exists /tmp/drone/test/greetings.txt
+  - cat /shared/greetings.txt
 
 volumes:
 - name: shared
   claim:
     name: received-data-claim
+    read_only: false

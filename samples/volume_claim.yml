@@ -14,7 +14,7 @@ steps:
     path: /shared
   commands:
   - pwd
-  - ls /shared
+  - echo "hello" > /shared/greetings.txt
 
 - name: read
   pull: if-not-exists
@@ -24,11 +24,9 @@ steps:
     path: /shared
   commands:
   - pwd
-  - sleep 500
   - ls /shared
-
-# once the pipeline finished, check the host machine
-# to see if exists /tmp/drone/test/greetings.txt
+  - cat /shared/greetings.txt
+  - sleep 500
 
 volumes:
 - name: shared

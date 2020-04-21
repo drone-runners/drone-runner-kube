@@ -172,6 +172,7 @@ type (
 	// persistentVolumeClaim.
 	VolumeClaim struct {
 		ClaimName string `json:"name,omitempty" yaml:"name"`
+		ReadOnly  bool   `json:"read_only,omitempty" yaml:"read_only"`
 	}
 
 	// Workspace represents the pipeline workspace configuration.

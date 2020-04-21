@@ -123,7 +123,7 @@ func toVolumes(spec *Spec) []v1.Volume {
 				VolumeSource: v1.VolumeSource{
 					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
 						ClaimName: v.Claim.ClaimName,
-						ReadOnly:  true,
+						ReadOnly:  v.Claim.ReadOnly,
 					},
 				},
 			}

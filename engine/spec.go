@@ -120,6 +120,7 @@ type (
 		ID        string `json:"id,omitempty"`
 		Name      string `json:"name,omitempty"`
 		ClaimName string `json:"claimName,omitempty"`
+		ReadOnly  bool   `json:"readOnly,omitempty"`
 	}
 
 	// Resources describes the compute resource requirements.

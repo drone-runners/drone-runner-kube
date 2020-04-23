@@ -119,7 +119,7 @@ type (
 	VolumeClaim struct {
 		ID        string `json:"id,omitempty"`
 		Name      string `json:"name,omitempty"`
-		ClaimName string `json:"claimName,omitempty"`
+		ClaimName string `json:"claim_name,omitempty"`
 		ReadOnly  bool   `json:"readOnly,omitempty"`
 	}
 

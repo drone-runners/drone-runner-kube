@@ -196,10 +196,21 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		Volumes: []*engine.Volume{workVolume, statusVolume},
 	}
 
-	// set default namespace and ensure maps are non-nil
+	// set default namespace
 	if spec.PodSpec.Namespace == "" {
 		spec.PodSpec.Namespace = c.Namespace
 	}
+
+	// the runner can be configured to create random namespaces
+	// that is created before the pipeline executes, and destroyed
+	// after the pipeline completes.
+	if spec.PodSpec.Namespace == "drone-" {
+		namespace := random()
+		spec.PodSpec.Namespace = namespace
+		spec.Namespace = namespace
+	}
+
+	// ensure maps are non-nil
 	if spec.PodSpec.Labels == nil {
 		spec.PodSpec.Labels = map[string]string{}
 	}

@@ -65,7 +65,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 
 	kubeconfig := c.Config
 	if kubeconfig == "" {
-		dir, _ := os.Getwd()
+		dir, _ := os.UserHomeDir()
 		kubeconfig = filepath.Join(dir, ".kube", "config")
 	}
 

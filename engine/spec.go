@@ -26,6 +26,12 @@ type (
 		// is running on. Helps to avoid self-inflicted 409 Conflict
 		// responses from the kubernetes api server.
 		podUpdateMutex sync.Mutex
+
+		// Namespace is an optional namespace that should be
+		// created before the pipeline starts and executed after
+		// the pipeline completes. WARNING this field should only
+		// be set if you want custom per-pipeline namespaces.
+		Namespace string `json:"namespace,omitempty"`
 	}
 
 	// Step defines a pipeline step.

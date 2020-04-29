@@ -79,10 +79,10 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	engine, err := engine.NewInCluster()
+	engine, err := engine.New()
 	if err != nil {
 		logrus.WithError(err).
-			Fatalln("cannot load the docker engine")
+			Fatalln("cannot load the kubernetes engine")
 	}
 
 	remote := remote.New(cli)

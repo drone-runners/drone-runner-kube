@@ -8,6 +8,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
@@ -38,6 +40,21 @@ var backoff = wait.Backoff{
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
 	client *kubernetes.Clientset
+}
+
+// New returns a new engine.
+func New() (*Kubernetes, error) {
+	engine, err := NewInCluster()
+	if err == nil {
+		return engine, nil
+	}
+	dir, _ := os.UserHomeDir()
+	dir = filepath.Join(dir, ".kube", "config")
+	engine, xerr := NewFromConfig(dir)
+	if xerr == nil {
+		return engine, nil
+	}
+	return nil, err
 }
 
 // NewFromConfig returns a new out-of-cluster engine.
@@ -78,6 +95,14 @@ func NewInCluster() (*Kubernetes, error) {
 // Setup the pipeline environment.
 func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
 	spec := specv.(*Spec)
+
+	if spec.Namespace != "" {
+		_, err := k.client.CoreV1().Namespaces().Create(toNamespace(spec.Namespace))
+		if err != nil {
+			return err
+		}
+	}
+
 	if spec.PullSecret != nil {
 		_, err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toDockerConfigSecret(spec))
 		if err != nil {
@@ -118,6 +143,13 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 	err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
 	if err != nil {
 		result = multierror.Append(result, err)
+	}
+
+	if spec.Namespace != "" {
+		err := k.client.CoreV1().Namespaces().Delete(spec.Namespace, &metav1.DeleteOptions{})
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
 	}
 
 	return result

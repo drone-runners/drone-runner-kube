@@ -298,10 +298,20 @@ func toResources(src Resources) v1.ResourceRequirements {
 	return dst
 }
 
+// helper function returns a kubernetes namespace
+// for the given specification.
+func toNamespace(name string) *v1.Namespace {
+	return &v1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: name,
+		},
+	}
+}
+
 func toSecurityContext(s *Step) *v1.SecurityContext {
 	return &v1.SecurityContext{
 		Privileged: boolptr(s.Privileged),
-		RunAsUser: s.User,
+		RunAsUser:  s.User,
 		RunAsGroup: s.Group,
 	}
 }

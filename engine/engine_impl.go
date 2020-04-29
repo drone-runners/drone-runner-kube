@@ -12,10 +12,11 @@ import (
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone/runner-go/livelog"
+	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/hashicorp/go-multierror"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
@@ -75,7 +76,8 @@ func NewInCluster() (*Kubernetes, error) {
 }
 
 // Setup the pipeline environment.
-func (k *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
+func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
+	spec := specv.(*Spec)
 	if spec.PullSecret != nil {
 		_, err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toDockerConfigSecret(spec))
 		if err != nil {
@@ -97,7 +99,8 @@ func (k *Kubernetes) Setup(ctx context.Context, spec *Spec) error {
 }
 
 // Destroy the pipeline environment.
-func (k *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
+func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
+	spec := specv.(*Spec)
 	var result error
 
 	if spec.PullSecret != nil {
@@ -121,7 +124,10 @@ func (k *Kubernetes) Destroy(ctx context.Context, spec *Spec) error {
 }
 
 // Run runs the pipeline step.
-func (k *Kubernetes) Run(ctx context.Context, spec *Spec, step *Step, output io.Writer) (*State, error) {
+func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Step, output io.Writer) (*runtime.State, error) {
+	spec := specv.(*Spec)
+	step := stepv.(*Step)
+
 	err := k.start(spec, step)
 	if err != nil {
 		return nil, err
@@ -143,7 +149,7 @@ func (k *Kubernetes) Run(ctx context.Context, spec *Spec, step *Step, output io.
 func (k *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func(e watch.Event) (bool, error)) error {
 	label := fmt.Sprintf("io.drone.name=%s", spec.PodSpec.Name)
 	lw := &cache.ListWatch{
-		ListFunc: func(options metav1.ListOptions) (runtime.Object, error) {
+		ListFunc: func(options metav1.ListOptions) (k8sruntime.Object, error) {
 			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).List(metav1.ListOptions{
 				LabelSelector: label,
 			})
@@ -191,8 +197,8 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 	})
 }
 
-func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *Step) (*State, error) {
-	state := &State{
+func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *Step) (*runtime.State, error) {
+	state := &runtime.State{
 		Exited:    true,
 		OOMKilled: false,
 	}

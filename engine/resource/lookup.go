@@ -11,7 +11,7 @@ import (
 )
 
 // Lookup returns the named pipeline from the Manifest.
-func Lookup(name string, manifest *manifest.Manifest) (*Pipeline, error) {
+func Lookup(name string, manifest *manifest.Manifest) (manifest.Resource, error) {
 	for _, resource := range manifest.Resources {
 		if !isNameMatch(resource.GetName(), name) {
 			continue

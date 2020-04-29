@@ -11,6 +11,8 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone-runners/drone-runner-kube/internal/encoder"
+
+	"github.com/drone/runner-go/pipeline/runtime"
 )
 
 const placeholderImage = "drone/placeholder:1"
@@ -26,7 +28,6 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		Detach:       src.Detach,
 		DependsOn:    src.DependsOn,
 		Envs:         convertStaticEnv(src.Environment),
-		IgnoreErr:    strings.EqualFold(src.Failure, "ignore"),
 		IgnoreStderr: false,
 		IgnoreStdout: false,
 		Privileged:   src.Privileged,
@@ -76,9 +77,18 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 	// success by default, but may be optionally configured
 	// to run on failure.
 	if isRunAlways(src) {
-		dst.RunPolicy = engine.RunAlways
+		dst.RunPolicy = runtime.RunAlways
 	} else if isRunOnFailure(src) {
-		dst.RunPolicy = engine.RunOnFailure
+		dst.RunPolicy = runtime.RunOnFailure
+	}
+
+	// set the pipeline failure policy. steps can choose
+	// to ignore the failure, or fail fast.
+	switch src.Failure {
+	case "ignore":
+		dst.ErrPolicy = runtime.ErrIgnore
+	case "fast", "fast-fail", "fail-fast":
+		dst.ErrPolicy = runtime.ErrFailFast
 	}
 
 	return dst

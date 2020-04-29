@@ -94,6 +94,10 @@ type Config struct {
 		Default string `envconfig:"DRONE_SERVICE_ACCOUNT_DEFAULT"`
 	}
 
+	NodeSelector struct {
+		Default map[string]string `envconfig:"DRONE_NODE_SELECTOR_DEFAULT"`
+	}
+
 	Annotations struct {
 		Default map[string]string `envconfig:"DRONE_ANNOTATIONS_DEFAULT"`
 	}
@@ -172,7 +176,7 @@ func fromEnviron() (Config, error) {
 			return config, err
 		}
 		if config.Runner.Environ == nil {
-			config.Runner.Environ = map[string]string{}	
+			config.Runner.Environ = map[string]string{}
 		}
 		for k, v := range envs {
 			config.Runner.Environ[k] = v

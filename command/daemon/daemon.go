@@ -110,6 +110,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			Labels:         config.Labels.Default,
 			Annotations:    config.Annotations.Default,
 			ServiceAccount: config.ServiceAccount.Default,
+			NodeSelector:   config.NodeSelector.Default,
 			Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
 			Registry: registry.Combine(
 				registry.File(

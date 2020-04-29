@@ -110,6 +110,9 @@ type (
 		// ServiceAccount provides the default kubernetes Service Account
 		// when no Service Account is provided.
 		ServiceAccount string
+
+		// NodeSelector provides the default kubernetes node selector.
+		NodeSelector map[string]string
 	}
 )
 
@@ -202,6 +205,9 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	}
 	if spec.PodSpec.Annotations == nil {
 		spec.PodSpec.Annotations = map[string]string{}
+	}
+	if spec.PodSpec.NodeSelector == nil && c.NodeSelector != nil {
+		spec.PodSpec.NodeSelector = c.NodeSelector
 	}
 	// set default service account
 	if spec.PodSpec.ServiceAccountName == "" {

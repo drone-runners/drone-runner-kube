@@ -79,7 +79,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	engine, err := engine.New()
+	engine, err := engine.NewInCluster()
 	if err != nil {
 		logrus.WithError(err).
 			Fatalln("cannot load the kubernetes engine")

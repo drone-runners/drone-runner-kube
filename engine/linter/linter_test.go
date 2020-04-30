@@ -58,6 +58,19 @@ func TestLint(t *testing.T) {
 			trusted: true,
 			invalid: false,
 		},
+		// user should not be able to mount persistent volume claims
+		// volumes unless the repository is trusted.
+		{
+			path:    "testdata/volume_claim.yml",
+			trusted: false,
+			invalid: true,
+			message: "linter: untrusted repositories cannot mount PVC",
+		},
+		{
+			path:    "testdata/volume_claim.yml",
+			trusted: true,
+			invalid: false,
+		},
 		// user should be able to mount emptyDir volumes
 		// where no medium is specified.
 		{

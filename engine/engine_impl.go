@@ -97,7 +97,7 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
 	spec := specv.(*Spec)
 
 	if spec.Namespace != "" {
-		_, err := k.client.CoreV1().Namespaces().Create(toNamespace(spec.Namespace))
+		_, err := k.client.CoreV1().Namespaces().Create(toNamespace(spec.Namespace, spec.PodSpec.Labels))
 		if err != nil {
 			return err
 		}

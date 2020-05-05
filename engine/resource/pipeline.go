@@ -90,7 +90,7 @@ func (p *Pipeline) GetStep(name string) *Step {
 }
 
 type (
-	// Metadata defines Kubernetes pod meteadata
+	// Metadata defines Kubernetes pod metadata
 	Metadata struct {
 		Namespace   string            `json:"namespace,omitempty"`
 		Annotations map[string]string `json:"annotations,omitempty"`

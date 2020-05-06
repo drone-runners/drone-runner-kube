@@ -111,6 +111,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			Annotations:       config.Annotations.Default,
 			ServiceAccount:    config.ServiceAccount.Default,
 			NodeSelector:      config.NodeSelector.Default,
+			PrivilegedImages:  config.Runner.PrivilegedImages,
 			PrivilegedPlugins: append(config.Runner.PrivilegedPlugins, compiler.PrivilegedPlugins...),
 			Registry: registry.Combine(
 				registry.File(

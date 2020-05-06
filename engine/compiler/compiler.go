@@ -73,6 +73,11 @@ type (
 		// to each container by default.
 		Annotations map[string]string
 
+		// PrivilegedImages provides a list of custom docker images
+		// that are always privileged when no entrypoint or commands
+		// are specified in the step definition.
+		PrivilegedImages []string
+
 		// PrivilegedPlugins provides a list of official Drone plugins
 		// that are always privileged when no entrypoint or commands
 		// are specified in the step definition.
@@ -365,6 +370,10 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		if len(validation.IsDNS1123Subdomain(src.Name)) == 0 {
 			hostnames = append(hostnames, src.Name)
 		}
+
+		if c.isPrivileged(src) {
+			dst.Privileged = true
+		}
 	}
 
 	if len(hostnames) > 0 {
@@ -549,7 +558,7 @@ func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	}
 	// if the container image matches any image
 	// in the whitelist, return true.
-	for _, img := range c.PrivilegedPlugins {
+	for _, img := range append(c.PrivilegedPlugins, c.PrivilegedImages...) {
 		a := img
 		b := step.Image
 		if image.Match(a, b) {

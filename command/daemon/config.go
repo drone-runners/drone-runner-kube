@@ -53,6 +53,7 @@ type Config struct {
 		Secrets           map[string]string `envconfig:"DRONE_RUNNER_SECRETS"`
 		Labels            map[string]string `envconfig:"DRONE_RUNNER_LABELS"`
 		Volumes           map[string]string `envconfig:"DRONE_RUNNER_VOLUMES"`
+		PrivilegedImages  []string          `envconfig:"DRONE_PRIVILEGED_IMAGES"`
 		PrivilegedPlugins []string          `envconfig:"DRONE_PRIVILEGED_PLUGINS"`
 	}
 

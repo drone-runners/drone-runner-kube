@@ -30,6 +30,7 @@ type compileCommand struct {
 	*internal.Flags
 
 	Source            *os.File
+	PrivilegedImages  []string
 	PrivilegedPlugins []string
 	Volumes           map[string]string
 	Environ           map[string]string
@@ -103,6 +104,7 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 	comp := &compiler.Compiler{
 		Environ:           c.Environ,
 		Labels:            c.Labels,
+		PrivilegedImages:  c.PrivilegedImages,
 		PrivilegedPlugins: append(c.PrivilegedPlugins, compiler.PrivilegedPlugins...),
 		Volumes:           c.Volumes,
 		Secret:            secret.Combine(),
@@ -172,6 +174,9 @@ func registerCompile(app *kingpin.Application) {
 
 	cmd.Flag("volumes", "container volumes").
 		StringMapVar(&c.Volumes)
+
+	cmd.Flag("privileged-images", "privileged docker images").
+		StringsVar(&c.PrivilegedImages)
 
 	cmd.Flag("privileged-plugins", "privileged docker plugins").
 		StringsVar(&c.PrivilegedPlugins)

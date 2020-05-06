@@ -39,22 +39,22 @@ import (
 type execCommand struct {
 	*internal.Flags
 
-	Source     *os.File
-	Include    []string
-	Exclude    []string
-	Privileged []string
-	Volumes    map[string]string
-	Environ    map[string]string
-	Labels     map[string]string
-	Secrets    map[string]string
-	Namespace  string
-	Config     string
-	Clone      bool
-	Pretty     bool
-	Procs      int64
-	Debug      bool
-	Trace      bool
-	Dump       bool
+	Source            *os.File
+	Include           []string
+	Exclude           []string
+	PrivilegedPlugins []string
+	Volumes           map[string]string
+	Environ           map[string]string
+	Labels            map[string]string
+	Secrets           map[string]string
+	Namespace         string
+	Config            string
+	Clone             bool
+	Pretty            bool
+	Procs             int64
+	Debug             bool
+	Trace             bool
+	Dump              bool
 }
 
 func (c *execCommand) run(*kingpin.ParseContext) error {
@@ -120,13 +120,13 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 
 	// compile the pipeline to an intermediate representation.
 	comp := &compiler.Compiler{
-		Environ:    c.Environ,
-		Labels:     c.Labels,
-		Privileged: append(c.Privileged, compiler.Privileged...),
-		Volumes:    c.Volumes,
-		Secret:     secret.StaticVars(c.Secrets),
-		Registry:   registry.Combine(),
-		Namespace:  c.Namespace,
+		Environ:           c.Environ,
+		Labels:            c.Labels,
+		PrivilegedPlugins: append(c.PrivilegedPlugins, compiler.PrivilegedPlugins...),
+		Volumes:           c.Volumes,
+		Secret:            secret.StaticVars(c.Secrets),
+		Registry:          registry.Combine(),
+		Namespace:         c.Namespace,
 	}
 
 	args := runtime.CompilerArgs{
@@ -291,8 +291,8 @@ func registerExec(app *kingpin.Application) {
 	cmd.Flag("volumes", "container volumes").
 		StringMapVar(&c.Volumes)
 
-	cmd.Flag("privileged", "privileged docker images").
-		StringsVar(&c.Privileged)
+	cmd.Flag("privileged-plugins", "privileged docker plugins").
+		StringsVar(&c.PrivilegedPlugins)
 
 	cmd.Flag("kubeconfig", "path to the kubernetes config file").
 		StringVar(&c.Config)

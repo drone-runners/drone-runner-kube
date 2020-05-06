@@ -45,15 +45,15 @@ type Config struct {
 	}
 
 	Runner struct {
-		Name       string            `envconfig:"DRONE_RUNNER_NAME"`
-		Capacity   int               `envconfig:"DRONE_RUNNER_CAPACITY" default:"100"`
-		Procs      int64             `envconfig:"DRONE_RUNNER_MAX_PROCS"`
-		Environ    map[string]string `envconfig:"DRONE_RUNNER_ENVIRON"`
-		EnvFile    string            `envconfig:"DRONE_RUNNER_ENV_FILE"`
-		Secrets    map[string]string `envconfig:"DRONE_RUNNER_SECRETS"`
-		Labels     map[string]string `envconfig:"DRONE_RUNNER_LABELS"`
-		Volumes    map[string]string `envconfig:"DRONE_RUNNER_VOLUMES"`
-		Privileged []string          `envconfig:"DRONE_RUNNER_PRIVILEGED_IMAGES"`
+		Name              string            `envconfig:"DRONE_RUNNER_NAME"`
+		Capacity          int               `envconfig:"DRONE_RUNNER_CAPACITY" default:"100"`
+		Procs             int64             `envconfig:"DRONE_RUNNER_MAX_PROCS"`
+		Environ           map[string]string `envconfig:"DRONE_RUNNER_ENVIRON"`
+		EnvFile           string            `envconfig:"DRONE_RUNNER_ENV_FILE"`
+		Secrets           map[string]string `envconfig:"DRONE_RUNNER_SECRETS"`
+		Labels            map[string]string `envconfig:"DRONE_RUNNER_LABELS"`
+		Volumes           map[string]string `envconfig:"DRONE_RUNNER_VOLUMES"`
+		PrivilegedPlugins []string          `envconfig:"DRONE_PRIVILEGED_PLUGINS"`
 	}
 
 	Limit struct {
@@ -117,9 +117,10 @@ type Config struct {
 // legacy environment variables. the key is the legacy
 // variable name, and the value is the new variable name.
 var legacy = map[string]string{
-	"DRONE_REGISTRY_ENDPOINT":      "DRONE_REGISTRY_PLUGIN_ENDPOINT",
-	"DRONE_REGISTRY_SECRET":        "DRONE_REGISTRY_PLUGIN_TOKEN",
-	"DRONE_REGISTRY_PLUGIN_SECRET": "DRONE_REGISTRY_PLUGIN_TOKEN",
+	"DRONE_REGISTRY_ENDPOINT":        "DRONE_REGISTRY_PLUGIN_ENDPOINT",
+	"DRONE_REGISTRY_SECRET":          "DRONE_REGISTRY_PLUGIN_TOKEN",
+	"DRONE_REGISTRY_PLUGIN_SECRET":   "DRONE_REGISTRY_PLUGIN_TOKEN",
+	"DRONE_RUNNER_PRIVILEGED_IMAGES": "DRONE_PRIVILEGED_PLUGINS",
 }
 
 func fromEnviron() (Config, error) {

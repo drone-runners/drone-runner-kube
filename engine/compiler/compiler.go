@@ -33,10 +33,10 @@ var random = func() string {
 	return "drone-" + uniuri.NewLenChars(20, []byte("abcdefghijklmnopqrstuvwxyz0123456789"))
 }
 
-// Privileged provides a list of plugins that execute
-// with privileged capabilities in order to run Docker
-// in Docker.
-var Privileged = []string{
+// PrivilegedPlugins provides a list of official Drone plugins
+// that are always privileged when no entrypoint or commands
+// are specified in the step definition.
+var PrivilegedPlugins = []string{
 	"plugins/docker",
 	"plugins/acr",
 	"plugins/ecr",
@@ -73,9 +73,10 @@ type (
 		// to each container by default.
 		Annotations map[string]string
 
-		// Privileged provides a list of docker images that
-		// are always privileged.
-		Privileged []string
+		// PrivilegedPlugins provides a list of official Drone plugins
+		// that are always privileged when no entrypoint or commands
+		// are specified in the step definition.
+		PrivilegedPlugins []string
 
 		// Volumes provides a set of volumes that should be
 		// mounted to each pipeline container.
@@ -396,7 +397,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 
 		// if the pipeline step has an approved image, it is
-		// automatically defaulted to run with escalalated
+		// automatically defaulted to run with escalated
 		// privileges.
 		if c.isPrivileged(src) {
 			dst.Privileged = true
@@ -548,7 +549,7 @@ func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	}
 	// if the container image matches any image
 	// in the whitelist, return true.
-	for _, img := range c.Privileged {
+	for _, img := range c.PrivilegedPlugins {
 		a := img
 		b := step.Image
 		if image.Match(a, b) {

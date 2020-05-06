@@ -29,19 +29,19 @@ import (
 type compileCommand struct {
 	*internal.Flags
 
-	Source        *os.File
-	Privileged    []string
-	Volumes       map[string]string
-	Environ       map[string]string
-	Labels        map[string]string
-	Secrets       map[string]string
-	Clone         bool
-	Spec          bool
-	Config        string
-	LimitCPU      int64
-	LimitMemory   int64
-	RequestCPU    int64
-	RequestMemory int64
+	Source            *os.File
+	PrivilegedPlugins []string
+	Volumes           map[string]string
+	Environ           map[string]string
+	Labels            map[string]string
+	Secrets           map[string]string
+	Clone             bool
+	Spec              bool
+	Config            string
+	LimitCPU          int64
+	LimitMemory       int64
+	RequestCPU        int64
+	RequestMemory     int64
 }
 
 func (c *compileCommand) run(*kingpin.ParseContext) error {
@@ -101,12 +101,12 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 
 	// compile the pipeline to an intermediate representation.
 	comp := &compiler.Compiler{
-		Environ:    c.Environ,
-		Labels:     c.Labels,
-		Privileged: append(c.Privileged, compiler.Privileged...),
-		Volumes:    c.Volumes,
-		Secret:     secret.Combine(),
-		Registry:   registry.Combine(),
+		Environ:           c.Environ,
+		Labels:            c.Labels,
+		PrivilegedPlugins: append(c.PrivilegedPlugins, compiler.PrivilegedPlugins...),
+		Volumes:           c.Volumes,
+		Secret:            secret.Combine(),
+		Registry:          registry.Combine(),
 		Resources: compiler.Resources{
 			Limits: compiler.ResourceObject{
 				CPU:    c.LimitCPU,
@@ -173,8 +173,8 @@ func registerCompile(app *kingpin.Application) {
 	cmd.Flag("volumes", "container volumes").
 		StringMapVar(&c.Volumes)
 
-	cmd.Flag("privileged", "privileged docker images").
-		StringsVar(&c.Privileged)
+	cmd.Flag("privileged-plugins", "privileged docker plugins").
+		StringsVar(&c.PrivilegedPlugins)
 
 	cmd.Flag("spec", "output the kubernetes spec").
 		BoolVar(&c.Spec)

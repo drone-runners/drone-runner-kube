@@ -364,6 +364,10 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		if len(validation.IsDNS1123Subdomain(src.Name)) == 0 {
 			hostnames = append(hostnames, src.Name)
 		}
+
+		if c.isPrivileged(src) {
+			dst.Privileged = true
+		}
 	}
 
 	if len(hostnames) > 0 {

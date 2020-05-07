@@ -117,6 +117,19 @@ func toVolumes(spec *Spec) []v1.Volume {
 			volumes = append(volumes, volume)
 		}
 
+		if v.Claim != nil {
+			volume := v1.Volume{
+				Name: v.Claim.ID,
+				VolumeSource: v1.VolumeSource{
+					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+						ClaimName: v.Claim.ClaimName,
+						ReadOnly:  v.Claim.ReadOnly,
+					},
+				},
+			}
+			volumes = append(volumes, volume)
+		}
+
 		if v.DownwardAPI != nil {
 			var items []v1.DownwardAPIVolumeFile
 
@@ -300,10 +313,11 @@ func toResources(src Resources) v1.ResourceRequirements {
 
 // helper function returns a kubernetes namespace
 // for the given specification.
-func toNamespace(name string) *v1.Namespace {
+func toNamespace(name string, labels map[string]string) *v1.Namespace {
 	return &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:   name,
+			Labels: labels,
 		},
 	}
 }
@@ -326,6 +340,10 @@ func lookupVolumeID(spec *Spec, name string) (string, bool) {
 
 		if v.HostPath != nil && v.HostPath.Name == name {
 			return v.HostPath.ID, true
+		}
+
+		if v.Claim != nil && v.Claim.Name == name {
+			return v.Claim.ID, true
 		}
 
 		if v.DownwardAPI != nil && v.DownwardAPI.Name == name {

@@ -90,7 +90,7 @@ func (p *Pipeline) GetStep(name string) *Step {
 }
 
 type (
-	// Metadata defines Kubernetes pod meteadata
+	// Metadata defines Kubernetes pod metadata
 	Metadata struct {
 		Namespace   string            `json:"namespace,omitempty"`
 		Annotations map[string]string `json:"annotations,omitempty"`
@@ -145,6 +145,7 @@ type (
 		Name     string          `json:"name,omitempty"`
 		EmptyDir *VolumeEmptyDir `json:"temp,omitempty" yaml:"temp"`
 		HostPath *VolumeHostPath `json:"host,omitempty" yaml:"host"`
+		Claim    *VolumeClaim    `json:"claim,omitempty" yaml:"claim"`
 	}
 
 	// VolumeMount describes a mounting of a Volume
@@ -166,6 +167,13 @@ type (
 	// host node's filesystem into your container.
 	VolumeHostPath struct {
 		Path string `json:"path,omitempty"`
+	}
+
+	// VolumeClaim mounts an already existing
+	// persistentVolumeClaim.
+	VolumeClaim struct {
+		ClaimName string `json:"name,omitempty" yaml:"name"`
+		ReadOnly  bool   `json:"read_only,omitempty" yaml:"read_only"`
 	}
 
 	// Workspace represents the pipeline workspace configuration.

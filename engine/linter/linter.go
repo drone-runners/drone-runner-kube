@@ -108,6 +108,12 @@ func checkVolumes(pipeline *resource.Pipeline, trusted bool) error {
 				return err
 			}
 		}
+		if volume.Claim != nil {
+			err := checkClaimVolume(volume.Claim, trusted)
+			if err != nil {
+				return err
+			}
+		}
 		switch volume.Name {
 		case "":
 			return fmt.Errorf("linter: missing volume name")
@@ -121,6 +127,13 @@ func checkVolumes(pipeline *resource.Pipeline, trusted bool) error {
 func checkHostPathVolume(volume *resource.VolumeHostPath, trusted bool) error {
 	if trusted == false {
 		return errors.New("linter: untrusted repositories cannot mount host volumes")
+	}
+	return nil
+}
+
+func checkClaimVolume(volume *resource.VolumeClaim, trusted bool) error {
+	if trusted == false {
+		return errors.New("linter: untrusted repositories cannot mount PVC")
 	}
 	return nil
 }

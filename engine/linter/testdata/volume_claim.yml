@@ -1,0 +1,34 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+clone:
+  disable: true
+
+steps:
+- name: write
+  pull: if-not-exists
+  image: alpine
+  volumes:
+  - name: shared
+    path: /shared
+  commands:
+  - pwd
+  - echo "hello" > /shared/greetings.txt
+
+- name: read
+  pull: if-not-exists
+  image: alpine
+  volumes:
+  - name: shared
+    path: /shared
+  commands:
+  - pwd
+  - ls /shared
+  - cat /shared/greetings.txt
+
+volumes:
+- name: shared
+  claim:
+    name: received-data-claim
+    read_only: false

@@ -90,28 +90,59 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 	hook := loghistory.New()
 	logrus.AddHook(hook)
 
+	policies := []compiler.Policy{}
+	for _, policy := range config.Policies.Policies {
+		p := compiler.Policy{
+			Match: policy.Match,
+			Metadata: compiler.Metadata{
+				Namespace:   policy.Metadata.Namespace,
+				Labels:      policy.Metadata.Labels,
+				Annotations: policy.Metadata.Annotations,
+			},
+			NodeSelector:   policy.NodeSelector,
+			ServiceAccount: policy.ServiceAccount,
+			Images: compiler.Images{
+				Clone:       policy.Images.Clone,
+				Placeholder: policy.Images.Placeholder,
+			},
+			Resources: compiler.Resources{
+				Limits: compiler.ResourceObject{
+					CPU:    policy.Resources.LimitCPU,
+					Memory: int64(policy.Resources.LimitMemory),
+				},
+				Requests: compiler.ResourceObject{
+					CPU:    policy.Resources.RequestCPU,
+					Memory: int64(policy.Resources.RequestMemory),
+				},
+			},
+		}
+		for _, toleration := range policy.Tolerations {
+			p.Tolerations = append(p.Tolerations, compiler.Toleration{
+				Operator:          toleration.Operator,
+				Effect:            toleration.Effect,
+				Value:             toleration.Value,
+				TolerationSeconds: toleration.TolerationSeconds,
+			})
+		}
+		policies = append(policies, p)
+	}
+
 	runner := &runtime.Runner{
 		Client:   cli,
 		Machine:  config.Runner.Name,
 		Reporter: tracer,
 		Lookup:   resource.Lookup,
-		Lint:     linter.New(config.Namespace.Rules).Lint,
+		Lint:     linter.New(nil).Lint,
 		Match: match.Func(
 			config.Limit.Repos,
 			config.Limit.Events,
 			config.Limit.Trusted,
 		),
 		Compiler: &compiler.Compiler{
-			Cloner:         config.Images.Clone,
-			Placeholder:    config.Images.Placeholder,
-			Environ:        config.Runner.Environ,
-			Volumes:        config.Runner.Volumes,
-			Namespace:      config.Namespace.Default,
-			Labels:         config.Labels.Default,
-			Annotations:    config.Annotations.Default,
-			ServiceAccount: config.ServiceAccount.Default,
-			NodeSelector:   config.NodeSelector.Default,
-			Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
+			Policies:   policies,
+			Environ:    config.Runner.Environ,
+			Volumes:    config.Runner.Volumes,
+			Privileged: append(config.Runner.Privileged, compiler.Privileged...),
 			Registry: registry.Combine(
 				registry.File(
 					config.Docker.Config,
@@ -132,16 +163,6 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 					config.Secret.SkipVerify,
 				),
 			),
-			Resources: compiler.Resources{
-				Limits: compiler.ResourceObject{
-					CPU:    config.Resources.LimitCPU,
-					Memory: int64(config.Resources.LimitMemory),
-				},
-				Requests: compiler.ResourceObject{
-					CPU:    config.Resources.RequestCPU,
-					Memory: int64(config.Resources.RequestMemory),
-				},
-			},
 		},
 		Exec: runtime.NewExecer(
 			tracer,

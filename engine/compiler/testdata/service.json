@@ -2,6 +2,7 @@
   "pod_spec": {
     "name": "random",
     "annotations": {},
+    "node_selector": {},
     "labels": {},
     "host_aliases": [
       {

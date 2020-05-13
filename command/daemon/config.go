@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/buildkite/yaml"
 	"github.com/docker/go-units"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
@@ -62,13 +61,6 @@ type Config struct {
 		Trusted bool     `envconfig:"DRONE_LIMIT_TRUSTED"`
 	}
 
-	Resources struct {
-		LimitCPU      int64     `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
-		LimitMemory   BytesSize `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
-		RequestCPU    int64     `envconfig:"DRONE_RESOURCE_REQUEST_CPU"`
-		RequestMemory BytesSize `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY"`
-	}
-
 	Secret struct {
 		Endpoint   string `envconfig:"DRONE_SECRET_PLUGIN_ENDPOINT"`
 		Token      string `envconfig:"DRONE_SECRET_PLUGIN_TOKEN"`
@@ -85,32 +77,10 @@ type Config struct {
 		Config string `envconfig:"DRONE_DOCKER_CONFIG"`
 	}
 
-	Images struct {
-		Clone       string `envconfig:"DRONE_IMAGE_CLONE"`
-		Placeholder string `envconfig:"DRONE_IMAGE_PLACEHOLDER"`
-	}
-
-	ServiceAccount struct {
-		Default string `envconfig:"DRONE_SERVICE_ACCOUNT_DEFAULT"`
-	}
-
-	NodeSelector struct {
-		Default map[string]string `envconfig:"DRONE_NODE_SELECTOR_DEFAULT"`
-	}
-
-	Annotations struct {
-		Default map[string]string `envconfig:"DRONE_ANNOTATIONS_DEFAULT"`
-	}
-
-	Labels struct {
-		Default map[string]string `envconfig:"DRONE_LABELS_DEFAULT"`
-	}
-
-	Namespace struct {
-		Rules     map[string][]string `envconfig:"-"`
-		RulesMap  map[string]string   `envconfig:"DRONE_NAMESPACE_RULES"`
-		RulesFile string              `envconfig:"DRONE_NAMESPACE_RULES_FILE"`
-		Default   string              `envconfig:"DRONE_NAMESPACE_DEFAULT" default:"default"`
+	Policies struct {
+		Policies     []Policy `envconfig:"-"`
+		PoliciesFile string   `envconfig:"DRONE_POLICIES_FILE"`
+		Default      Policy
 	}
 }
 
@@ -148,25 +118,20 @@ func fromEnviron() (Config, error) {
 		config.Client.Host,
 	)
 
-	// namespace usage rules can be sourced from a separate
-	// file. These variables are loaded and appended to the map.
-	config.Namespace.Rules = map[string][]string{}
-	if file := config.Namespace.RulesFile; file != "" {
+	if file := config.Policies.PoliciesFile; file != "" {
 		out, err := ioutil.ReadFile(file)
 		if err != nil {
 			return config, err
 		}
-		err = yaml.Unmarshal(out, &config.Namespace.Rules)
+		config.Policies.Policies, err = parsePolicies(out)
 		if err != nil {
 			return config, err
 		}
 	}
-	// namespace usage rules can be sourced from a separate
-	// file. These variables are loaded and appended to the map.
-	for k, v := range config.Namespace.RulesMap {
-		config.Namespace.Rules[k] = []string{v}
-	}
-
+	config.Policies.Policies = append(
+		config.Policies.Policies,
+		config.Policies.Default,
+	)
 	// environment variables can be sourced from a separate
 	// file. These variables are loaded and appended to the
 	// environment list.

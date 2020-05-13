@@ -11,6 +11,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/util/validation"
 
+	"github.com/bmatcuk/doublestar"
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
@@ -45,6 +46,39 @@ var Privileged = []string{
 }
 
 type (
+	// Policy ...
+	Policy struct {
+		Metadata       Metadata
+		ServiceAccount string
+		Images         Images
+		Resources      Resources
+		NodeSelector   map[string]string
+		Tolerations    []Toleration
+		Match          []string
+	}
+
+	// Metadata ...
+	Metadata struct {
+		Namespace   string
+		Labels      map[string]string
+		Annotations map[string]string
+	}
+
+	// Images ...
+	Images struct {
+		Clone       string
+		Placeholder string
+	}
+
+	// Toleration ...
+	Toleration struct {
+		Effect            string
+		Key               string
+		Operator          string
+		TolerationSeconds *int
+		Value             string
+	}
+
 	// Resources describes the compute resource requirements.
 	Resources struct {
 		Limits   ResourceObject
@@ -65,14 +99,6 @@ type (
 		// should be added to each pipeline step by default.
 		Environ map[string]string
 
-		// Labels provides a set of labels that should be added
-		// to each container by default.
-		Labels map[string]string
-
-		// Annotations provides a set of annotations that should be added
-		// to each container by default.
-		Annotations map[string]string
-
 		// Privileged provides a list of docker images that
 		// are always privileged.
 		Privileged []string
@@ -89,32 +115,21 @@ type (
 		// used to pull private container images.
 		Registry registry.Provider
 
-		// Resources defines resource limits that are applied by
-		// default to all pipeline containers if none exist.
-		Resources Resources
-
-		// Cloner provides an option to override the default clone
-		// image used to clone the repository when the pipeline
-		// initializes.
-		Cloner string
-
-		// Placeholder provides the default placeholder image
-		// used to sleep the pipeline container until it is ready
-		// for execution.
-		Placeholder string
-
-		// Namespace provides the default kubernetes namespace
-		// when no namespace is provided.
-		Namespace string
-
-		// ServiceAccount provides the default kubernetes Service Account
-		// when no Service Account is provided.
-		ServiceAccount string
-
-		// NodeSelector provides the default kubernetes node selector.
-		NodeSelector map[string]string
+		// Policies
+		Policies []Policy
 	}
 )
+
+func (c *Compiler) getPolicy(slug string) Policy {
+	for _, rule := range c.Policies {
+		for _, match := range rule.Match {
+			if ok, _ := doublestar.Match(match, slug); ok {
+				return rule
+			}
+		}
+	}
+	return Policy{}
+}
 
 // Compile compiles the configuration file.
 func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runtime.Spec {
@@ -122,18 +137,20 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	os := pipeline.Platform.OS
 	arch := pipeline.Platform.Arch
 
+	policy := c.getPolicy(args.Repo.Slug)
+
 	// create the workspace paths
 	workspace := createWorkspace(pipeline)
 
 	// create labels
 	podLabels := labels.Combine(
-		c.Labels,
+		policy.Metadata.Labels,
 		pipeline.Metadata.Labels,
 	)
 
 	// create annotations
 	podAnnotations := labels.Combine(
-		c.Annotations,
+		policy.Metadata.Annotations,
 		labels.FromRepo(args.Repo),
 		labels.FromBuild(args.Build),
 		labels.FromStage(args.Stage),
@@ -198,7 +215,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// set default namespace
 	if spec.PodSpec.Namespace == "" {
-		spec.PodSpec.Namespace = c.Namespace
+		spec.PodSpec.Namespace = policy.Metadata.Namespace
 	}
 
 	// the runner can be configured to create random namespaces
@@ -217,12 +234,15 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	if spec.PodSpec.Annotations == nil {
 		spec.PodSpec.Annotations = map[string]string{}
 	}
-	if spec.PodSpec.NodeSelector == nil && c.NodeSelector != nil {
-		spec.PodSpec.NodeSelector = c.NodeSelector
+	if spec.PodSpec.NodeSelector == nil {
+		spec.PodSpec.NodeSelector = policy.NodeSelector
+	}
+	if spec.PodSpec.NodeSelector == nil {
+		spec.PodSpec.NodeSelector = map[string]string{}
 	}
 	// set default service account
 	if spec.PodSpec.ServiceAccountName == "" {
-		spec.PodSpec.ServiceAccountName = c.ServiceAccount
+		spec.PodSpec.ServiceAccountName = policy.ServiceAccount
 	}
 	// add dns_config
 	if len(pipeline.DnsConfig.Nameservers) > 0 {
@@ -239,15 +259,28 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			Value: dnsconfig.Value,
 		})
 	}
+
 	// add tolerations
-	for _, toleration := range pipeline.Tolerations {
-		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{
-			Key:               toleration.Key,
-			Operator:          toleration.Operator,
-			Effect:            toleration.Effect,
-			TolerationSeconds: toleration.TolerationSeconds,
-			Value:             toleration.Value,
-		})
+	if len(pipeline.Tolerations) > 0 {
+		for _, toleration := range pipeline.Tolerations {
+			spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{
+				Key:               toleration.Key,
+				Operator:          toleration.Operator,
+				Effect:            toleration.Effect,
+				TolerationSeconds: toleration.TolerationSeconds,
+				Value:             toleration.Value,
+			})
+		}
+	} else {
+		for _, toleration := range policy.Tolerations {
+			spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{
+				Key:               toleration.Key,
+				Operator:          toleration.Operator,
+				Effect:            toleration.Effect,
+				TolerationSeconds: toleration.TolerationSeconds,
+				Value:             toleration.Value,
+			})
+		}
 	}
 
 	// create the default environment variables.
@@ -328,13 +361,13 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		spec.Steps = append(spec.Steps, step)
 
 		// override default clone image.
-		if c.Cloner != "" {
-			step.Image = c.Cloner
+		if policy.Images.Clone != "" {
+			step.Image = policy.Images.Clone
 		}
 
 		// override default placeholder image.
-		if c.Placeholder != "" {
-			step.Placeholder = c.Placeholder
+		if policy.Images.Placeholder != "" {
+			step.Placeholder = policy.Images.Placeholder
 		}
 	}
 
@@ -357,8 +390,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 
 		// override default placeholder image.
-		if c.Placeholder != "" {
-			dst.Placeholder = c.Placeholder
+		if policy.Images.Placeholder != "" {
+			dst.Placeholder = policy.Images.Placeholder
 		}
 
 		if len(validation.IsDNS1123Subdomain(src.Name)) == 0 {
@@ -395,8 +428,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 
 		// override default placeholder image.
-		if c.Placeholder != "" {
-			dst.Placeholder = c.Placeholder
+		if policy.Images.Placeholder != "" {
+			dst.Placeholder = policy.Images.Placeholder
 		}
 
 		// if the pipeline step has an approved image, it is
@@ -521,16 +554,16 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	// apply default resources limits
 	for _, v := range spec.Steps {
 		if v.Resources.Requests.CPU == 0 {
-			v.Resources.Requests.CPU = c.Resources.Requests.CPU
+			v.Resources.Requests.CPU = policy.Resources.Requests.CPU
 		}
 		if v.Resources.Requests.Memory == 0 {
-			v.Resources.Requests.Memory = c.Resources.Requests.Memory
+			v.Resources.Requests.Memory = policy.Resources.Requests.Memory
 		}
 		if v.Resources.Limits.CPU == 0 {
-			v.Resources.Limits.CPU = c.Resources.Limits.CPU
+			v.Resources.Limits.CPU = policy.Resources.Limits.CPU
 		}
 		if v.Resources.Limits.Memory == 0 {
-			v.Resources.Limits.Memory = c.Resources.Limits.Memory
+			v.Resources.Limits.Memory = policy.Resources.Limits.Memory
 		}
 	}
 

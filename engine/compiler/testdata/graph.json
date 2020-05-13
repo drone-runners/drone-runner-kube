@@ -3,7 +3,8 @@
   "pod_spec": {
     "name": "random",
     "labels": {},
-    "annotations": {}
+    "annotations": {},
+    "node_selector": {}
   },
   "steps": [
     {

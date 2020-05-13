@@ -101,22 +101,28 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 
 	// compile the pipeline to an intermediate representation.
 	comp := &compiler.Compiler{
-		Environ:    c.Environ,
-		Labels:     c.Labels,
+		Environ: c.Environ,
+		Policies: []compiler.Policy{
+			{
+				Metadata: compiler.Metadata{
+					Labels: c.Labels,
+				},
+				Resources: compiler.Resources{
+					Limits: compiler.ResourceObject{
+						CPU:    c.LimitCPU,
+						Memory: c.LimitMemory,
+					},
+					Requests: compiler.ResourceObject{
+						CPU:    c.RequestCPU,
+						Memory: c.RequestMemory,
+					},
+				},
+			},
+		},
 		Privileged: append(c.Privileged, compiler.Privileged...),
 		Volumes:    c.Volumes,
 		Secret:     secret.Combine(),
 		Registry:   registry.Combine(),
-		Resources: compiler.Resources{
-			Limits: compiler.ResourceObject{
-				CPU:    c.LimitCPU,
-				Memory: c.LimitMemory,
-			},
-			Requests: compiler.ResourceObject{
-				CPU:    c.RequestCPU,
-				Memory: c.RequestMemory,
-			},
-		},
 	}
 
 	args := runtime.CompilerArgs{

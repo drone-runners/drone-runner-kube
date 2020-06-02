@@ -57,7 +57,14 @@ func (p *Policy) Apply(spec *engine.Spec) {
 	// apply the default namspace
 	if v := p.Metadata.Namespace; v != "" {
 		spec.PodSpec.Namespace = v
-		// TODO figure out how to handle temporary namespace (e.g. drone-)
+		// the runner can be configured to create random namespaces
+		// that is created before the pipeline executes, and destroyed
+		// after the pipeline completes.
+		if spec.PodSpec.Namespace == "drone-" {
+			namespace := random()
+			spec.PodSpec.Namespace = namespace
+			spec.Namespace = namespace
+		}
 	}
 
 	// apply labels.

@@ -112,6 +112,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			ServiceAccount: config.ServiceAccount.Default,
 			NodeSelector:   config.NodeSelector.Default,
 			Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
+			Policies:       config.Policy.Parsed,
 			Registry: registry.Combine(
 				registry.File(
 					config.Docker.Config,

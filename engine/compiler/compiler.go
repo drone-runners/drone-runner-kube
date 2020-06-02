@@ -12,6 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/drone-runners/drone-runner-kube/engine"
+	"github.com/drone-runners/drone-runner-kube/engine/policy"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 
@@ -113,6 +114,10 @@ type (
 
 		// NodeSelector provides the default kubernetes node selector.
 		NodeSelector map[string]string
+
+		// Policy provides a set of policies used to set defaults
+		// based on matching logic.
+		Policies []*policy.Policy
 	}
 )
 
@@ -532,6 +537,11 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		if v.Resources.Limits.Memory == 0 {
 			v.Resources.Limits.Memory = c.Resources.Limits.Memory
 		}
+	}
+
+	// apply default policy
+	if m := policy.Match(match, c.Policies); m != nil {
+		m.Apply(spec)
 	}
 
 	return spec

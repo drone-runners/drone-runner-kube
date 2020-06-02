@@ -18,6 +18,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
+	"github.com/drone-runners/drone-runner-kube/engine/policy"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone/drone-go/drone"
 	"github.com/drone/envsubst"
@@ -49,6 +50,7 @@ type execCommand struct {
 	Secrets    map[string]string
 	Namespace  string
 	Config     string
+	Policy     string
 	Clone      bool
 	Pretty     bool
 	Procs      int64
@@ -78,6 +80,15 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		environ.Link(c.Repo, c.Build, c.System),
 		c.Build.Params,
 	)
+
+	// parse the policy file
+	var policies []*policy.Policy
+	if c.Policy != "" {
+		policies, err = policy.ParseFile(c.Policy)
+		if err != nil {
+			return err
+		}
+	}
 
 	// string substitution function ensures that string
 	// replacement variables are escaped and quoted if they
@@ -127,6 +138,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Secret:     secret.StaticVars(c.Secrets),
 		Registry:   registry.Combine(),
 		Namespace:  c.Namespace,
+		Policies:   policies,
 	}
 
 	args := runtime.CompilerArgs{
@@ -296,6 +308,9 @@ func registerExec(app *kingpin.Application) {
 
 	cmd.Flag("kubeconfig", "path to the kubernetes config file").
 		StringVar(&c.Config)
+
+	cmd.Flag("policy", "path to the pipeline policy file").
+		StringVar(&c.Policy)
 
 	cmd.Flag("namespace", "default kubernetes namespace").
 		Default("default").

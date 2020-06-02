@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/drone-runners/drone-runner-kube/engine/policy"
+
 	"github.com/buildkite/yaml"
 	"github.com/docker/go-units"
 	"github.com/joho/godotenv"
@@ -67,6 +69,11 @@ type Config struct {
 		LimitMemory   BytesSize `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
 		RequestCPU    int64     `envconfig:"DRONE_RESOURCE_REQUEST_CPU"`
 		RequestMemory BytesSize `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY"`
+	}
+
+	Policy struct {
+		Path   string           `envconfig:"DRONE_POLICY_FILE"`
+		Parsed []*policy.Policy `envconfig:"-"`
 	}
 
 	Secret struct {
@@ -180,6 +187,14 @@ func fromEnviron() (Config, error) {
 		}
 		for k, v := range envs {
 			config.Runner.Environ[k] = v
+		}
+	}
+
+	// parse the policy file if defined
+	if file := config.Policy.Path; file != "" {
+		config.Policy.Parsed, err = policy.ParseFile(file)
+		if err != nil {
+			return config, err
 		}
 	}
 

@@ -1,0 +1,40 @@
+---
+kind: policy
+name: octocat
+
+match:
+  repos:
+  - "octocat/*"
+  - "octocat/hello-world"
+
+metadata:
+  namespace: octocat
+
+resources:
+  request:
+    cpu: 1
+    memory: 512MiB
+  limit:
+    cpu: 4
+    memory: 1GiB
+
+node_selector:
+  disktype: ssd
+
+---
+kind: policy
+name: spaceghost
+
+match:
+  repos:
+  - spaceghost/Hello-World
+
+metadata:
+  namespace: default
+
+---
+kind: policy
+name: default
+
+metadata:
+  namespace: default

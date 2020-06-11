@@ -5,6 +5,7 @@
 package engine
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"io"
@@ -13,7 +14,6 @@ import (
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
-	"github.com/drone/runner-go/livelog"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/hashicorp/go-multierror"
 	v1 "k8s.io/api/core/v1"
@@ -188,27 +188,20 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return nil, err
 	}
 
-	err = k.tail(ctx, spec, step, output)
-	// this feature flag delays deleting the pod for 30 seconds to
-	// ensure there is enough time to stream the logs. This is meant
-	// to help triage the following issue:
-	//
-	//    https://discourse.drone.io/t/kubernetes-runner-intermittently-fails-steps/7372
-	//
-	// BEGIN: FEATURE FLAG
-	if err != nil {
-		if os.Getenv("DRONE_FEATURE_FLAG_RETRY_LOGS") == "true" {
-			<-time.After(time.Second * 5)
-			err = k.tail(ctx, spec, step, output)
+	var retries int
+	for retries < 5 {
+		bytesCopied, err := k.tail(ctx, spec, step, output)
+		if err == nil && bytesCopied != 0 {
+			break
 		}
-		if err != nil {
-			<-time.After(time.Second * 5)
-			err = k.tail(ctx, spec, step, output)
+
+		retries++
+
+		if err != nil && retries >= 5 {
+			return nil, err
 		}
-	}
-	// END: FEATURE FAG
-	if err != nil {
-		return nil, err
+
+		<-time.After(time.Second * 5)
 	}
 
 	return k.waitForTerminated(ctx, spec, step)
@@ -296,7 +289,7 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 	return state, nil
 }
 
-func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
+func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) (int, error) {
 	opts := &v1.PodLogOptions{
 		Follow:    true,
 		Container: step.ID,
@@ -311,11 +304,11 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 
 	readCloser, err := req.Stream()
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer readCloser.Close()
 
-	return livelog.Copy(output, readCloser)
+	return Copy(output, readCloser)
 }
 
 func (k *Kubernetes) start(spec *Spec, step *Step) error {
@@ -348,4 +341,23 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 	})
 
 	return err
+}
+
+func Copy(dst io.Writer, src io.ReadCloser) (int, error) {
+	var bytesCopied int
+	r := bufio.NewReader(src)
+	for {
+		bytes, readError := r.ReadBytes('\n')
+		i, writeError := dst.Write(bytes)
+		bytesCopied += i
+		if writeError != nil {
+			return bytesCopied, writeError
+		}
+		if readError != nil {
+			if readError != io.EOF {
+				return bytesCopied, readError
+			}
+			return bytesCopied, nil
+		}
+	}
 }

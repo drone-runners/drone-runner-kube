@@ -188,20 +188,27 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return nil, err
 	}
 
-	var retries int
-	for retries < 5 {
-		bytesCopied, err := k.tail(ctx, spec, step, output)
-		if err == nil && bytesCopied != 0 {
-			break
+	if os.Getenv("DRONE_FEATURE_FLAG_RETRY_LOGS") == "true" {
+		var retries int
+		for retries < 5 {
+			bytesCopied, err := k.tail(ctx, spec, step, output)
+			if err == nil && bytesCopied != 0 {
+				break
+			}
+
+			retries++
+
+			if err != nil && retries >= 5 {
+				return nil, err
+			}
+
+			<-time.After(time.Second * 5)
 		}
-
-		retries++
-
-		if err != nil && retries >= 5 {
+	} else {
+		_, err := k.tail(ctx, spec, step, output)
+		if err != nil {
 			return nil, err
 		}
-
-		<-time.After(time.Second * 5)
 	}
 
 	return k.waitForTerminated(ctx, spec, step)

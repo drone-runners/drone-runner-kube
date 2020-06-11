@@ -188,6 +188,10 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return nil, err
 	}
 
+	// this feature flag delays deleting the pod for 30 seconds to
+	// ensure there is enough time to stream the logs. This is meant
+	// to help triage the following issue:
+	//    https://discourse.drone.io/t/kubernetes-runner-intermittently-fails-steps/7372
 	if os.Getenv("DRONE_FEATURE_FLAG_RETRY_LOGS") == "true" {
 		var retries int
 		for retries < 5 {

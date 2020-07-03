@@ -11,6 +11,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone/drone-go/drone"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/drone/runner-go/registry"
@@ -27,6 +28,7 @@ func TestClone(t *testing.T) {
 	}()
 
 	c := &Compiler{
+		Environ:  provider.Static(nil),
 		Registry: registry.Static(nil),
 		Secret:   secret.Static(nil),
 	}
@@ -71,6 +73,7 @@ func TestCloneDisable(t *testing.T) {
 	c := &Compiler{
 		Registry: registry.Static(nil),
 		Secret:   secret.Static(nil),
+		Environ:  provider.Static(nil),
 	}
 	args := runtime.CompilerArgs{
 		Repo:     &drone.Repo{},

@@ -61,6 +61,8 @@ github.com/drone/runner-go v1.6.0 h1:pJYoeC09S0x52o1PtZTtwbiOu0ILt3lMPIcx/Dc0Wpg
 github.com/drone/runner-go v1.6.0/go.mod h1:ZIhsNU4EHG7R7J+OXeXuwwAxlxOBYLCc0gCkbbhWb/o=
 github.com/drone/runner-go v1.6.1-0.20200327163121-437a98da1948 h1:YZMRQrYZaDApfIQFtXUHusyeoWHWHlfnENxFrjr38fI=
 github.com/drone/runner-go v1.6.1-0.20200327163121-437a98da1948/go.mod h1:+Zc4z9/xqlqkFkAcqOtuYjYS77d2PeuWh0PxxibHfNs=
+github.com/drone/runner-go v1.6.1-0.20200616215150-99a3a52dfb9f h1:7DXbRzpr70EkkYb28uU/rEc8/xHmjD/EYPaLfgWw9ss=
+github.com/drone/runner-go v1.6.1-0.20200616215150-99a3a52dfb9f/go.mod h1:+Zc4z9/xqlqkFkAcqOtuYjYS77d2PeuWh0PxxibHfNs=
 github.com/drone/signal v1.0.0 h1:NrnM2M/4yAuU/tXs6RP1a1ZfxnaHwYkd0kJurA1p6uI=
 github.com/drone/signal v1.0.0/go.mod h1:S8t92eFT0g4WUgEc/LxG+LCuiskpMNsG0ajAMGnyZpc=
 github.com/elazarl/goproxy v0.0.0-20170405201442-c4fc26588b6e/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=

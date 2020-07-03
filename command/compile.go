@@ -18,6 +18,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone/envsubst"
 	"github.com/drone/runner-go/environ"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/drone/runner-go/registry"
@@ -101,7 +102,7 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 
 	// compile the pipeline to an intermediate representation.
 	comp := &compiler.Compiler{
-		Environ:    c.Environ,
+		Environ:    provider.Static(c.Environ),
 		Labels:     c.Labels,
 		Privileged: append(c.Privileged, compiler.Privileged...),
 		Volumes:    c.Volumes,

@@ -15,6 +15,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/internal/match"
 
 	"github.com/drone/runner-go/client"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/handler/router"
 	"github.com/drone/runner-go/logger"
 	loghistory "github.com/drone/runner-go/logger/history"
@@ -104,7 +105,6 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Compiler: &compiler.Compiler{
 			Cloner:         config.Images.Clone,
 			Placeholder:    config.Images.Placeholder,
-			Environ:        config.Runner.Environ,
 			Volumes:        config.Runner.Volumes,
 			Namespace:      config.Namespace.Default,
 			Labels:         config.Labels.Default,
@@ -131,6 +131,14 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 					config.Secret.Endpoint,
 					config.Secret.Token,
 					config.Secret.SkipVerify,
+				),
+			),
+			Environ: provider.Combine(
+				provider.Static(config.Runner.Environ),
+				provider.External(
+					config.Environ.Endpoint,
+					config.Environ.Token,
+					config.Environ.SkipVerify,
 				),
 			),
 			Resources: compiler.Resources{

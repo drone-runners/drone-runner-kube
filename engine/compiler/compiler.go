@@ -18,6 +18,7 @@ import (
 
 	"github.com/drone/runner-go/clone"
 	"github.com/drone/runner-go/environ"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/labels"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline/runtime"
@@ -61,10 +62,9 @@ type (
 	// Compiler compiles the Yaml configuration file to an
 	// intermediate representation optimized for simple execution.
 	Compiler struct {
-
 		// Environ provides a set of environment variables that
 		// should be added to each pipeline step by default.
-		Environ map[string]string
+		Environ provider.Provider
 
 		// Labels provides a set of labels that should be added
 		// to each container by default.
@@ -255,9 +255,15 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		})
 	}
 
+	// list the global environment variables
+	globals, _ := c.Environ.List(ctx, &provider.Request{
+		Build: args.Build,
+		Repo:  args.Repo,
+	})
+
 	// create the default environment variables.
 	envs := environ.Combine(
-		c.Environ,
+		provider.ToMap(globals),
 		args.Build.Params,
 		pipeline.Environment,
 		environ.Proxy(),

@@ -165,8 +165,10 @@ type (
 
 	// VolumeHostPath mounts a file or directory from the
 	// host node's filesystem into your container.
+	// The supported types refer to https://kubernetes.io/docs/concepts/storage/volumes/#hostpath
 	VolumeHostPath struct {
 		Path string `json:"path,omitempty"`
+		Type string `json:"type,omitempty"`
 	}
 
 	// VolumeClaim mounts an already existing

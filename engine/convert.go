@@ -104,7 +104,26 @@ func toVolumes(spec *Spec) []v1.Volume {
 		}
 
 		if v.HostPath != nil {
-			hostPathType := v1.HostPathDirectoryOrCreate
+			hostPathType := func() v1.HostPathType {
+				switch v.HostPath.Type {
+				case "DirectoryOrCreate":
+					return v1.HostPathDirectoryOrCreate
+				case "Directory":
+					return v1.HostPathDirectory
+				case "FileOrCreate":
+					return v1.HostPathFileOrCreate
+				case "File":
+					return v1.HostPathFile
+				case "Socket":
+					return v1.HostPathSocket
+				case "CharDevice":
+					return v1.HostPathCharDev
+				case "BlockDevice":
+					return v1.HostPathBlockDev
+				default:
+					return v1.HostPathDirectoryOrCreate
+				}
+			}()
 			volume := v1.Volume{
 				Name: v.HostPath.ID,
 				VolumeSource: v1.VolumeSource{

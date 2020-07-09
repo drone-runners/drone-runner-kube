@@ -12,9 +12,12 @@ steps:
   volumes:
   - name: test
     path: /tmp
+  - name: test
+    path: /testfile
   commands:
   - pwd
   - echo "hello" > /tmp/greetings.txt
+  - echo "hello" > /testfile
 
 - name: read
   pull: if-not-exists
@@ -22,9 +25,12 @@ steps:
   volumes:
   - name: test
     path: /tmp
+  - name: test
+    path: /testfile
   commands:
   - pwd
   - cat /tmp/greetings.txt
+  - cat /testfile
 
 # once the pipeline finished, check the host machine
 # to see if exists /tmp/drone/test/greetings.txt
@@ -33,3 +39,7 @@ volumes:
 - name: test
   host:
     path: /tmp/drone/test
+- name: testfile
+  host:
+    path: /tmp/drone/testfile
+    type: FileOrCreate

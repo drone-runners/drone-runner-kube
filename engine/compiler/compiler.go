@@ -515,6 +515,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				ID:   id,
 				Name: v.Name,
 				Path: v.HostPath.Path,
+				Type: v.HostPath.Type,
 			}
 		} else if v.Claim != nil {
 			src.Claim = &engine.VolumeClaim{

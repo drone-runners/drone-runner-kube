@@ -36,6 +36,7 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		Group:        src.Group,
 		Resources:    convertResources(src.Resources),
 		Secrets:      convertSecretEnv(src.Environment),
+		Shell:        src.Shell,
 		WorkingDir:   src.WorkingDir,
 	}
 

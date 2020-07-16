@@ -53,6 +53,7 @@ type (
 		Pull         PullPolicy        `json:"pull,omitempty"`
 		RunPolicy    runtime.RunPolicy `json:"run_policy,omitempty"`
 		Secrets      []*SecretVar      `json:"secrets,omitempty"`
+		Shell        string            `json:"shell,omitempty"`
 		SpecSecrets  []*Secret         `json:"spec_secrets,omitempty"`
 		User         *int64            `json:"user,omitempty"`
 		Group        *int64            `json:"group,omitempty"`

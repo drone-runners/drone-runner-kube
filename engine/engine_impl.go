@@ -125,23 +125,11 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
 
 // Destroy the pipeline environment.
 func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
-	// this feature flag delays deleting the pod for 30 seconds to
-	// ensure there is enough time to stream the logs. This is meant
-	// to help triage the following issue:
-	//
-	//    https://discourse.drone.io/t/kubernetes-runner-intermittently-fails-steps/7372
-	//
-	// BEGIN: FEATURE FLAG
-	if os.Getenv("DRONE_FEATURE_FLAG_DELAYED_DELETE") == "true" {
-		<-time.After(time.Second * 30)
+	// HACK: this timeout delays deleting the Pod to ensure
+	// there is enough time to stream the logs.
+	select {
+	case <-time.After(time.Second * 5):
 	}
-	// END: FEATURE FLAG
-
-	// BEGIN: FEATURE FLAG
-	if os.Getenv("DRONE_FEATURE_FLAG_DISABLE_DELETE") == "true" {
-		return nil
-	}
-	// END: FEATURE FLAG
 
 	spec := specv.(*Spec)
 	var result error
@@ -180,6 +168,9 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 
 	err := k.start(spec, step)
 	if err != nil {
+		// if ctx.Err() != nil {
+		// 	return nil, ctx.Err()
+		// }
 		return nil, err
 	}
 
@@ -189,9 +180,9 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	}
 
 	err = k.tail(ctx, spec, step, output)
-	// this feature flag delays deleting the pod for 30 seconds to
-	// ensure there is enough time to stream the logs. This is meant
-	// to help triage the following issue:
+	// this feature flag retries fetching the logs if it fails on
+	// the first attempt. This is meant to help triage the following
+	// issue:
 	//
 	//    https://discourse.drone.io/t/kubernetes-runner-intermittently-fails-steps/7372
 	//

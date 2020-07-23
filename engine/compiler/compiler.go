@@ -78,6 +78,10 @@ type (
 		// are always privileged.
 		Privileged []string
 
+		// PullPolicy provides a docker image pull policy
+		// to use instead of pipeline's ones.
+		PullPolicy string
+
 		// Volumes provides a set of volumes that should be
 		// mounted to each pipeline container.
 		Volumes map[string]string
@@ -548,6 +552,14 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	// apply default policy
 	if m := policy.Match(match, c.Policies); m != nil {
 		m.Apply(spec)
+	}
+
+	if c.PullPolicy != "" {
+		pullPolicy := convertPullPolicy(c.PullPolicy)
+
+		for _, step := range spec.Steps {
+			step.Pull = pullPolicy
+		}
 	}
 
 	return spec

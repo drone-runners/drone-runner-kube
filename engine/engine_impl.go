@@ -247,7 +247,7 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 				if cs.Name != step.ID {
 					continue
 				}
-				if (!image.Match(cs.Image, step.Placeholder) && cs.State.Running != nil) || (cs.State.Terminated != nil) {
+				if !image.Match(cs.Image, step.Placeholder) && (cs.State.Running != nil || cs.State.Terminated != nil) {
 					return true, nil
 				}
 			}
@@ -272,7 +272,7 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 				if cs.Name != step.ID {
 					continue
 				}
-				if cs.State.Terminated != nil {
+				if !image.Match(cs.Image, step.Placeholder) && cs.State.Terminated != nil {
 					state.ExitCode = int(cs.State.Terminated.ExitCode)
 					return true, nil
 				}

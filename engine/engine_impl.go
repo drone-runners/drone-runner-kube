@@ -205,51 +205,64 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	return k.waitForTerminated(ctx, spec, step)
 }
 
-func (k *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func(e watch.Event) (bool, error)) error {
+func (k *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func(pod *v1.Pod) (bool, error)) error {
 	label := fmt.Sprintf("io.drone.name=%s", spec.PodSpec.Name)
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (k8sruntime.Object, error) {
-			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).List(metav1.ListOptions{
-				LabelSelector: label,
-			})
+			options.LabelSelector = label
+
+			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).List(options)
 		},
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).Watch(metav1.ListOptions{
-				LabelSelector: label,
-			})
+			options.LabelSelector = label
+
+			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).Watch(options)
 		},
 	}
 
 	preconditionFunc := func(store cache.Store) (bool, error) {
-		_, exists, err := store.Get(&metav1.ObjectMeta{Namespace: spec.PodSpec.Namespace, Name: spec.PodSpec.Name})
+		obj, exists, err := store.Get(&metav1.ObjectMeta{Namespace: spec.PodSpec.Namespace, Name: spec.PodSpec.Name})
 		if err != nil {
 			return true, err
 		}
 		if !exists {
-			return true, err
+			return true, fmt.Errorf("pod doesn't exist")
 		}
-		return false, nil
+
+		pod, ok := obj.(*v1.Pod)
+		if !ok {
+			return true, fmt.Errorf("unexpected object type: %v", obj)
+		}
+
+		return conditionFunc(pod)
 	}
 
-	_, err := watchtools.UntilWithSync(ctx, lw, &v1.Pod{}, preconditionFunc, conditionFunc)
-	return err
-}
-
-func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) error {
-	return k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
+	_, err := watchtools.UntilWithSync(ctx, lw, &v1.Pod{}, preconditionFunc, func(e watch.Event) (bool, error) {
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:
 			pod, ok := e.Object.(*v1.Pod)
 			if !ok || pod.ObjectMeta.Name != spec.PodSpec.Name {
 				return false, nil
 			}
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name != step.ID {
-					continue
-				}
-				if !image.Match(cs.Image, step.Placeholder) && (cs.State.Running != nil || cs.State.Terminated != nil) {
-					return true, nil
-				}
+
+			return conditionFunc(pod)
+		case watch.Deleted:
+			return false, fmt.Errorf("pod got deleted")
+		default:
+			return false, nil
+		}
+	})
+	return err
+}
+
+func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) error {
+	return k.waitFor(ctx, spec, func(pod *v1.Pod) (bool, error) {
+		for _, cs := range pod.Status.ContainerStatuses {
+			if cs.Name != step.ID {
+				continue
+			}
+			if !image.Match(cs.Image, step.Placeholder) && (cs.State.Running != nil || cs.State.Terminated != nil) {
+				return true, nil
 			}
 		}
 		return false, nil
@@ -261,21 +274,14 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 		Exited:    true,
 		OOMKilled: false,
 	}
-	err := k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
-		switch t := e.Type; t {
-		case watch.Added, watch.Modified:
-			pod, ok := e.Object.(*v1.Pod)
-			if !ok || pod.ObjectMeta.Name != spec.PodSpec.Name {
-				return false, nil
+	err := k.waitFor(ctx, spec, func(pod *v1.Pod) (bool, error) {
+		for _, cs := range pod.Status.ContainerStatuses {
+			if cs.Name != step.ID {
+				continue
 			}
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name != step.ID {
-					continue
-				}
-				if !image.Match(cs.Image, step.Placeholder) && cs.State.Terminated != nil {
-					state.ExitCode = int(cs.State.Terminated.ExitCode)
-					return true, nil
-				}
+			if !image.Match(cs.Image, step.Placeholder) && cs.State.Terminated != nil {
+				state.ExitCode = int(cs.State.Terminated.ExitCode)
+				return true, nil
 			}
 		}
 		return false, nil

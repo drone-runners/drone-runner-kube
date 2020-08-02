@@ -71,14 +71,15 @@ func (p *Policy) Apply(spec *engine.Spec) {
 	// note that labels are appended as opposed to replaced
 	// to ensure they do not remove Drone internal defaults.
 	if v := p.Metadata.Labels; v != nil {
-		p.Metadata.Labels = environ.Combine(p.Metadata.Labels, v)
+		spec.PodSpec.Labels = environ.Combine(spec.PodSpec.Labels, v)
 	}
 
 	// apply annotations.
 	// note that annotations are appended as opposed to replaced
 	// to ensure they do not remove Drone internal defaults.
 	if v := p.Metadata.Annotations; v != nil {
-		p.Metadata.Annotations = environ.Combine(p.Metadata.Annotations, v)
+		spec.PodSpec.Annotations =
+			environ.Combine(spec.PodSpec.Annotations, v)
 	}
 
 	// apply resource requests

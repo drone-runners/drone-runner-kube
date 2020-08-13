@@ -94,6 +94,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 	runner := &runtime.Runner{
 		Client:   cli,
 		Machine:  config.Runner.Name,
+		Environ:  config.Runner.Environ,
 		Reporter: tracer,
 		Lookup:   resource.Lookup,
 		Lint:     linter.New(config.Namespace.Rules).Lint,

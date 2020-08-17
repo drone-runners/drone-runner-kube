@@ -394,6 +394,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	for _, src := range pipeline.Steps {
 		dst := createStep(pipeline, src)
 		dst.Envs = environ.Combine(envs, dst.Envs)
+		dst.Envs["DRONE_STEP_NAME"] = src.Name
 		dst.Volumes = append(dst.Volumes, workMount, statusMount)
 		setupScript(src, dst, os)
 		setupWorkdir(src, dst, workspace)

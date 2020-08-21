@@ -67,8 +67,28 @@ func (l *Linter) Lint(pm manifest.Resource, repo *drone.Repo) error {
 
 func checkSteps(pipeline *resource.Pipeline, trusted bool) error {
 	steps := append(pipeline.Services, pipeline.Steps...)
+
+	names := map[string]struct{}{}
+	if !pipeline.Clone.Disable {
+		names["clone"] = struct{}{}
+	}
+
 	for _, step := range steps {
+		if step == nil {
+			return errors.New("linter: nil step")
+		}
+
+		// unique list of names
+		_, ok := names[step.Name]
+		if ok {
+			return ErrDuplicateStepName
+		}
+		names[step.Name] = struct{}{}
+
 		if err := checkStep(step, trusted); err != nil {
+			return err
+		}
+		if err := checkDeps(step, names); err != nil {
 			return err
 		}
 	}
@@ -162,4 +182,17 @@ func checkNamespace(namespace, name string, mapping map[string][]string) error {
 		}
 	}
 	return errors.New("linter: pipeline restricted from using configured namespace")
+}
+
+func checkDeps(step *resource.Step, deps map[string]struct{}) error {
+	for _, dep := range step.DependsOn {
+		_, ok := deps[dep]
+		if !ok {
+			return fmt.Errorf("linter: unknown step dependency detected: %s references %s", step.Name, dep)
+		}
+		if step.Name == dep {
+			return fmt.Errorf("linter: cyclical step dependency detected: %s", dep)
+		}
+	}
+	return nil
 }

@@ -182,6 +182,12 @@ func TestLint(t *testing.T) {
 		// 	invalid: true,
 		// 	message: "linter: invalid or missing name",
 		// },
+
+		{
+			path:    "testdata/missing_dep.yml",
+			invalid: true,
+			message: "linter: unknown step dependency detected: test references foo",
+		},
 	}
 	for _, test := range tests {
 		name := path.Base(test.path)

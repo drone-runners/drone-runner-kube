@@ -1,35 +1,18 @@
 ---
 kind: pipeline
 type: kubernetes
-name: amd64
+name: default
 
 steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+
 - name: test
   image: golang
   commands:
   - go build
   - go test
-
-services:
-- name: database
-  image: redis
-  ports:
-  - 6379
-
----
-kind: pipeline
-name: arm
-
-platform:
-  arch: arm
-
-steps:
-- name: test
-  image: golang
-  commands:
-  - go build
-  - go test
-
-depends_on:
-- foo
-...
+  depends_on:
+  - foo

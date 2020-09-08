@@ -42,8 +42,9 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 	// appends the volumes to the container def.
 	for _, vol := range src.Volumes {
 		dst.Volumes = append(dst.Volumes, &engine.VolumeMount{
-			Name: vol.Name,
-			Path: vol.MountPath,
+			Name:    vol.Name,
+			Path:    vol.MountPath,
+			SubPath: vol.SubPath,
 		})
 	}
 

@@ -153,6 +153,7 @@ type (
 	VolumeMount struct {
 		Name      string `json:"name,omitempty"`
 		MountPath string `json:"path,omitempty" yaml:"path"`
+		SubPath   string `json:"sub_path,omitempty" yaml:"sub_path"`
 	}
 
 	// VolumeEmptyDir mounts a temporary directory from the

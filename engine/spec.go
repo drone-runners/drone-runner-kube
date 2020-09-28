@@ -102,6 +102,7 @@ type (
 	VolumeMount struct {
 		Name     string `json:"name,omitempty"`
 		Path     string `json:"path,omitempty"`
+		SubPath  string `json:"sub_path,omitempty"`
 		ReadOnly bool   `json:"read_only,omitempty"`
 	}
 

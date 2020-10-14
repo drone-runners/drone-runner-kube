@@ -12,7 +12,7 @@ require (
 	github.com/docker/go-units v0.4.0
 	github.com/drone/drone-go v1.2.1-0.20200326064413-195394da1018
 	github.com/drone/envsubst v1.0.2
-	github.com/drone/runner-go v1.6.1-0.20200813033918-b849bd35b2eb
+	github.com/drone/runner-go v1.6.1-0.20201008195716-df774e029a03
 	github.com/drone/signal v1.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.3.1

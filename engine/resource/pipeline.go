@@ -4,7 +4,9 @@
 
 package resource
 
-import "github.com/drone/runner-go/manifest"
+import (
+	"github.com/drone/runner-go/manifest"
+)
 
 var (
 	_ manifest.Resource          = (*Pipeline)(nil)
@@ -49,6 +51,7 @@ type Pipeline struct {
 	ServiceAccountName string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
 	Tolerations        []Toleration      `json:"tolerations,omitempty"`
 	DnsConfig          DnsConfig         `json:"dns_config,omitempty" yaml:"dns_config"`
+	DnsPolicy          DnsPolicy 		 `json:"dns_policy,omitempty" yaml:"dns_policy"`
 }
 
 // GetVersion returns the resource version.
@@ -106,6 +109,10 @@ type (
 	DNSConfigOptions struct {
 		Name  string  `json:"name,omitempty"`
 		Value *string `json:"value,omitempty" yaml:"value"`
+	}
+
+	DnsPolicy struct {
+		Policy string `json:"policy",omitempty"`
 	}
 
 	// Toleration defines Kubernetes pod tolerations

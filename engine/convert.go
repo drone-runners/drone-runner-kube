@@ -31,6 +31,7 @@ func toPod(spec *Spec) *v1.Pod {
 			ImagePullSecrets:   toImagePullSecrets(spec),
 			HostAliases:        toHostAliases(spec),
 			DNSConfig:          toDnsConfig(spec),
+			DNSPolicy:          toDnsPolicy(spec),
 		},
 	}
 }
@@ -51,6 +52,10 @@ func toDnsConfig(spec *Spec) *v1.PodDNSConfig {
 		Searches:    spec.PodSpec.DnsConfig.Searches,
 		Options:     dnsOptions,
 	}
+}
+
+func toDnsPolicy(spec *Spec) v1.DNSPolicy {
+	return v1.DNSPolicy(spec.PodSpec.DnsPolicy.Policy)
 }
 
 func toHostAliases(spec *Spec) []v1.HostAlias {

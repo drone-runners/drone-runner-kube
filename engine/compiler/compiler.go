@@ -244,6 +244,11 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			Value: dnsconfig.Value,
 		})
 	}
+	// add dns_policy
+	if len(pipeline.DnsPolicy.Policy) > 0 {
+		spec.PodSpec.DnsPolicy.Policy = pipeline.DnsPolicy.Policy
+	}
+
 	// add tolerations
 	for _, toleration := range pipeline.Tolerations {
 		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, engine.Toleration{

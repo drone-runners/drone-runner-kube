@@ -566,6 +566,18 @@ func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	if len(step.Entrypoint) > 0 {
 		return false
 	}
+	// privileged-by-default mode is disabled if the
+	// pipeline step attempts to alter
+	if isRestrictedVariable(step.Environment) {
+		return false
+	}
+	// privileged-by-default mode is disabled if the
+	// pipeline step mounts a restricted volume.
+	for _, mount := range step.Volumes {
+		if isRestrictedVolume(mount.MountPath) {
+			return false
+		}
+	}
 	// if the container image matches any image
 	// in the whitelist, return true.
 	for _, img := range c.Privileged {

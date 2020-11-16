@@ -176,15 +176,20 @@ func isRestrictedVolume(path string) bool {
 	return true
 }
 
+// helper function returns true if the environment variable
+// is restricted for internal-use only.
 func isRestrictedVariable(env map[string]*manifest.Variable) bool {
-	if _, ok := env["XDG_RUNTIME_DIR"]; ok {
-		return true
-	}
-	if _, ok := env["DOCKER_OPTS"]; ok {
-		return true
-	}
-	if _, ok := env["DOCKER_HOST"]; ok {
-		return true
+	for _, name := range restrictedVars {
+		if _, ok := env[name]; ok {
+			return true
+		}
 	}
 	return false
+}
+
+// list of restricted variables
+var restrictedVars = []string{
+	"XDG_RUNTIME_DIR",
+	"DOCKER_OPTS",
+	"DOCKER_HOST",
 }

@@ -192,4 +192,5 @@ var restrictedVars = []string{
 	"XDG_RUNTIME_DIR",
 	"DOCKER_OPTS",
 	"DOCKER_HOST",
+	"PATH",
 }

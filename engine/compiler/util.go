@@ -160,11 +160,14 @@ func isRestrictedVolume(path string) bool {
 	switch {
 	case path == "/":
 	case path == "/var":
+	case path == "/etc":
 	case strings.Contains(path, "/var/run"):
 	case strings.Contains(path, "/proc"):
 	case strings.Contains(path, "/mount"):
 	case strings.Contains(path, "/bin"):
 	case strings.Contains(path, "/usr/local/bin"):
+	case strings.Contains(path, "/usr/local/sbin"):
+	case strings.Contains(path, "/usr/bin"):
 	case strings.Contains(path, "/mnt"):
 	case strings.Contains(path, "/media"):
 	case strings.Contains(path, "/sys"):
@@ -193,4 +196,5 @@ var restrictedVars = []string{
 	"DOCKER_OPTS",
 	"DOCKER_HOST",
 	"PATH",
+	"HOME",
 }

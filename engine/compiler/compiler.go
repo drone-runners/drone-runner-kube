@@ -130,6 +130,12 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	// create the workspace paths
 	workspace := createWorkspace(pipeline)
 
+	// reset the workspace path if attempting to mount
+	// volumes that are internal use only.
+	if isRestrictedVolume(workspace) {
+		workspace = "/drone/src"
+	}
+
 	// create labels
 	podLabels := labels.Combine(
 		c.Labels,

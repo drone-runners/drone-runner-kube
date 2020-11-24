@@ -56,6 +56,7 @@ type Config struct {
 		Labels     map[string]string `envconfig:"DRONE_RUNNER_LABELS"`
 		Volumes    map[string]string `envconfig:"DRONE_RUNNER_VOLUMES"`
 		Privileged []string          `envconfig:"DRONE_RUNNER_PRIVILEGED_IMAGES"`
+		PullPolicy string            `envconfig:"DRONE_RUNNER_PULL_POLICY"`
 	}
 
 	Limit struct {

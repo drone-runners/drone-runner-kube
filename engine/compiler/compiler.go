@@ -551,6 +551,35 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 	}
 
+	numSteps := int64(len(spec.Steps))
+	upperRequestVal := getStepUpperRequestVal(pipeline.Resources)
+	lowerRequestVal := getStepLowerRequestVal()
+
+	// Transform step resources to match the stage level requests.
+	//
+	// First step container is assigned cpu & memory request equal to stage level resource
+	// requests. If default minimum request value is provided for steps, then those are
+	// deducted from stage level requests so that pod uses provided stage level requests.
+	//
+	// Rest of containers are assigned memory & cpu requests equal to 0. If default minimun
+	// request values are provided via environment variables, then those are used instead.
+	for i, v := range spec.Steps {
+		if i == 0 {
+			cpu := max(upperRequestVal.CPU-(numSteps-1)*lowerRequestVal.CPU,
+				lowerRequestVal.CPU)
+			mem := max(upperRequestVal.Memory-(numSteps-1)*lowerRequestVal.Memory,
+				lowerRequestVal.Memory)
+
+			v.Resources.Requests.CPU = cpu
+			v.Resources.Limits.CPU = max(cpu, v.Resources.Limits.CPU)
+			v.Resources.Requests.Memory = mem
+			v.Resources.Limits.Memory = max(mem, v.Resources.Limits.Memory)
+		} else {
+			v.Resources.Requests.CPU = lowerRequestVal.CPU
+			v.Resources.Requests.Memory = lowerRequestVal.Memory
+		}
+	}
+
 	// apply default policy
 	if m := policy.Match(match, c.Policies); m != nil {
 		m.Apply(spec)

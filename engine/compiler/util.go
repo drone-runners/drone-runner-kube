@@ -5,7 +5,9 @@
 package compiler
 
 import (
+	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/drone-runners/drone-runner-kube/engine"
@@ -101,10 +103,6 @@ func convertResources(src resource.Resources) engine.Resources {
 			CPU:    src.Limits.CPU,
 			Memory: int64(src.Limits.Memory),
 		},
-		Requests: engine.ResourceObject{
-			CPU:    src.Requests.CPU,
-			Memory: int64(src.Requests.Memory),
-		},
 	}
 }
 
@@ -188,6 +186,48 @@ func isRestrictedVariable(env map[string]*manifest.Variable) bool {
 		}
 	}
 	return false
+}
+
+// Upper value for cpu and memory requests. It is same as stage level
+// cpu & memory requests.
+func getStepUpperRequestVal(r resource.StageResources) ResourceObject {
+	return ResourceObject{
+		CPU:    r.Requests.CPU,
+		Memory: int64(r.Requests.Memory),
+	}
+}
+
+// Lower value for cpu and memory requests.
+func getStepLowerRequestVal() ResourceObject {
+	r := ResourceObject{
+		CPU:    0,
+		Memory: 0,
+	}
+
+	cpuStr := os.Getenv("DRONE_RESOURCE_MIN_REQUEST_CPU")
+	memoryStr := os.Getenv("DRONE_RESOURCE_MIN_REQUEST_MEMORY")
+	if v, err := strconv.ParseInt(cpuStr, 10, 64); err != nil {
+		r.CPU = v
+	}
+
+	if v, err := strconv.ParseInt(memoryStr, 10, 64); err != nil {
+		r.Memory = v
+	}
+	return r
+}
+
+func max(a, b int64) int64 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func min(a, b int64) int64 {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // list of restricted variables

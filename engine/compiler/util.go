@@ -206,11 +206,11 @@ func getStepLowerRequestVal() ResourceObject {
 
 	cpuStr := os.Getenv("DRONE_RESOURCE_MIN_REQUEST_CPU")
 	memoryStr := os.Getenv("DRONE_RESOURCE_MIN_REQUEST_MEMORY")
-	if v, err := strconv.ParseInt(cpuStr, 10, 64); err != nil {
+	if v, err := strconv.ParseInt(cpuStr, 10, 64); err == nil {
 		r.CPU = v
 	}
 
-	if v, err := strconv.ParseInt(memoryStr, 10, 64); err != nil {
+	if v, err := strconv.ParseInt(memoryStr, 10, 64); err == nil {
 		r.Memory = v
 	}
 	return r

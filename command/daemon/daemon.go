@@ -80,10 +80,26 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	engine, err := engine.NewInCluster()
-	if err != nil {
-		logrus.WithError(err).
-			Fatalln("cannot load the kubernetes engine")
+	var kube *engine.Kubernetes
+	if path := config.Runner.Config; path != "" {
+		// if the configuration path is specified, we create
+		// the kubernetes client from the configuration file.
+		// This is used primarily for local out-of-cluster
+		// testing.
+		kube, err = engine.NewFromConfig(path)
+		if err != nil {
+			logrus.WithError(err).
+				Fatalln("cannot load the kubernetes engine from config")
+		}
+	} else {
+		// else, if no configuration is specified, we create
+		// the kubernetes client using the in-cluster
+		// configuration file.
+		kube, err = engine.NewInCluster()
+		if err != nil {
+			logrus.WithError(err).
+				Fatalln("cannot load the in-cluster kubernetes engine")
+		}
 	}
 
 	remote := remote.New(cli)
@@ -156,7 +172,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Exec: runtime.NewExecer(
 			tracer,
 			remote,
-			engine,
+			kube,
 			config.Runner.Procs,
 		).Exec,
 	}

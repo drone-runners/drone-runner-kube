@@ -7,8 +7,8 @@ import (
 	"github.com/drone/runner-go/livelog"
 )
 
-// cancellableCopy method provides a way to copy from source to destination
-// that honors context. If context.Cancel is called, copy method will return immediately.
+// cancellableCopy method copies from source to destination honoring the context.
+// If context.Cancel is called, it will return immediately with context cancelled error.
 func cancellableCopy(ctx context.Context, dst io.Writer, src io.ReadCloser) error {
 	ch := make(chan error)
 	go func() {

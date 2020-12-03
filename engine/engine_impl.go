@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
-	"github.com/drone/runner-go/livelog"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/hashicorp/go-multierror"
 	v1 "k8s.io/api/core/v1"
@@ -306,7 +305,7 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 	}
 	defer readCloser.Close()
 
-	return livelog.Copy(output, readCloser)
+	return cancellableCopy(ctx, output, readCloser)
 }
 
 func (k *Kubernetes) start(spec *Spec, step *Step) error {

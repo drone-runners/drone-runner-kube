@@ -36,7 +36,7 @@ type Pipeline struct {
 	Platform    manifest.Platform    `json:"platform,omitempty"`
 	Trigger     manifest.Conditions  `json:"conditions,omitempty"`
 
-	Resources   StageResources    `json:"resources,omitempty"`
+	Resources   Resources         `json:"resources,omitempty"`
 	Environment map[string]string `json:"environment,omitempty"`
 	Services    []*Step           `json:"services,omitempty"`
 	Steps       []*Step           `json:"steps,omitempty"`
@@ -190,13 +190,6 @@ type (
 		// resources allowed.
 		Limits ResourceObject `json:"limits,omitempty" yaml:"limits"`
 
-		// Request describes the minimum amount of
-		// compute resources required.
-		Requests ResourceObject `json:"requests,omitempty" yaml:"requests"`
-	}
-
-	// StageResources describes the compute resource requirements for a stage.
-	StageResources struct {
 		// Request describes the minimum amount of
 		// compute resources required.
 		Requests ResourceObject `json:"requests,omitempty" yaml:"requests"`

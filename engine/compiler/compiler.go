@@ -49,8 +49,8 @@ var Privileged = []string{
 type (
 	// Resources describes the compute resource requirements.
 	Resources struct {
-		Limits   ResourceObject
-		Requests ResourceObject
+		Limits      ResourceObject
+		MinRequests ResourceObject
 	}
 
 	// ResourceObject describes compute resource requirements.
@@ -93,6 +93,9 @@ type (
 		// Resources defines resource limits that are applied by
 		// default to all pipeline containers if none exist.
 		Resources Resources
+
+		// Stage resource requests that are applied by default to all pipeline
+		StageRequests ResourceObject
 
 		// Cloner provides an option to override the default clone
 		// image used to clone the repository when the pipeline
@@ -537,12 +540,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// apply default resources limits
 	for _, v := range spec.Steps {
-		if v.Resources.Requests.CPU == 0 {
-			v.Resources.Requests.CPU = c.Resources.Requests.CPU
-		}
-		if v.Resources.Requests.Memory == 0 {
-			v.Resources.Requests.Memory = c.Resources.Requests.Memory
-		}
 		if v.Resources.Limits.CPU == 0 {
 			v.Resources.Limits.CPU = c.Resources.Limits.CPU
 		}
@@ -552,8 +549,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	}
 
 	numSteps := int64(len(spec.Steps))
-	upperRequestVal := getStepUpperRequestVal(pipeline.Resources)
-	lowerRequestVal := getStepLowerRequestVal()
+	lowerRequestVal := c.Resources.MinRequests
+	upperRequestVal := getStepUpperRequestVal(pipeline.Resources, c.StageRequests)
 
 	// Transform step resources to match the stage level requests.
 	//
@@ -571,13 +568,13 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				lowerRequestVal.Memory)
 
 			v.Resources.Requests.CPU = cpu
-			v.Resources.Limits.CPU = max(cpu, v.Resources.Limits.CPU)
 			v.Resources.Requests.Memory = mem
-			v.Resources.Limits.Memory = max(mem, v.Resources.Limits.Memory)
 		} else {
 			v.Resources.Requests.CPU = lowerRequestVal.CPU
 			v.Resources.Requests.Memory = lowerRequestVal.Memory
 		}
+		v.Resources.Limits.CPU = max(v.Resources.Requests.CPU, v.Resources.Limits.CPU)
+		v.Resources.Limits.Memory = max(v.Resources.Requests.Memory, v.Resources.Limits.Memory)
 	}
 
 	// apply default policy

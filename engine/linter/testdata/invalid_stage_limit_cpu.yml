@@ -1,0 +1,17 @@
+---
+kind: pipeline
+type: kubernetes
+name: default
+resources:
+  requests:
+    cpu: 100
+    memory: 100Mi
+  limits:
+    cpu: 100
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+  - go test

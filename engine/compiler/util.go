@@ -5,9 +5,7 @@
 package compiler
 
 import (
-	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 
 	"github.com/drone-runners/drone-runner-kube/engine"
@@ -188,30 +186,20 @@ func isRestrictedVariable(env map[string]*manifest.Variable) bool {
 	return false
 }
 
-// Upper value for cpu and memory requests. It is same as stage level
-// cpu & memory requests.
-func getStepUpperRequestVal(r resource.StageResources) ResourceObject {
-	return ResourceObject{
-		CPU:    r.Requests.CPU,
-		Memory: int64(r.Requests.Memory),
-	}
-}
-
-// Lower value for cpu and memory requests.
-func getStepLowerRequestVal() ResourceObject {
+// Upper value for cpu and memory requests for step containers.
+// It is same as stage resource request if set in pipeline. Otherwise, it defaults to
+// runner environment variable values.
+func getStepUpperRequestVal(stageResources resource.Resources,
+	defaultRequests ResourceObject) ResourceObject {
 	r := ResourceObject{
-		CPU:    0,
-		Memory: 0,
+		CPU:    stageResources.Requests.CPU,
+		Memory: int64(stageResources.Requests.Memory),
 	}
-
-	cpuStr := os.Getenv("DRONE_RESOURCE_MIN_REQUEST_CPU")
-	memoryStr := os.Getenv("DRONE_RESOURCE_MIN_REQUEST_MEMORY")
-	if v, err := strconv.ParseInt(cpuStr, 10, 64); err == nil {
-		r.CPU = v
+	if r.CPU == 0 {
+		r.CPU = defaultRequests.CPU
 	}
-
-	if v, err := strconv.ParseInt(memoryStr, 10, 64); err == nil {
-		r.Memory = v
+	if r.Memory == 0 {
+		r.Memory = defaultRequests.Memory
 	}
 	return r
 }

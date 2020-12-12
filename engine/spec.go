@@ -19,6 +19,7 @@ type (
 		PodSpec    PodSpec            `json:"pod_spec,omitempty"`
 		Platform   Platform           `json:"platform,omitempty"`
 		Steps      []*Step            `json:"steps,omitempty"`
+		Internal   []*Step            `json:"internal,omitempty"`
 		Volumes    []*Volume          `json:"volumes,omitempty"`
 		Secrets    map[string]*Secret `json:"secrets,omitempty"`
 		PullSecret *Secret            `json:"pull_secrets,omitempty"`

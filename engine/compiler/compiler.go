@@ -59,6 +59,12 @@ type (
 		Memory int64
 	}
 
+	// Tmate defines tmate settings.
+	Tmate struct {
+		Image   string
+		Enabled bool
+	}
+
 	// Compiler compiles the Yaml configuration file to an
 	// intermediate representation optimized for simple execution.
 	Compiler struct {
@@ -96,6 +102,10 @@ type (
 
 		// Stage resource requests that are applied by default to all pipeline
 		StageRequests ResourceObject
+
+		// Tmate provides global configration options for tmate
+		// live debugging.
+		Tmate Tmate
 
 		// Cloner provides an option to override the default clone
 		// image used to clone the repository when the pipeline
@@ -427,6 +437,35 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 	}
 
+	// create internal steps if build running in debug mode
+	if c.Tmate.Enabled && args.Build.Debug && pipeline.Platform.OS != "windows" {
+		// first we need to add an internal setup step to the pipeline
+		// to copy over the tmate binary. Internal steps are not visible
+		// to the end user.
+		spec.Internal = append(spec.Internal, &engine.Step{
+			ID:         random(),
+			Pull:       engine.PullIfNotExists,
+			Image:      image.Expand(c.Tmate.Image),
+			Entrypoint: []string{"/bin/sh", "-c"},
+			Command:    []string{"cp /bin/tmate /usr/drone/bin/"},
+		})
+
+		// next we create a temporary volume to share the tmate binary
+		// with the pipeline containers.
+		for _, step := range append(spec.Steps, spec.Internal...) {
+			step.Volumes = append(step.Volumes, &engine.VolumeMount{
+				Name: "_addons",
+				Path: "/usr/drone/bin",
+			})
+		}
+		spec.Volumes = append(spec.Volumes, &engine.Volume{
+			EmptyDir: &engine.VolumeEmptyDir{
+				ID:   random(),
+				Name: "_addons",
+			},
+		})
+	}
+
 	if isGraph(spec) == false {
 		configureSerial(spec)
 	} else if pipeline.Clone.Disable == false {
@@ -435,7 +474,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		removeCloneDeps(spec)
 	}
 
-	for _, step := range spec.Steps {
+	for _, step := range append(spec.Steps, spec.Internal...) {
 		for _, s := range step.Secrets {
 			// if the secret was already fetched and stored in the
 			// secret map it can be skipped.

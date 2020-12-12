@@ -131,6 +131,11 @@ type Config struct {
 		RulesFile string              `envconfig:"DRONE_NAMESPACE_RULES_FILE"`
 		Default   string              `envconfig:"DRONE_NAMESPACE_DEFAULT" default:"default"`
 	}
+
+	Tmate struct {
+		Enabled bool   `envconfig:"DRONE_TMATE_ENABLED" default:"true"`
+		Image   string `envconfig:"DRONE_TMATE_IMAGE"   default:"drone/drone-runner-docker:latest"`
+	}
 }
 
 // legacy environment variables. the key is the legacy

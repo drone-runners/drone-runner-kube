@@ -52,6 +52,7 @@ type execCommand struct {
 	Namespace  string
 	Config     string
 	Policy     string
+	Tmate      compiler.Tmate
 	Clone      bool
 	Pretty     bool
 	Procs      int64
@@ -134,6 +135,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 	comp := &compiler.Compiler{
 		Environ:    provider.Static(c.Environ),
 		Labels:     c.Labels,
+		Tmate:      c.Tmate,
 		Privileged: append(c.Privileged, compiler.Privileged...),
 		Volumes:    c.Volumes,
 		Secret:     secret.StaticVars(c.Secrets),
@@ -334,6 +336,13 @@ func registerExec(app *kingpin.Application) {
 				),
 			),
 		).BoolVar(&c.Pretty)
+
+	cmd.Flag("tmate-image", "tmate docker image").
+		Default("drone/drone-runner-docker:latest").
+		StringVar(&c.Tmate.Image)
+
+	cmd.Flag("tmate-enabled", "tmate enabled").
+		BoolVar(&c.Tmate.Enabled)
 
 	// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

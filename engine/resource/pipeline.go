@@ -36,6 +36,7 @@ type Pipeline struct {
 	Platform    manifest.Platform    `json:"platform,omitempty"`
 	Trigger     manifest.Conditions  `json:"conditions,omitempty"`
 
+	Resources   Resources         `json:"resources,omitempty"`
 	Environment map[string]string `json:"environment,omitempty"`
 	Services    []*Step           `json:"services,omitempty"`
 	Steps       []*Step           `json:"steps,omitempty"`

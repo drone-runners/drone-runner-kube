@@ -30,19 +30,21 @@ import (
 type compileCommand struct {
 	*internal.Flags
 
-	Source        *os.File
-	Privileged    []string
-	Volumes       map[string]string
-	Environ       map[string]string
-	Labels        map[string]string
-	Secrets       map[string]string
-	Clone         bool
-	Spec          bool
-	Config        string
-	LimitCPU      int64
-	LimitMemory   int64
-	RequestCPU    int64
-	RequestMemory int64
+	Source           *os.File
+	Privileged       []string
+	Volumes          map[string]string
+	Environ          map[string]string
+	Labels           map[string]string
+	Secrets          map[string]string
+	Clone            bool
+	Spec             bool
+	Config           string
+	LimitCPU         int64
+	LimitMemory      int64
+	RequestCPU       int64
+	RequestMemory    int64
+	MinRequestCPU    int64
+	MinRequestMemory int64
 }
 
 func (c *compileCommand) run(*kingpin.ParseContext) error {
@@ -113,10 +115,14 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 				CPU:    c.LimitCPU,
 				Memory: c.LimitMemory,
 			},
-			Requests: compiler.ResourceObject{
-				CPU:    c.RequestCPU,
-				Memory: c.RequestMemory,
+			MinRequests: compiler.ResourceObject{
+				CPU:    c.MinRequestCPU,
+				Memory: c.MinRequestMemory,
 			},
+		},
+		StageRequests: compiler.ResourceObject{
+			CPU:    c.RequestCPU,
+			Memory: c.RequestMemory,
 		},
 	}
 
@@ -186,11 +192,17 @@ func registerCompile(app *kingpin.Application) {
 	cmd.Flag("limit-memory", "limit container memory").
 		Int64Var(&c.LimitMemory)
 
-	cmd.Flag("request-cpu", "request container cpu").
+	cmd.Flag("request-cpu", "stage request cpu").
 		Int64Var(&c.RequestCPU)
 
-	cmd.Flag("request-memory", "request container memory").
+	cmd.Flag("request-memory", "stage request memory").
 		Int64Var(&c.RequestMemory)
+
+	cmd.Flag("min-request-cpu", "minimum container request cpu").
+		Int64Var(&c.MinRequestCPU)
+
+	cmd.Flag("min-request-memory", "minimum container request memory").
+		Int64Var(&c.MinRequestMemory)
 
 		// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

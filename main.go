@@ -7,6 +7,7 @@ package main
 import (
 	"github.com/drone-runners/drone-runner-kube/command"
 	_ "github.com/joho/godotenv/autoload"
+        _ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
 func main() {

@@ -188,6 +188,16 @@ func TestLint(t *testing.T) {
 			invalid: true,
 			message: "linter: unknown step dependency detected: test references foo",
 		},
+		{
+			path:    "testdata/invalid_stage_limit_cpu.yml",
+			invalid: true,
+			message: "linter: cpu limit cannot be applied at stage level",
+		},
+		{
+			path:    "testdata/invalid_stage_limit_memory.yml",
+			invalid: true,
+			message: "linter: memory limit cannot be applied at stage level",
+		},
 	}
 	for _, test := range tests {
 		name := path.Base(test.path)

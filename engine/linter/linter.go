@@ -53,6 +53,9 @@ func New(patterns map[string][]string) *Linter {
 // configuration.
 func (l *Linter) Lint(pm manifest.Resource, repo *drone.Repo) error {
 	pipeline := pm.(*resource.Pipeline)
+	if err := checkStageResources(pipeline); err != nil {
+		return err
+	}
 	if err := checkSteps(pipeline, repo.Trusted); err != nil {
 		return err
 	}
@@ -61,6 +64,16 @@ func (l *Linter) Lint(pm manifest.Resource, repo *drone.Repo) error {
 	}
 	if err := checkNamespace(pipeline.Metadata.Namespace, repo.Slug, l.patterns); err != nil {
 		return err
+	}
+	return nil
+}
+
+func checkStageResources(pipeline *resource.Pipeline) error {
+	if pipeline.Resources.Limits.CPU != 0 {
+		return errors.New("linter: cpu limit cannot be applied at stage level")
+	}
+	if pipeline.Resources.Limits.Memory != 0 {
+		return errors.New("linter: memory limit cannot be applied at stage level")
 	}
 	return nil
 }

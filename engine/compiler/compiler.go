@@ -573,8 +573,12 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			v.Resources.Requests.CPU = lowerRequestVal.CPU
 			v.Resources.Requests.Memory = lowerRequestVal.Memory
 		}
-		v.Resources.Limits.CPU = max(v.Resources.Requests.CPU, v.Resources.Limits.CPU)
-		v.Resources.Limits.Memory = max(v.Resources.Requests.Memory, v.Resources.Limits.Memory)
+		if v.Resources.Limits.CPU != 0 {
+			v.Resources.Limits.CPU = max(v.Resources.Requests.CPU, v.Resources.Limits.CPU)
+		}
+		if v.Resources.Limits.Memory != 0 {
+			v.Resources.Limits.Memory = max(v.Resources.Requests.Memory, v.Resources.Limits.Memory)
+		}
 	}
 
 	// apply default policy

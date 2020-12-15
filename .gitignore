@@ -3,5 +3,6 @@ drone-runner-kube.exe
 release/*
 .env
 .docker
+.idea
 TODO.md
 NOTES.md

@@ -167,6 +167,7 @@ type (
 		ServiceAccountName string            `json:"service_account_name,omitempty"`
 		HostAliases        []HostAlias       `json:"host_aliases,omitempty"`
 		DnsConfig          DnsConfig         `json:"dns_config,omitempty"`
+		DnsPolicy          DnsPolicy         `json:"dns_policy,omitempty"`
 	}
 
 	// HostAlias ...
@@ -193,6 +194,11 @@ type (
 	DNSConfigOptions struct {
 		Name  string  `json:"name,omitempty"`
 		Value *string `json:"value,omitempty"`
+	}
+
+	// DnsPolicy
+	DnsPolicy struct {
+		Policy string `json:"policy,omitempty"`
 	}
 )
 

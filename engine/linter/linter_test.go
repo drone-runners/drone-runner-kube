@@ -45,6 +45,12 @@ func TestLint(t *testing.T) {
 			invalid: true,
 			message: "linter: invalid volume name: _workspace",
 		},
+		{
+			path:    "testdata/volume_invalid_name_addons.yml",
+			trusted: false,
+			invalid: true,
+			message: "linter: invalid volume name: _addons",
+		},
 		// user should not be able to mount host path
 		// volumes unless the repository is trusted.
 		{

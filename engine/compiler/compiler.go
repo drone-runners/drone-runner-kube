@@ -63,6 +63,10 @@ type (
 	Tmate struct {
 		Image   string
 		Enabled bool
+		Server  string
+		Port    string
+		RSA     string
+		ED25519 string
 	}
 
 	// Compiler compiles the Yaml configuration file to an
@@ -324,6 +328,14 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		)
 	}
 
+	// create tmate variables
+	if c.Tmate.Server != "" {
+		envs["DRONE_TMATE_HOST"] = c.Tmate.Server
+		envs["DRONE_TMATE_PORT"] = c.Tmate.Port
+		envs["DRONE_TMATE_FINGERPRINT_RSA"] = c.Tmate.RSA
+		envs["DRONE_TMATE_FINGERPRINT_ED25519"] = c.Tmate.ED25519
+	}
+
 	// set platform if needed
 	if arch == "arm" || arch == "arm64" {
 		spec.PodSpec.Labels["kubernetes.io/arch"] = arch
@@ -446,8 +458,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			ID:         random(),
 			Pull:       engine.PullIfNotExists,
 			Image:      image.Expand(c.Tmate.Image),
-			Entrypoint: []string{"/bin/sh", "-c"},
-			Command:    []string{"cp /bin/tmate /usr/drone/bin/"},
+			Entrypoint: []string{"/bin/drone-runner-docker"},
+			Command:    []string{"copy"},
 		})
 
 		// next we create a temporary volume to share the tmate binary

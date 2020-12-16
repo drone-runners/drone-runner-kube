@@ -134,7 +134,11 @@ type Config struct {
 
 	Tmate struct {
 		Enabled bool   `envconfig:"DRONE_TMATE_ENABLED" default:"true"`
-		Image   string `envconfig:"DRONE_TMATE_IMAGE"   default:"drone/drone-runner-docker:latest"`
+		Image   string `envconfig:"DRONE_TMATE_IMAGE"   default:"drone/drone-runner-docker:1"`
+		Server  string `envconfig:"DRONE_TMATE_HOST"`
+		Port    string `envconfig:"DRONE_TMATE_PORT"`
+		RSA     string `envconfig:"DRONE_TMATE_FINGERPRINT_RSA"`
+		ED25519 string `envconfig:"DRONE_TMATE_FINGERPRINT_ED25519"`
 	}
 }
 

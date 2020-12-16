@@ -213,6 +213,18 @@ func registerCompile(app *kingpin.Application) {
 	cmd.Flag("tmate-enabled", "tmate enabled").
 		BoolVar(&c.Tmate.Enabled)
 
+	cmd.Flag("tmate-server-host", "tmate server host").
+		StringVar(&c.Tmate.Server)
+
+	cmd.Flag("tmate-server-port", "tmate server port").
+		StringVar(&c.Tmate.Port)
+
+	cmd.Flag("tmate-server-rsa-fingerprint", "tmate server rsa fingerprint").
+		StringVar(&c.Tmate.RSA)
+
+	cmd.Flag("tmate-server-ed25519-fingerprint", "tmate server rsa fingerprint").
+		StringVar(&c.Tmate.ED25519)
+
 		// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)
 }

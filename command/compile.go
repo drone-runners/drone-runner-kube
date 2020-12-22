@@ -45,6 +45,7 @@ type compileCommand struct {
 	RequestMemory    int64
 	MinRequestCPU    int64
 	MinRequestMemory int64
+	Tmate            compiler.Tmate
 }
 
 func (c *compileCommand) run(*kingpin.ParseContext) error {
@@ -124,6 +125,7 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 			CPU:    c.RequestCPU,
 			Memory: c.RequestMemory,
 		},
+		Tmate: c.Tmate,
 	}
 
 	args := runtime.CompilerArgs{
@@ -203,6 +205,25 @@ func registerCompile(app *kingpin.Application) {
 
 	cmd.Flag("min-request-memory", "minimum container request memory").
 		Int64Var(&c.MinRequestMemory)
+
+	cmd.Flag("tmate-image", "tmate docker image").
+		Default("drone/drone-runner-docker:latest").
+		StringVar(&c.Tmate.Image)
+
+	cmd.Flag("tmate-enabled", "tmate enabled").
+		BoolVar(&c.Tmate.Enabled)
+
+	cmd.Flag("tmate-server-host", "tmate server host").
+		StringVar(&c.Tmate.Server)
+
+	cmd.Flag("tmate-server-port", "tmate server port").
+		StringVar(&c.Tmate.Port)
+
+	cmd.Flag("tmate-server-rsa-fingerprint", "tmate server rsa fingerprint").
+		StringVar(&c.Tmate.RSA)
+
+	cmd.Flag("tmate-server-ed25519-fingerprint", "tmate server rsa fingerprint").
+		StringVar(&c.Tmate.ED25519)
 
 		// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

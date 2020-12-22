@@ -10,9 +10,9 @@ require (
 	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
 	github.com/docker/distribution v2.7.1+incompatible
 	github.com/docker/go-units v0.4.0
-	github.com/drone/drone-go v1.2.1-0.20200326064413-195394da1018
+	github.com/drone/drone-go v1.4.1-0.20201109202657-b9e58bbbcf27
 	github.com/drone/envsubst v1.0.2
-	github.com/drone/runner-go v1.6.1-0.20201016191343-2020a87dfb8c
+	github.com/drone/runner-go v1.6.1-0.20201109204555-a2c975273a49
 	github.com/drone/signal v1.0.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/golang/mock v1.3.1

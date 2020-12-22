@@ -172,6 +172,14 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 				CPU:    config.Resources.RequestCPU,
 				Memory: int64(config.Resources.RequestMemory),
 			},
+			Tmate: compiler.Tmate{
+				Image:   config.Tmate.Image,
+				Enabled: config.Tmate.Enabled,
+				Server:  config.Tmate.Server,
+				Port:    config.Tmate.Port,
+				RSA:     config.Tmate.RSA,
+				ED25519: config.Tmate.ED25519,
+			},
 		},
 		Exec: runtime.NewExecer(
 			tracer,

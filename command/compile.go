@@ -16,6 +16,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
+	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone/envsubst"
 	"github.com/drone/runner-go/environ"
 	"github.com/drone/runner-go/environ/provider"
@@ -108,6 +109,7 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 		Volumes:    c.Volumes,
 		Secret:     secret.Combine(),
 		Registry:   registry.Combine(),
+		Image:      image.Lookup,
 		Resources: compiler.Resources{
 			Limits: compiler.ResourceObject{
 				CPU:    c.LimitCPU,

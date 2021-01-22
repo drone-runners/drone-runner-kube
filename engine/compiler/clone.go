@@ -46,10 +46,9 @@ func cloneParams(src manifest.Clone) map[string]string {
 // added to each pipeline.
 func createClone(src *resource.Pipeline) *engine.Step {
 	return &engine.Step{
-		Name:        cloneStepName,
-		Image:       cloneImage(src.Platform),
-		Placeholder: placeholderImage,
-		RunPolicy:   runtime.RunAlways,
-		Envs:        cloneParams(src.Clone),
+		Name:      cloneStepName,
+		Image:     cloneImage(src.Platform),
+		RunPolicy: runtime.RunAlways,
+		Envs:      cloneParams(src.Clone),
 	}
 }

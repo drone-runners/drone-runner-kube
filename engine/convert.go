@@ -25,6 +25,7 @@ func toPod(spec *Spec) *v1.Pod {
 			RestartPolicy:      v1.RestartPolicyNever,
 			Volumes:            toVolumes(spec),
 			Containers:         toContainers(spec),
+			InitContainers:     toInitContainers(spec),
 			NodeName:           spec.PodSpec.NodeName,
 			NodeSelector:       spec.PodSpec.NodeSelector,
 			Tolerations:        toTolerations(spec),
@@ -162,9 +163,9 @@ func toContainers(spec *Spec) []v1.Container {
 	var containers []v1.Container
 
 	for _, s := range spec.Steps {
-		container := v1.Container{
+		containers = append(containers, v1.Container{
 			Name:            s.ID,
-			Image:           s.Placeholder,
+			Image:           s.Image,
 			Command:         s.Entrypoint,
 			Args:            s.Command,
 			ImagePullPolicy: toPullPolicy(s.Pull),
@@ -173,9 +174,43 @@ func toContainers(spec *Spec) []v1.Container {
 			SecurityContext: toSecurityContext(s),
 			VolumeMounts:    toVolumeMounts(spec, s),
 			Env:             toEnv(spec, s),
-		}
+		})
+	}
 
-		containers = append(containers, container)
+	if s := spec.Controller; s != nil {
+		containers = append(containers, v1.Container{
+			Name:            s.ID,
+			Image:           s.Image,
+			Command:         s.Entrypoint,
+			Args:            s.Command,
+			ImagePullPolicy: toPullPolicy(s.Pull),
+			WorkingDir:      s.WorkingDir,
+			Resources:       toResources(s.Resources),
+			SecurityContext: toSecurityContext(s),
+			VolumeMounts:    toVolumeMounts(spec, s),
+			Env:             toEnv(spec, s),
+		})
+	}
+
+	return containers
+}
+
+func toInitContainers(spec *Spec) []v1.Container {
+	var containers []v1.Container
+
+	if s := spec.Init; s != nil {
+		containers = append(containers, v1.Container{
+			Name:            s.ID,
+			Image:           s.Image,
+			Command:         s.Entrypoint,
+			Args:            s.Command,
+			ImagePullPolicy: toPullPolicy(s.Pull),
+			WorkingDir:      s.WorkingDir,
+			Resources:       toResources(s.Resources),
+			SecurityContext: toSecurityContext(s),
+			VolumeMounts:    toVolumeMounts(spec, s),
+			Env:             toEnv(spec, s),
+		})
 	}
 
 	return containers

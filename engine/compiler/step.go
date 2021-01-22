@@ -15,14 +15,11 @@ import (
 	"github.com/drone/runner-go/pipeline/runtime"
 )
 
-const placeholderImage = "drone/placeholder:1"
-
 func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 	dst := &engine.Step{
 		ID:           random(),
 		Name:         src.Name,
 		Image:        image.Expand(src.Image),
-		Placeholder:  placeholderImage,
 		Command:      src.Command,
 		Entrypoint:   src.Entrypoint,
 		Detach:       src.Detach,

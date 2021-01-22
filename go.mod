@@ -15,21 +15,22 @@ require (
 	github.com/drone/runner-go v1.6.1-0.20200813033918-b849bd35b2eb
 	github.com/drone/signal v1.0.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/golang/mock v1.3.1
-	github.com/google/go-cmp v0.3.0
-	github.com/googleapis/gnostic v0.2.0 // indirect
+	github.com/golang/mock v1.4.3
+	github.com/google/go-cmp v0.4.1
+	github.com/google/go-containerregistry v0.1.2
 	github.com/gosimple/slug v1.9.0
 	github.com/hashicorp/go-multierror v1.0.0
+	github.com/hashicorp/golang-lru v0.5.3
 	github.com/joho/godotenv v1.3.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/mattn/go-isatty v0.0.8
+	github.com/mattn/go-isatty v0.0.12
 	github.com/natessilva/dag v0.0.0-20180124060714-7194b8dcc5c4
 	github.com/opencontainers/go-digest v1.0.0-rc1 // indirect
-	github.com/sirupsen/logrus v1.4.2
-	golang.org/x/sync v0.0.0-20190423024810-112230192c58
+	github.com/sirupsen/logrus v1.6.0
+	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	gopkg.in/alecthomas/kingpin.v2 v2.2.6
 	gopkg.in/inf.v0 v0.9.1 // indirect
-	k8s.io/api v0.0.0-20190918155943-95b840bb6a1f
-	k8s.io/apimachinery v0.0.0-20190913080033-27d36303b655
-	k8s.io/client-go v0.0.0-20190918160344-1fbdaa4c8d90
+	k8s.io/api v0.17.4
+	k8s.io/apimachinery v0.17.4
+	k8s.io/client-go v0.17.4
 )

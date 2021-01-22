@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone/runner-go/livelog"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/hashicorp/go-multierror"
@@ -166,39 +165,11 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	spec := specv.(*Spec)
 	step := stepv.(*Step)
 
-	err := k.start(spec, step)
-	if err != nil {
-		// if ctx.Err() != nil {
-		// 	return nil, ctx.Err()
-		// }
+	if err := k.tail(ctx, spec, step, output); err != nil {
 		return nil, err
 	}
 
-	err = k.waitForReady(ctx, spec, step)
-	if err != nil {
-		return nil, err
-	}
-
-	err = k.tail(ctx, spec, step, output)
-	// this feature flag retries fetching the logs if it fails on
-	// the first attempt. This is meant to help triage the following
-	// issue:
-	//
-	//    https://discourse.drone.io/t/kubernetes-runner-intermittently-fails-steps/7372
-	//
-	// BEGIN: FEATURE FLAG
-	if err != nil {
-		if os.Getenv("DRONE_FEATURE_FLAG_RETRY_LOGS") == "true" {
-			<-time.After(time.Second * 5)
-			err = k.tail(ctx, spec, step, output)
-		}
-		if err != nil {
-			<-time.After(time.Second * 5)
-			err = k.tail(ctx, spec, step, output)
-		}
-	}
-	// END: FEATURE FAG
-	if err != nil {
+	if err := k.start(spec, step); err != nil {
 		return nil, err
 	}
 
@@ -247,7 +218,7 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 				if cs.Name != step.ID {
 					continue
 				}
-				if !image.Match(cs.Image, step.Placeholder) && (cs.State.Running != nil || cs.State.Terminated != nil) {
+				if cs.State.Running != nil || cs.State.Terminated != nil {
 					return true, nil
 				}
 			}
@@ -257,22 +228,23 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 }
 
 func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *Step) (*runtime.State, error) {
-	state := &runtime.State{
-		Exited:    true,
-		OOMKilled: false,
-	}
+	state := new(runtime.State)
 	err := k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
 		switch t := e.Type; t {
 		case watch.Added, watch.Modified:
 			pod, ok := e.Object.(*v1.Pod)
-			if !ok || pod.ObjectMeta.Name != spec.PodSpec.Name {
+			if !ok {
+				return false, nil
+			}
+			if pod.ObjectMeta.Name != spec.PodSpec.Name {
 				return false, nil
 			}
 			for _, cs := range pod.Status.ContainerStatuses {
 				if cs.Name != step.ID {
 					continue
 				}
-				if !image.Match(cs.Image, step.Placeholder) && cs.State.Terminated != nil {
+				if cs.State.Terminated != nil {
+					state.Exited = true
 					state.ExitCode = int(cs.State.Terminated.ExitCode)
 					return true, nil
 				}
@@ -283,8 +255,7 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 	if err != nil {
 		return nil, err
 	}
-
-	return state, nil
+	return state, err
 }
 
 func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
@@ -324,11 +295,11 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 
 		for i, container := range pod.Spec.Containers {
 			if container.Name == step.ID {
-				pod.Spec.Containers[i].Image = step.Image
 				if pod.ObjectMeta.Annotations == nil {
 					pod.ObjectMeta.Annotations = map[string]string{}
 				}
 				for _, env := range statusesWhiteList {
+					// TODO(bradrydzewski) update downward API paths
 					pod.ObjectMeta.Annotations[env] = step.Envs[env]
 				}
 			}

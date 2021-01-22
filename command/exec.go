@@ -20,6 +20,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/policy"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
+	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone/drone-go/drone"
 	"github.com/drone/envsubst"
 	"github.com/drone/runner-go/environ"
@@ -138,6 +139,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Volumes:    c.Volumes,
 		Secret:     secret.StaticVars(c.Secrets),
 		Registry:   registry.Combine(),
+		Image:      image.Lookup,
 		Namespace:  c.Namespace,
 		Policies:   policies,
 	}

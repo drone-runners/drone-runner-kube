@@ -14,6 +14,8 @@ var statusesWhiteList = []string{
 	"DRONE_BUILD_FINISHED",
 	"DRONE_STAGE_STATUS",
 	"DRONE_STAGE_FINISHED",
+	"DRONE_FAILED_STEPS",
+	"DRONE_FAILED_STAGES",
 }
 
 // PullPolicy defines the container image pull policy.

@@ -99,11 +99,6 @@ type (
 		// initializes.
 		Cloner string
 
-		// Placeholder provides the default placeholder image
-		// used to sleep the pipeline container until it is ready
-		// for execution.
-		Placeholder string
-
 		// Namespace provides the default kubernetes namespace
 		// when no namespace is provided.
 		Namespace string
@@ -118,6 +113,10 @@ type (
 		// Policy provides a set of policies used to set defaults
 		// based on matching logic.
 		Policies []*policy.Policy
+
+		// Image provides a function to lookup the image metadata
+		// from a remote registry.
+		Image image.LookupFunc
 	}
 )
 
@@ -342,11 +341,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		if c.Cloner != "" {
 			step.Image = c.Cloner
 		}
-
-		// override default placeholder image.
-		if c.Placeholder != "" {
-			step.Placeholder = c.Placeholder
-		}
 	}
 
 	var hostnames []string
@@ -365,11 +359,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		// automatically skipped.
 		if !src.When.Match(match) {
 			dst.RunPolicy = runtime.RunNever
-		}
-
-		// override default placeholder image.
-		if c.Placeholder != "" {
-			dst.Placeholder = c.Placeholder
 		}
 
 		if len(validation.IsDNS1123Subdomain(src.Name)) == 0 {
@@ -403,11 +392,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		// automatically skipped.
 		if !src.When.Match(match) {
 			dst.RunPolicy = runtime.RunNever
-		}
-
-		// override default placeholder image.
-		if c.Placeholder != "" {
-			dst.Placeholder = c.Placeholder
 		}
 
 		// if the pipeline step has an approved image, it is
@@ -548,6 +532,123 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	// apply default policy
 	if m := policy.Match(match, c.Policies); m != nil {
 		m.Apply(spec)
+	}
+
+	//
+	// controller containers
+	//
+
+	// create the init container
+	spec.Init = &engine.Step{
+		ID:         random(),
+		Name:       "init",
+		Image:      "drone/drone-runner-kube:1",
+		Entrypoint: []string{"/bin/drone-runner-kube"},
+		Command:    []string{"copy"},
+		Volumes: []*engine.VolumeMount{
+			{
+				Name:     "drone-usr-volume",
+				Path:     "/usr/drone",
+				ReadOnly: false,
+			},
+		},
+	}
+
+	// create the controller container
+	// spec.Controller = &engine.Step{
+	// 	ID:         random(),
+	// 	Name:       "controller",
+	// 	Image:      "drone/drone-runner-kube:1",
+	// 	Entrypoint: []string{"/bin/drone-runner-kube"},
+	// 	Command:    []string{"controller"},
+	// 	Volumes: []*engine.VolumeMount{
+	// 		{
+	// 			Name:     "drone-usr-volume",
+	// 			Path:     "/var/drone",
+	// 			ReadOnly: false,
+	// 		},
+	// 	},
+	// }
+
+	// create control volumes.
+	spec.Volumes = append(spec.Volumes,
+		&engine.Volume{
+			EmptyDir: &engine.VolumeEmptyDir{
+				ID:   random(),
+				Name: "drone-usr-volume",
+			},
+		},
+		// &engine.Volume{
+		// 	EmptyDir: &engine.VolumeEmptyDir{
+		// 		ID:   random(),
+		// 		Name: "drone-var-volume",
+		// 	},
+		// },
+	)
+
+	// append control volumes to containers.
+	for _, step := range spec.Steps {
+		step.Volumes = append(step.Volumes,
+			&engine.VolumeMount{
+				Name:     "drone-usr-volume",
+				Path:     "/var/drone",
+				ReadOnly: false,
+			},
+			// &engine.VolumeMount{
+			// 	Name:     "drone-usr-volume",
+			// 	Path:     "/usr/drone",
+			// 	ReadOnly: true,
+			// },
+		)
+	}
+
+	//
+	// replace entrypoints
+	//
+
+	for i, step := range spec.Steps {
+		statusVolume.DownwardAPI.Items = append(
+			statusVolume.DownwardAPI.Items,
+			engine.VolumeDownwardAPIItem{
+				Path:      "ready",
+				FieldPath: fmt.Sprintf("metadata.annotations['io.drone.step.%d']", i+1),
+			},
+		)
+
+		var entrypoint, command = step.Entrypoint, step.Command
+		if len(entrypoint) == 0 || len(command) == 0 {
+			var username, password string
+			for _, cred := range creds {
+				if image.MatchHostname(step.Image, cred.Address) {
+					username, password = cred.Username, cred.Password
+				}
+			}
+			config, err := image.Lookup(step.Image, username, password)
+			if err != nil {
+				// TODO return error to caller
+			}
+			if err == nil {
+				if len(entrypoint) == 0 {
+					entrypoint = config.Entrypoint
+				}
+				if len(command) == 0 {
+					command = config.Command
+				}
+			}
+		}
+
+		if len(entrypoint) == 0 {
+			continue
+			// TODO return error to caller
+		}
+
+		name := entrypoint[0]
+		args := append(entrypoint[1:], command...)
+		step.Entrypoint = []string{"/usr/drone/drone-runner-kube"}
+		step.Command = []string{"entrypoint", "--waitfile", "/run/drone/ready", "--name", name}
+		for _, arg := range args {
+			step.Command = append(step.Command, "--arg", arg)
+		}
 	}
 
 	return spec

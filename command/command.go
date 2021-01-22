@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/drone-runners/drone-runner-kube/command/daemon"
+	"github.com/drone-runners/drone-runner-kube/command/entrypoint"
 
 	"gopkg.in/alecthomas/kingpin.v2"
 )
@@ -25,6 +26,8 @@ func Command() {
 	app := kingpin.New("drone", "drone kubernetes runner")
 	registerCompile(app)
 	registerExec(app)
+	registerExec2(app)
+	entrypoint.Register(app)
 	daemon.Register(app)
 
 	kingpin.Version(version)

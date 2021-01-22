@@ -18,6 +18,8 @@ type (
 	Spec struct {
 		PodSpec    PodSpec            `json:"pod_spec,omitempty"`
 		Platform   Platform           `json:"platform,omitempty"`
+		Init       *Step              `json:"init,omitempty"`
+		Controller *Step              `json:"controller,omitempty"`
 		Steps      []*Step            `json:"steps,omitempty"`
 		Volumes    []*Volume          `json:"volumes,omitempty"`
 		Secrets    map[string]*Secret `json:"secrets,omitempty"`
@@ -47,7 +49,6 @@ type (
 		IgnoreStderr bool              `json:"ignore_stdout,omitempty"`
 		Image        string            `json:"image,omitempty"`
 		Name         string            `json:"name,omitempty"`
-		Placeholder  string            `json:"placeholder,omitempty"`
 		Privileged   bool              `json:"privileged,omitempty"`
 		Resources    Resources         `json:"resources,omitempty"`
 		Pull         PullPolicy        `json:"pull,omitempty"`

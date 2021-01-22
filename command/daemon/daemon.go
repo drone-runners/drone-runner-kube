@@ -12,6 +12,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
+	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone-runners/drone-runner-kube/internal/match"
 
 	"github.com/drone/runner-go/client"
@@ -105,7 +106,6 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 		Compiler: &compiler.Compiler{
 			Cloner:         config.Images.Clone,
-			Placeholder:    config.Images.Placeholder,
 			Volumes:        config.Runner.Volumes,
 			Namespace:      config.Namespace.Default,
 			Labels:         config.Labels.Default,
@@ -114,6 +114,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			NodeSelector:   config.NodeSelector.Default,
 			Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
 			Policies:       config.Policy.Parsed,
+			Image:          image.NewLookupCache(image.Lookup, 128, time.Hour*24).Lookup,
 			Registry: registry.Combine(
 				registry.File(
 					config.Docker.Config,

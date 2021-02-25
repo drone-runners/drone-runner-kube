@@ -198,7 +198,8 @@ type (
 	// ResourceObject describes compute resource
 	// requirements.
 	ResourceObject struct {
-		CPU    int64              `json:"cpu" yaml:"cpu"`
-		Memory manifest.BytesSize `json:"memory"`
+		CPU              int64              `json:"cpu" yaml:"cpu"`
+		Memory           manifest.BytesSize `json:"memory"`
+		EphemeralStorage manifest.BytesSize `json:"ephemeral-storage"`
 	}
 )

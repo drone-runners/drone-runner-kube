@@ -98,8 +98,9 @@ func convertSecretEnv(src map[string]*manifest.Variable) []*engine.SecretVar {
 func convertResources(src resource.Resources) engine.Resources {
 	return engine.Resources{
 		Limits: engine.ResourceObject{
-			CPU:    src.Limits.CPU,
-			Memory: int64(src.Limits.Memory),
+			CPU:              src.Limits.CPU,
+			Memory:           int64(src.Limits.Memory),
+			EphemeralStorage: int64(src.Limits.EphemeralStorage),
 		},
 	}
 }
@@ -192,14 +193,18 @@ func isRestrictedVariable(env map[string]*manifest.Variable) bool {
 func getStepUpperRequestVal(stageResources resource.Resources,
 	defaultRequests ResourceObject) ResourceObject {
 	r := ResourceObject{
-		CPU:    stageResources.Requests.CPU,
-		Memory: int64(stageResources.Requests.Memory),
+		CPU:              stageResources.Requests.CPU,
+		Memory:           int64(stageResources.Requests.Memory),
+		EphemeralStorage: int64(stageResources.Limits.EphemeralStorage),
 	}
 	if r.CPU == 0 {
 		r.CPU = defaultRequests.CPU
 	}
 	if r.Memory == 0 {
 		r.Memory = defaultRequests.Memory
+	}
+	if r.EphemeralStorage == 0 {
+		r.EphemeralStorage = defaultRequests.EphemeralStorage
 	}
 	return r
 }

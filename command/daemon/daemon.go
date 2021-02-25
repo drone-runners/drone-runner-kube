@@ -160,8 +160,9 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			),
 			Resources: compiler.Resources{
 				Limits: compiler.ResourceObject{
-					CPU:    config.Resources.LimitCPU,
-					Memory: int64(config.Resources.LimitMemory),
+					CPU:              config.Resources.LimitCPU,
+					Memory:           int64(config.Resources.LimitMemory),
+					EphemeralStorage: int64(config.Resources.LimitStorage),
 				},
 				MinRequests: compiler.ResourceObject{
 					CPU:    config.Resources.MinRequestCPU,
@@ -169,8 +170,9 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 				},
 			},
 			StageRequests: compiler.ResourceObject{
-				CPU:    config.Resources.RequestCPU,
-				Memory: int64(config.Resources.RequestMemory),
+				CPU:              config.Resources.RequestCPU,
+				Memory:           int64(config.Resources.RequestMemory),
+				EphemeralStorage: int64(config.Resources.RequestStorage),
 			},
 			Tmate: compiler.Tmate{
 				Image:   config.Tmate.Image,

@@ -152,8 +152,9 @@ type (
 
 	// ResourceObject describes compute resource requirements.
 	ResourceObject struct {
-		CPU    int64 `json:"cpu"`
-		Memory int64 `json:"memory"`
+		CPU              int64 `json:"cpu"`
+		Memory           int64 `json:"memory"`
+		EphemeralStorage int64 `json:"ephemeral-storage"`
 	}
 
 	// PodSpec ...

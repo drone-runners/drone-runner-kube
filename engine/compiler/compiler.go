@@ -55,8 +55,9 @@ type (
 
 	// ResourceObject describes compute resource requirements.
 	ResourceObject struct {
-		CPU    int64
-		Memory int64
+		CPU              int64
+		Memory           int64
+		EphemeralStorage int64
 	}
 
 	// Tmate defines tmate settings.
@@ -597,6 +598,9 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		if v.Resources.Limits.Memory == 0 {
 			v.Resources.Limits.Memory = c.Resources.Limits.Memory
 		}
+		if v.Resources.Limits.EphemeralStorage == 0 {
+			v.Resources.Limits.EphemeralStorage = c.Resources.Limits.EphemeralStorage
+		}
 	}
 
 	numSteps := int64(len(spec.Steps))
@@ -617,18 +621,26 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				lowerRequestVal.CPU)
 			mem := max(upperRequestVal.Memory-(numSteps-1)*lowerRequestVal.Memory,
 				lowerRequestVal.Memory)
+			store := max(upperRequestVal.EphemeralStorage-(numSteps-1)*lowerRequestVal.EphemeralStorage,
+				lowerRequestVal.EphemeralStorage)
 
 			v.Resources.Requests.CPU = cpu
 			v.Resources.Requests.Memory = mem
+			v.Resources.Requests.EphemeralStorage = store
 		} else {
 			v.Resources.Requests.CPU = lowerRequestVal.CPU
 			v.Resources.Requests.Memory = lowerRequestVal.Memory
+			v.Resources.Requests.EphemeralStorage = lowerRequestVal.EphemeralStorage
 		}
 		if v.Resources.Limits.CPU != 0 {
 			v.Resources.Limits.CPU = max(v.Resources.Requests.CPU, v.Resources.Limits.CPU)
 		}
 		if v.Resources.Limits.Memory != 0 {
 			v.Resources.Limits.Memory = max(v.Resources.Requests.Memory, v.Resources.Limits.Memory)
+		}
+		if v.Resources.Limits.EphemeralStorage != 0 {
+			v.Resources.Limits.EphemeralStorage = max(v.Resources.Requests.EphemeralStorage,
+				v.Resources.Limits.EphemeralStorage)
 		}
 	}
 

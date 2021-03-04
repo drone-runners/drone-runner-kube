@@ -157,18 +157,18 @@ func isRestrictedVolume(path string) bool {
 	case path == "/":
 	case path == "/var":
 	case path == "/etc":
-	case strings.HasPrefix(path, "/var/run"):
-	case strings.HasPrefix(path, "/proc"):
-	case strings.HasPrefix(path, "/mount"):
-	case strings.HasPrefix(path, "/bin"):
-	case strings.HasPrefix(path, "/usr/local/bin"):
-	case strings.HasPrefix(path, "/usr/local/sbin"):
-	case strings.HasPrefix(path, "/usr/bin"):
-	case strings.HasPrefix(path, "/mnt"):
-	case strings.HasPrefix(path, "/media"):
-	case strings.HasPrefix(path, "/sys"):
-	case strings.HasPrefix(path, "/dev"):
-	case strings.HasPrefix(path, "/etc/docker"):
+	case strings.HasPrefix(path, "/var/run") || strings.HasSuffix(path, "/var/run") || strings.Contains(path, "/var/run/"):
+	case strings.HasPrefix(path, "/proc") || strings.HasSuffix(path, "/proc") || strings.Contains(path, "/proc/"):
+	case strings.HasPrefix(path, "/mount") || strings.HasSuffix(path, "/mount") || strings.Contains(path, "/mount/"):
+	case strings.HasPrefix(path, "/bin") || strings.HasSuffix(path, "/bin") || strings.Contains(path, "/bin/"):
+	case strings.HasPrefix(path, "/usr/local/bin") || strings.HasSuffix(path, "/usr/local/bin") || strings.Contains(path, "/usr/local/bin/"):
+	case strings.HasPrefix(path, "/usr/local/sbin") || strings.HasSuffix(path, "/usr/local/sbin") || strings.Contains(path, "/usr/local/sbin/"):
+	case strings.HasPrefix(path, "/usr/bin") || strings.HasSuffix(path, "/usr/bin") || strings.Contains(path, "/usr/bin/"):
+	case strings.HasPrefix(path, "/mnt") || strings.HasSuffix(path, "/mnt") || strings.Contains(path, "/mnt/"):
+	case strings.HasPrefix(path, "/media") || strings.HasSuffix(path, "/media") || strings.Contains(path, "/media/"):
+	case strings.HasPrefix(path, "/sys") || strings.HasSuffix(path, "/sys") || strings.Contains(path, "/sys/"):
+	case strings.HasPrefix(path, "/dev") || strings.HasSuffix(path, "/dev") || strings.Contains(path, "/dev/"):
+	case strings.HasPrefix(path, "/etc/docker") || strings.HasSuffix(path, "/etc/docker") || strings.Contains(path, "/etc/docker/"):
 	default:
 		return false
 	}

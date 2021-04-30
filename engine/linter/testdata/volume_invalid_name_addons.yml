@@ -1,18 +1,21 @@
 ---
 kind: pipeline
 type: kubernetes
-name: default
+name: linux
 
 steps:
-- name: build
-  image: golang
-  commands:
-  - go build
-
 - name: test
   image: golang
   commands:
   - go build
   - go test
-  depends_on:
-  - foo
+
+services:
+- name: database
+  image: redis
+  ports:
+  - 6379
+
+volumes:
+- name: _addons
+  temp: {}

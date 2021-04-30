@@ -18,6 +18,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone/envsubst"
 	"github.com/drone/runner-go/environ"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/drone/runner-go/registry"
@@ -29,19 +30,22 @@ import (
 type compileCommand struct {
 	*internal.Flags
 
-	Source        *os.File
-	Privileged    []string
-	Volumes       map[string]string
-	Environ       map[string]string
-	Labels        map[string]string
-	Secrets       map[string]string
-	Clone         bool
-	Spec          bool
-	Config        string
-	LimitCPU      int64
-	LimitMemory   int64
-	RequestCPU    int64
-	RequestMemory int64
+	Source           *os.File
+	Privileged       []string
+	Volumes          map[string]string
+	Environ          map[string]string
+	Labels           map[string]string
+	Secrets          map[string]string
+	Clone            bool
+	Spec             bool
+	Config           string
+	LimitCPU         int64
+	LimitMemory      int64
+	RequestCPU       int64
+	RequestMemory    int64
+	MinRequestCPU    int64
+	MinRequestMemory int64
+	Tmate            compiler.Tmate
 }
 
 func (c *compileCommand) run(*kingpin.ParseContext) error {
@@ -101,7 +105,7 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 
 	// compile the pipeline to an intermediate representation.
 	comp := &compiler.Compiler{
-		Environ:    c.Environ,
+		Environ:    provider.Static(c.Environ),
 		Labels:     c.Labels,
 		Privileged: append(c.Privileged, compiler.Privileged...),
 		Volumes:    c.Volumes,
@@ -112,11 +116,16 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 				CPU:    c.LimitCPU,
 				Memory: c.LimitMemory,
 			},
-			Requests: compiler.ResourceObject{
-				CPU:    c.RequestCPU,
-				Memory: c.RequestMemory,
+			MinRequests: compiler.ResourceObject{
+				CPU:    c.MinRequestCPU,
+				Memory: c.MinRequestMemory,
 			},
 		},
+		StageRequests: compiler.ResourceObject{
+			CPU:    c.RequestCPU,
+			Memory: c.RequestMemory,
+		},
+		Tmate: c.Tmate,
 	}
 
 	args := runtime.CompilerArgs{
@@ -185,11 +194,36 @@ func registerCompile(app *kingpin.Application) {
 	cmd.Flag("limit-memory", "limit container memory").
 		Int64Var(&c.LimitMemory)
 
-	cmd.Flag("request-cpu", "request container cpu").
+	cmd.Flag("request-cpu", "stage request cpu").
 		Int64Var(&c.RequestCPU)
 
-	cmd.Flag("request-memory", "request container memory").
+	cmd.Flag("request-memory", "stage request memory").
 		Int64Var(&c.RequestMemory)
+
+	cmd.Flag("min-request-cpu", "minimum container request cpu").
+		Int64Var(&c.MinRequestCPU)
+
+	cmd.Flag("min-request-memory", "minimum container request memory").
+		Int64Var(&c.MinRequestMemory)
+
+	cmd.Flag("tmate-image", "tmate docker image").
+		Default("drone/drone-runner-docker:latest").
+		StringVar(&c.Tmate.Image)
+
+	cmd.Flag("tmate-enabled", "tmate enabled").
+		BoolVar(&c.Tmate.Enabled)
+
+	cmd.Flag("tmate-server-host", "tmate server host").
+		StringVar(&c.Tmate.Server)
+
+	cmd.Flag("tmate-server-port", "tmate server port").
+		StringVar(&c.Tmate.Port)
+
+	cmd.Flag("tmate-server-rsa-fingerprint", "tmate server rsa fingerprint").
+		StringVar(&c.Tmate.RSA)
+
+	cmd.Flag("tmate-server-ed25519-fingerprint", "tmate server rsa fingerprint").
+		StringVar(&c.Tmate.ED25519)
 
 		// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

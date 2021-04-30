@@ -17,6 +17,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone/drone-go/drone"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/drone/runner-go/registry"
@@ -103,6 +104,7 @@ func TestCompile_Secrets(t *testing.T) {
 	manifest, _ := manifest.ParseFile("testdata/secret.yml")
 
 	compiler := &Compiler{
+		Environ:  provider.Static(nil),
 		Registry: registry.Static(nil),
 		Secret: secret.StaticVars(map[string]string{
 			"token":       "3DA541559918A808C2402BBA5012F6C60B27661C",
@@ -192,6 +194,7 @@ func testCompile(t *testing.T, source, golden string) *engine.Spec {
 	}
 
 	compiler := &Compiler{
+		Environ:  provider.Static(nil),
 		Registry: registry.Static(nil),
 		Secret: secret.StaticVars(map[string]string{
 			"token":       "3DA541559918A808C2402BBA5012F6C60B27661C",

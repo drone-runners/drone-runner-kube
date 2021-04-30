@@ -12,11 +12,13 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 
 	"github.com/drone-runners/drone-runner-kube/engine"
+	"github.com/drone-runners/drone-runner-kube/engine/policy"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 
 	"github.com/drone/runner-go/clone"
 	"github.com/drone/runner-go/environ"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/labels"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline/runtime"
@@ -47,8 +49,8 @@ var Privileged = []string{
 type (
 	// Resources describes the compute resource requirements.
 	Resources struct {
-		Limits   ResourceObject
-		Requests ResourceObject
+		Limits      ResourceObject
+		MinRequests ResourceObject
 	}
 
 	// ResourceObject describes compute resource requirements.
@@ -57,13 +59,22 @@ type (
 		Memory int64
 	}
 
+	// Tmate defines tmate settings.
+	Tmate struct {
+		Image   string
+		Enabled bool
+		Server  string
+		Port    string
+		RSA     string
+		ED25519 string
+	}
+
 	// Compiler compiles the Yaml configuration file to an
 	// intermediate representation optimized for simple execution.
 	Compiler struct {
-
 		// Environ provides a set of environment variables that
 		// should be added to each pipeline step by default.
-		Environ map[string]string
+		Environ provider.Provider
 
 		// Labels provides a set of labels that should be added
 		// to each container by default.
@@ -93,6 +104,13 @@ type (
 		// default to all pipeline containers if none exist.
 		Resources Resources
 
+		// Stage resource requests that are applied by default to all pipeline
+		StageRequests ResourceObject
+
+		// Tmate provides global configration options for tmate
+		// live debugging.
+		Tmate Tmate
+
 		// Cloner provides an option to override the default clone
 		// image used to clone the repository when the pipeline
 		// initializes.
@@ -113,6 +131,10 @@ type (
 
 		// NodeSelector provides the default kubernetes node selector.
 		NodeSelector map[string]string
+
+		// Policy provides a set of policies used to set defaults
+		// based on matching logic.
+		Policies []*policy.Policy
 	}
 )
 
@@ -124,6 +146,12 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// create the workspace paths
 	workspace := createWorkspace(pipeline)
+
+	// reset the workspace path if attempting to mount
+	// volumes that are internal use only.
+	if isRestrictedVolume(workspace) {
+		workspace = "/drone/src"
+	}
 
 	// create labels
 	podLabels := labels.Combine(
@@ -250,9 +278,15 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		})
 	}
 
+	// list the global environment variables
+	globals, _ := c.Environ.List(ctx, &provider.Request{
+		Build: args.Build,
+		Repo:  args.Repo,
+	})
+
 	// create the default environment variables.
 	envs := environ.Combine(
-		c.Environ,
+		provider.ToMap(globals),
 		args.Build.Params,
 		pipeline.Environment,
 		environ.Proxy(),
@@ -292,6 +326,14 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			args.Netrc.Login,
 			args.Netrc.Password,
 		)
+	}
+
+	// create tmate variables
+	if c.Tmate.Server != "" {
+		envs["DRONE_TMATE_HOST"] = c.Tmate.Server
+		envs["DRONE_TMATE_PORT"] = c.Tmate.Port
+		envs["DRONE_TMATE_FINGERPRINT_RSA"] = c.Tmate.RSA
+		envs["DRONE_TMATE_FINGERPRINT_ED25519"] = c.Tmate.ED25519
 	}
 
 	// set platform if needed
@@ -364,6 +406,10 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		if len(validation.IsDNS1123Subdomain(src.Name)) == 0 {
 			hostnames = append(hostnames, src.Name)
 		}
+
+		if c.isPrivileged(src) {
+			dst.Privileged = true
+		}
 	}
 
 	if len(hostnames) > 0 {
@@ -403,6 +449,35 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 	}
 
+	// create internal steps if build running in debug mode
+	if c.Tmate.Enabled && args.Build.Debug && pipeline.Platform.OS != "windows" {
+		// first we need to add an internal setup step to the pipeline
+		// to copy over the tmate binary. Internal steps are not visible
+		// to the end user.
+		spec.Internal = append(spec.Internal, &engine.Step{
+			ID:         random(),
+			Pull:       engine.PullIfNotExists,
+			Image:      image.Expand(c.Tmate.Image),
+			Entrypoint: []string{"/bin/drone-runner-docker"},
+			Command:    []string{"copy"},
+		})
+
+		// next we create a temporary volume to share the tmate binary
+		// with the pipeline containers.
+		for _, step := range append(spec.Steps, spec.Internal...) {
+			step.Volumes = append(step.Volumes, &engine.VolumeMount{
+				Name: "_addons",
+				Path: "/usr/drone/bin",
+			})
+		}
+		spec.Volumes = append(spec.Volumes, &engine.Volume{
+			EmptyDir: &engine.VolumeEmptyDir{
+				ID:   random(),
+				Name: "_addons",
+			},
+		})
+	}
+
 	if isGraph(spec) == false {
 		configureSerial(spec)
 	} else if pipeline.Clone.Disable == false {
@@ -411,7 +486,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		removeCloneDeps(spec)
 	}
 
-	for _, step := range spec.Steps {
+	for _, step := range append(spec.Steps, spec.Internal...) {
 		for _, s := range step.Secrets {
 			// if the secret was already fetched and stored in the
 			// secret map it can be skipped.
@@ -516,18 +591,50 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// apply default resources limits
 	for _, v := range spec.Steps {
-		if v.Resources.Requests.CPU == 0 {
-			v.Resources.Requests.CPU = c.Resources.Requests.CPU
-		}
-		if v.Resources.Requests.Memory == 0 {
-			v.Resources.Requests.Memory = c.Resources.Requests.Memory
-		}
 		if v.Resources.Limits.CPU == 0 {
 			v.Resources.Limits.CPU = c.Resources.Limits.CPU
 		}
 		if v.Resources.Limits.Memory == 0 {
 			v.Resources.Limits.Memory = c.Resources.Limits.Memory
 		}
+	}
+
+	numSteps := int64(len(spec.Steps))
+	lowerRequestVal := c.Resources.MinRequests
+	upperRequestVal := getStepUpperRequestVal(pipeline.Resources, c.StageRequests)
+
+	// Transform step resources to match the stage level requests.
+	//
+	// First step container is assigned cpu & memory request equal to stage level resource
+	// requests. If default minimum request value is provided for steps, then those are
+	// deducted from stage level requests so that pod uses provided stage level requests.
+	//
+	// Rest of containers are assigned memory & cpu requests equal to 0. If default minimun
+	// request values are provided via environment variables, then those are used instead.
+	for i, v := range spec.Steps {
+		if i == 0 {
+			cpu := max(upperRequestVal.CPU-(numSteps-1)*lowerRequestVal.CPU,
+				lowerRequestVal.CPU)
+			mem := max(upperRequestVal.Memory-(numSteps-1)*lowerRequestVal.Memory,
+				lowerRequestVal.Memory)
+
+			v.Resources.Requests.CPU = cpu
+			v.Resources.Requests.Memory = mem
+		} else {
+			v.Resources.Requests.CPU = lowerRequestVal.CPU
+			v.Resources.Requests.Memory = lowerRequestVal.Memory
+		}
+		if v.Resources.Limits.CPU != 0 {
+			v.Resources.Limits.CPU = max(v.Resources.Requests.CPU, v.Resources.Limits.CPU)
+		}
+		if v.Resources.Limits.Memory != 0 {
+			v.Resources.Limits.Memory = max(v.Resources.Requests.Memory, v.Resources.Limits.Memory)
+		}
+	}
+
+	// apply default policy
+	if m := policy.Match(match, c.Policies); m != nil {
+		m.Apply(spec)
 	}
 
 	return spec
@@ -545,6 +652,21 @@ func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	}
 	if len(step.Entrypoint) > 0 {
 		return false
+	}
+	if len(step.Volumes) > 0 {
+		return false
+	}
+	// privileged-by-default mode is disabled if the
+	// pipeline step attempts to alter
+	if isRestrictedVariable(step.Environment) {
+		return false
+	}
+	// privileged-by-default mode is disabled if the
+	// pipeline step mounts a restricted volume.
+	for _, mount := range step.Volumes {
+		if isRestrictedVolume(mount.MountPath) {
+			return false
+		}
 	}
 	// if the container image matches any image
 	// in the whitelist, return true.

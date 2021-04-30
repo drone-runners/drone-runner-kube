@@ -15,6 +15,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/internal/match"
 
 	"github.com/drone/runner-go/client"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/handler/router"
 	"github.com/drone/runner-go/logger"
 	loghistory "github.com/drone/runner-go/logger/history"
@@ -79,10 +80,26 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	engine, err := engine.NewInCluster()
-	if err != nil {
-		logrus.WithError(err).
-			Fatalln("cannot load the kubernetes engine")
+	var kube *engine.Kubernetes
+	if path := config.Runner.Config; path != "" {
+		// if the configuration path is specified, we create
+		// the kubernetes client from the configuration file.
+		// This is used primarily for local out-of-cluster
+		// testing.
+		kube, err = engine.NewFromConfig(path)
+		if err != nil {
+			logrus.WithError(err).
+				Fatalln("cannot load the kubernetes engine from config")
+		}
+	} else {
+		// else, if no configuration is specified, we create
+		// the kubernetes client using the in-cluster
+		// configuration file.
+		kube, err = engine.NewInCluster()
+		if err != nil {
+			logrus.WithError(err).
+				Fatalln("cannot load the in-cluster kubernetes engine")
+		}
 	}
 
 	remote := remote.New(cli)
@@ -93,6 +110,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 	runner := &runtime.Runner{
 		Client:   cli,
 		Machine:  config.Runner.Name,
+		Environ:  config.Runner.Environ,
 		Reporter: tracer,
 		Lookup:   resource.Lookup,
 		Lint:     linter.New(config.Namespace.Rules).Lint,
@@ -104,7 +122,6 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Compiler: &compiler.Compiler{
 			Cloner:         config.Images.Clone,
 			Placeholder:    config.Images.Placeholder,
-			Environ:        config.Runner.Environ,
 			Volumes:        config.Runner.Volumes,
 			Namespace:      config.Namespace.Default,
 			Labels:         config.Labels.Default,
@@ -112,6 +129,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			ServiceAccount: config.ServiceAccount.Default,
 			NodeSelector:   config.NodeSelector.Default,
 			Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
+			Policies:       config.Policy.Parsed,
 			Registry: registry.Combine(
 				registry.File(
 					config.Docker.Config,
@@ -132,21 +150,41 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 					config.Secret.SkipVerify,
 				),
 			),
+			Environ: provider.Combine(
+				provider.Static(config.Runner.Environ),
+				provider.External(
+					config.Environ.Endpoint,
+					config.Environ.Token,
+					config.Environ.SkipVerify,
+				),
+			),
 			Resources: compiler.Resources{
 				Limits: compiler.ResourceObject{
 					CPU:    config.Resources.LimitCPU,
 					Memory: int64(config.Resources.LimitMemory),
 				},
-				Requests: compiler.ResourceObject{
-					CPU:    config.Resources.RequestCPU,
-					Memory: int64(config.Resources.RequestMemory),
+				MinRequests: compiler.ResourceObject{
+					CPU:    config.Resources.MinRequestCPU,
+					Memory: int64(config.Resources.MinRequestMemory),
 				},
+			},
+			StageRequests: compiler.ResourceObject{
+				CPU:    config.Resources.RequestCPU,
+				Memory: int64(config.Resources.RequestMemory),
+			},
+			Tmate: compiler.Tmate{
+				Image:   config.Tmate.Image,
+				Enabled: config.Tmate.Enabled,
+				Server:  config.Tmate.Server,
+				Port:    config.Tmate.Port,
+				RSA:     config.Tmate.RSA,
+				ED25519: config.Tmate.ED25519,
 			},
 		},
 		Exec: runtime.NewExecer(
 			tracer,
 			remote,
-			engine,
+			kube,
 			config.Runner.Procs,
 		).Exec,
 	}

@@ -45,6 +45,12 @@ func TestLint(t *testing.T) {
 			invalid: true,
 			message: "linter: invalid volume name: _workspace",
 		},
+		{
+			path:    "testdata/volume_invalid_name_addons.yml",
+			trusted: false,
+			invalid: true,
+			message: "linter: invalid volume name: _addons",
+		},
 		// user should not be able to mount host path
 		// volumes unless the repository is trusted.
 		{
@@ -182,6 +188,22 @@ func TestLint(t *testing.T) {
 		// 	invalid: true,
 		// 	message: "linter: invalid or missing name",
 		// },
+
+		{
+			path:    "testdata/missing_dep.yml",
+			invalid: true,
+			message: "linter: unknown step dependency detected: test references foo",
+		},
+		{
+			path:    "testdata/invalid_stage_limit_cpu.yml",
+			invalid: true,
+			message: "linter: cpu limit cannot be applied at stage level",
+		},
+		{
+			path:    "testdata/invalid_stage_limit_memory.yml",
+			invalid: true,
+			message: "linter: memory limit cannot be applied at stage level",
+		},
 	}
 	for _, test := range tests {
 		name := path.Base(test.path)

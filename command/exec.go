@@ -18,10 +18,12 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
+	"github.com/drone-runners/drone-runner-kube/engine/policy"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone/drone-go/drone"
 	"github.com/drone/envsubst"
 	"github.com/drone/runner-go/environ"
+	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/logger"
 	"github.com/drone/runner-go/manifest"
 	"github.com/drone/runner-go/pipeline"
@@ -49,6 +51,8 @@ type execCommand struct {
 	Secrets    map[string]string
 	Namespace  string
 	Config     string
+	Policy     string
+	Tmate      compiler.Tmate
 	Clone      bool
 	Pretty     bool
 	Procs      int64
@@ -78,6 +82,15 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		environ.Link(c.Repo, c.Build, c.System),
 		c.Build.Params,
 	)
+
+	// parse the policy file
+	var policies []*policy.Policy
+	if c.Policy != "" {
+		policies, err = policy.ParseFile(c.Policy)
+		if err != nil {
+			return err
+		}
+	}
 
 	// string substitution function ensures that string
 	// replacement variables are escaped and quoted if they
@@ -120,13 +133,15 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 
 	// compile the pipeline to an intermediate representation.
 	comp := &compiler.Compiler{
-		Environ:    c.Environ,
+		Environ:    provider.Static(c.Environ),
 		Labels:     c.Labels,
+		Tmate:      c.Tmate,
 		Privileged: append(c.Privileged, compiler.Privileged...),
 		Volumes:    c.Volumes,
 		Secret:     secret.StaticVars(c.Secrets),
 		Registry:   registry.Combine(),
 		Namespace:  c.Namespace,
+		Policies:   policies,
 	}
 
 	args := runtime.CompilerArgs{
@@ -297,6 +312,9 @@ func registerExec(app *kingpin.Application) {
 	cmd.Flag("kubeconfig", "path to the kubernetes config file").
 		StringVar(&c.Config)
 
+	cmd.Flag("policy", "path to the pipeline policy file").
+		StringVar(&c.Policy)
+
 	cmd.Flag("namespace", "default kubernetes namespace").
 		Default("default").
 		StringVar(&c.Namespace)
@@ -318,6 +336,25 @@ func registerExec(app *kingpin.Application) {
 				),
 			),
 		).BoolVar(&c.Pretty)
+
+	cmd.Flag("tmate-image", "tmate docker image").
+		Default("drone/drone-runner-docker:latest").
+		StringVar(&c.Tmate.Image)
+
+	cmd.Flag("tmate-enabled", "tmate enabled").
+		BoolVar(&c.Tmate.Enabled)
+
+	cmd.Flag("tmate-server-host", "tmate server host").
+		StringVar(&c.Tmate.Server)
+
+	cmd.Flag("tmate-server-port", "tmate server port").
+		StringVar(&c.Tmate.Port)
+
+	cmd.Flag("tmate-server-rsa-fingerprint", "tmate server rsa fingerprint").
+		StringVar(&c.Tmate.RSA)
+
+	cmd.Flag("tmate-server-ed25519-fingerprint", "tmate server rsa fingerprint").
+		StringVar(&c.Tmate.ED25519)
 
 	// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

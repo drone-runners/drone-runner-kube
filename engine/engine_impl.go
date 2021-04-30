@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
-	"github.com/drone/runner-go/livelog"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/hashicorp/go-multierror"
 	v1 "k8s.io/api/core/v1"
@@ -97,7 +96,7 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
 	spec := specv.(*Spec)
 
 	if spec.Namespace != "" {
-		_, err := k.client.CoreV1().Namespaces().Create(toNamespace(spec.Namespace))
+		_, err := k.client.CoreV1().Namespaces().Create(toNamespace(spec.Namespace, spec.PodSpec.Labels))
 		if err != nil {
 			return err
 		}
@@ -125,6 +124,12 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
 
 // Destroy the pipeline environment.
 func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
+	// HACK: this timeout delays deleting the Pod to ensure
+	// there is enough time to stream the logs.
+	select {
+	case <-time.After(time.Second * 5):
+	}
+
 	spec := specv.(*Spec)
 	var result error
 
@@ -162,6 +167,9 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 
 	err := k.start(spec, step)
 	if err != nil {
+		// if ctx.Err() != nil {
+		// 	return nil, ctx.Err()
+		// }
 		return nil, err
 	}
 
@@ -171,6 +179,24 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	}
 
 	err = k.tail(ctx, spec, step, output)
+	// this feature flag retries fetching the logs if it fails on
+	// the first attempt. This is meant to help triage the following
+	// issue:
+	//
+	//    https://discourse.drone.io/t/kubernetes-runner-intermittently-fails-steps/7372
+	//
+	// BEGIN: FEATURE FLAG
+	if err != nil {
+		if os.Getenv("DRONE_FEATURE_FLAG_RETRY_LOGS") == "true" {
+			<-time.After(time.Second * 5)
+			err = k.tail(ctx, spec, step, output)
+		}
+		if err != nil {
+			<-time.After(time.Second * 5)
+			err = k.tail(ctx, spec, step, output)
+		}
+	}
+	// END: FEATURE FAG
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +246,7 @@ func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) e
 				if cs.Name != step.ID {
 					continue
 				}
-				if (!image.Match(cs.Image, step.Placeholder) && cs.State.Running != nil) || (cs.State.Terminated != nil) {
+				if !image.Match(cs.Image, step.Placeholder) && (cs.State.Running != nil || cs.State.Terminated != nil) {
 					return true, nil
 				}
 			}
@@ -245,7 +271,7 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 				if cs.Name != step.ID {
 					continue
 				}
-				if cs.State.Terminated != nil {
+				if !image.Match(cs.Image, step.Placeholder) && cs.State.Terminated != nil {
 					state.ExitCode = int(cs.State.Terminated.ExitCode)
 					return true, nil
 				}
@@ -279,7 +305,7 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 	}
 	defer readCloser.Close()
 
-	return livelog.Copy(output, readCloser)
+	return cancellableCopy(ctx, output, readCloser)
 }
 
 func (k *Kubernetes) start(spec *Spec, step *Step) error {

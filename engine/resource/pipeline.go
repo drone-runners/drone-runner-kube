@@ -36,6 +36,7 @@ type Pipeline struct {
 	Platform    manifest.Platform    `json:"platform,omitempty"`
 	Trigger     manifest.Conditions  `json:"conditions,omitempty"`
 
+	Resources   Resources         `json:"resources,omitempty"`
 	Environment map[string]string `json:"environment,omitempty"`
 	Services    []*Step           `json:"services,omitempty"`
 	Steps       []*Step           `json:"steps,omitempty"`
@@ -90,7 +91,7 @@ func (p *Pipeline) GetStep(name string) *Step {
 }
 
 type (
-	// Metadata defines Kubernetes pod meteadata
+	// Metadata defines Kubernetes pod metadata
 	Metadata struct {
 		Namespace   string            `json:"namespace,omitempty"`
 		Annotations map[string]string `json:"annotations,omitempty"`
@@ -153,6 +154,7 @@ type (
 	VolumeMount struct {
 		Name      string `json:"name,omitempty"`
 		MountPath string `json:"path,omitempty" yaml:"path"`
+		SubPath   string `json:"sub_path,omitempty" yaml:"sub_path"`
 	}
 
 	// VolumeEmptyDir mounts a temporary directory from the

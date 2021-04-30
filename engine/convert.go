@@ -25,6 +25,7 @@ func toPod(spec *Spec) *v1.Pod {
 			RestartPolicy:      v1.RestartPolicyNever,
 			Volumes:            toVolumes(spec),
 			Containers:         toContainers(spec),
+			InitContainers:     toInitContainers(spec),
 			NodeName:           spec.PodSpec.NodeName,
 			NodeSelector:       spec.PodSpec.NodeSelector,
 			Tolerations:        toTolerations(spec),
@@ -160,25 +161,35 @@ func toVolumes(spec *Spec) []v1.Volume {
 
 func toContainers(spec *Spec) []v1.Container {
 	var containers []v1.Container
-
 	for _, s := range spec.Steps {
-		container := v1.Container{
-			Name:            s.ID,
-			Image:           s.Placeholder,
-			Command:         s.Entrypoint,
-			Args:            s.Command,
-			ImagePullPolicy: toPullPolicy(s.Pull),
-			WorkingDir:      s.WorkingDir,
-			Resources:       toResources(s.Resources),
-			SecurityContext: toSecurityContext(s),
-			VolumeMounts:    toVolumeMounts(spec, s),
-			Env:             toEnv(spec, s),
-		}
-
-		containers = append(containers, container)
+		containers = append(containers, toContainer(s, spec))
 	}
-
 	return containers
+}
+
+func toInitContainers(spec *Spec) []v1.Container {
+	var containers []v1.Container
+	for _, s := range spec.Internal {
+		c := toContainer(s, spec)
+		c.Image = s.Image
+		containers = append(containers, c)
+	}
+	return containers
+}
+
+func toContainer(s *Step, spec *Spec) v1.Container {
+	return v1.Container{
+		Name:            s.ID,
+		Image:           s.Placeholder,
+		Command:         s.Entrypoint,
+		Args:            s.Command,
+		ImagePullPolicy: toPullPolicy(s.Pull),
+		WorkingDir:      s.WorkingDir,
+		Resources:       toResources(s.Resources),
+		SecurityContext: toSecurityContext(s),
+		VolumeMounts:    toVolumeMounts(spec, s),
+		Env:             toEnv(spec, s),
+	}
 }
 
 func toEnv(spec *Spec, step *Step) []v1.EnvVar {
@@ -277,6 +288,7 @@ func toVolumeMounts(spec *Spec, step *Step) []v1.VolumeMount {
 		volumeMounts = append(volumeMounts, v1.VolumeMount{
 			Name:      id,
 			MountPath: v.Path,
+			SubPath:   v.SubPath,
 			ReadOnly:  v.ReadOnly,
 		})
 	}
@@ -313,10 +325,11 @@ func toResources(src Resources) v1.ResourceRequirements {
 
 // helper function returns a kubernetes namespace
 // for the given specification.
-func toNamespace(name string) *v1.Namespace {
+func toNamespace(name string, labels map[string]string) *v1.Namespace {
 	return &v1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:   name,
+			Labels: labels,
 		},
 	}
 }

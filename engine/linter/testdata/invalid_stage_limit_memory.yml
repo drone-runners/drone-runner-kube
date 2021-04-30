@@ -2,17 +2,16 @@
 kind: pipeline
 type: kubernetes
 name: default
+resources:
+  requests:
+    cpu: 100
+    memory: 100Mi
+  limits:
+    memory: 100Mi
 
 steps:
 - name: build
   image: golang
   commands:
   - go build
-
-- name: test
-  image: golang
-  commands:
-  - go build
   - go test
-  depends_on:
-  - foo

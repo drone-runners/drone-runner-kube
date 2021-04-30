@@ -9,6 +9,8 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/drone-runners/drone-runner-kube/engine/policy"
+
 	"github.com/buildkite/yaml"
 	"github.com/docker/go-units"
 	"github.com/joho/godotenv"
@@ -54,6 +56,7 @@ type Config struct {
 		Labels     map[string]string `envconfig:"DRONE_RUNNER_LABELS"`
 		Volumes    map[string]string `envconfig:"DRONE_RUNNER_VOLUMES"`
 		Privileged []string          `envconfig:"DRONE_RUNNER_PRIVILEGED_IMAGES"`
+		Config     string            `envconfig:"DRONE_KUBERNETES_CONFIG"`
 	}
 
 	Limit struct {
@@ -65,8 +68,18 @@ type Config struct {
 	Resources struct {
 		LimitCPU      int64     `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
 		LimitMemory   BytesSize `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
-		RequestCPU    int64     `envconfig:"DRONE_RESOURCE_REQUEST_CPU"`
-		RequestMemory BytesSize `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY"`
+		RequestCPU    int64     `envconfig:"DRONE_RESOURCE_REQUEST_CPU" default:"100"`
+		RequestMemory BytesSize `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY" default:"104857600"` // default 100MB
+		// Defaults for min memory & cpu requests are set to ensure that default limitrange values are not used.
+		// Default for MinRequestMemory is set to 4MB. Anything below 4MB fails with
+		// "Error: Error response from daemon: Minimum memory limit allowed is 4MB" on gke
+		MinRequestMemory BytesSize `envconfig:"DRONE_RESOURCE_MIN_REQUEST_MEMORY" default:"4194304"` // default 4MB
+		MinRequestCPU    int64     `envconfig:"DRONE_RESOURCE_MIN_REQUEST_CPU" default:"1"`
+	}
+
+	Policy struct {
+		Path   string           `envconfig:"DRONE_POLICY_FILE"`
+		Parsed []*policy.Policy `envconfig:"-"`
 	}
 
 	Secret struct {
@@ -79,6 +92,12 @@ type Config struct {
 		Endpoint   string `envconfig:"DRONE_REGISTRY_PLUGIN_ENDPOINT"`
 		Token      string `envconfig:"DRONE_REGISTRY_PLUGIN_TOKEN"`
 		SkipVerify bool   `envconfig:"DRONE_REGISTRY_PLUGIN_SKIP_VERIFY"`
+	}
+
+	Environ struct {
+		Endpoint   string `envconfig:"DRONE_ENV_PLUGIN_ENDPOINT"`
+		Token      string `envconfig:"DRONE_ENV_PLUGIN_TOKEN"`
+		SkipVerify bool   `envconfig:"DRONE_ENV_PLUGIN_SKIP_VERIFY"`
 	}
 
 	Docker struct {
@@ -111,6 +130,15 @@ type Config struct {
 		RulesMap  map[string]string   `envconfig:"DRONE_NAMESPACE_RULES"`
 		RulesFile string              `envconfig:"DRONE_NAMESPACE_RULES_FILE"`
 		Default   string              `envconfig:"DRONE_NAMESPACE_DEFAULT" default:"default"`
+	}
+
+	Tmate struct {
+		Enabled bool   `envconfig:"DRONE_TMATE_ENABLED" default:"true"`
+		Image   string `envconfig:"DRONE_TMATE_IMAGE"   default:"drone/drone-runner-docker:1"`
+		Server  string `envconfig:"DRONE_TMATE_HOST"`
+		Port    string `envconfig:"DRONE_TMATE_PORT"`
+		RSA     string `envconfig:"DRONE_TMATE_FINGERPRINT_RSA"`
+		ED25519 string `envconfig:"DRONE_TMATE_FINGERPRINT_ED25519"`
 	}
 }
 
@@ -180,6 +208,14 @@ func fromEnviron() (Config, error) {
 		}
 		for k, v := range envs {
 			config.Runner.Environ[k] = v
+		}
+	}
+
+	// parse the policy file if defined
+	if file := config.Policy.Path; file != "" {
+		config.Policy.Parsed, err = policy.ParseFile(file)
+		if err != nil {
+			return config, err
 		}
 	}
 

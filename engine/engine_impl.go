@@ -15,6 +15,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/hashicorp/go-multierror"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	k8sruntime "k8s.io/apimachinery/pkg/runtime"
@@ -178,7 +179,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return nil, err
 	}
 
-	err = k.tail(ctx, spec, step, output)
+	consumed, err := k.tail(ctx, spec, step, output)
 	// this feature flag retries fetching the logs if it fails on
 	// the first attempt. This is meant to help triage the following
 	// issue:
@@ -202,6 +203,31 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	}
 
 	return k.waitForTerminated(ctx, spec, step)
+
+	hasLogs := (err == nil && consumed > 0)
+
+	for retries != 0 && hasLogs != true {
+		// It is impossible to differentiate whether or not a given container has no
+		// logs by design, or whether instead there is some race condition in which the
+		// response from Kubernetes is returning no logs incorrectly.
+		//
+		// Given this, no logs consumed is treated as a "probable error", and the retry invoked.
+		if err == nil && consumed > 0 {
+			hasLogs = true
+
+			// Skip this execution to exit from this loop entirely
+			continue
+		}
+
+	}
+	logrus.New().WithFields(logrus.Fields{
+		"consumed": consumed,
+		"error":    err,
+		"retries":  retries,
+	}).Infoln("Attempted to fetch logs but found issues: either an error is present or no logs were consumed.")
+
+	consumed, err = k.tail(ctx, spec, step, output)
+
 }
 
 func (k *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func(e watch.Event) (bool, error)) error {
@@ -286,7 +312,7 @@ func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *St
 	return state, nil
 }
 
-func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
+func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) (int, error) {
 	opts := &v1.PodLogOptions{
 		Follow:    true,
 		Container: step.ID,
@@ -318,7 +344,7 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 		defer spec.podUpdateMutex.Unlock()
 		pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Get(spec.PodSpec.Name, metav1.GetOptions{})
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		for i, container := range pod.Spec.Containers {

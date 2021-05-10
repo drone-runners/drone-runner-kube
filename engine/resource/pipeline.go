@@ -47,6 +47,7 @@ type Pipeline struct {
 	NodeName           string            `json:"node_name,omitempty" yaml:"node_name"`
 	NodeSelector       map[string]string `json:"node_selector,omitempty"        yaml:"node_selector"`
 	ServiceAccountName string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
+	PriorityClassName  string            `json:"priority_class_name,omitempty" yaml:"priority_class_name"`
 	Tolerations        []Toleration      `json:"tolerations,omitempty"`
 	DnsConfig          DnsConfig         `json:"dns_config,omitempty" yaml:"dns_config"`
 }

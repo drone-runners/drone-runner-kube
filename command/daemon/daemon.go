@@ -127,6 +127,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 			Labels:         config.Labels.Default,
 			Annotations:    config.Annotations.Default,
 			ServiceAccount: config.ServiceAccount.Default,
+			PriorityClass: 	config.PriorityClass.Default,
 			NodeSelector:   config.NodeSelector.Default,
 			Privileged:     append(config.Runner.Privileged, compiler.Privileged...),
 			Policies:       config.Policy.Parsed,

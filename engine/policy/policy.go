@@ -19,6 +19,7 @@ type (
 		Resources      Resources
 		NodeSelector   map[string]string `yaml:"node_selector"`
 		ServiceAccount string            `yaml:"service_account"`
+		PriorityClass  string            `yaml:"priority_class"`
 		Tolerations    []Toleration
 	}
 
@@ -114,6 +115,11 @@ func (p *Policy) Apply(spec *engine.Spec) {
 	// apply the default service account.
 	if v := p.ServiceAccount; v != "" {
 		spec.PodSpec.ServiceAccountName = v
+	}
+
+	// apply the default priority class.
+	if v := p.PriorityClass; v != "" {
+		spec.PodSpec.PriorityClassName = v
 	}
 
 	// apply (and override) the default tolerations.

@@ -165,6 +165,7 @@ type (
 		NodeSelector       map[string]string `json:"node_selector,omitempty"`
 		Tolerations        []Toleration      `json:"tolerations,omitempty"`
 		ServiceAccountName string            `json:"service_account_name,omitempty"`
+		PriorityClassName  string            `json:"priority_class_name,omitempty"`
 		HostAliases        []HostAlias       `json:"host_aliases,omitempty"`
 		DnsConfig          DnsConfig         `json:"dns_config,omitempty"`
 	}

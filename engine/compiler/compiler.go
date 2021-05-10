@@ -129,6 +129,10 @@ type (
 		// when no Service Account is provided.
 		ServiceAccount string
 
+		// PriorityClass provides the default kubernetes Priority Class
+		// when no Priority Class is provided.
+		PriorityClass string
+
 		// NodeSelector provides the default kubernetes node selector.
 		NodeSelector map[string]string
 
@@ -213,6 +217,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			NodeName:           pipeline.NodeName,
 			NodeSelector:       pipeline.NodeSelector,
 			ServiceAccountName: pipeline.ServiceAccountName,
+			PriorityClassName:  pipeline.PriorityClassName,
 		},
 		Platform: engine.Platform{
 			OS:      pipeline.Platform.OS,
@@ -251,6 +256,10 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	// set default service account
 	if spec.PodSpec.ServiceAccountName == "" {
 		spec.PodSpec.ServiceAccountName = c.ServiceAccount
+	}
+	// set default priority class
+	if spec.PodSpec.PriorityClassName == "" {
+		spec.PodSpec.PriorityClassName = c.PriorityClass
 	}
 	// add dns_config
 	if len(pipeline.DnsConfig.Nameservers) > 0 {

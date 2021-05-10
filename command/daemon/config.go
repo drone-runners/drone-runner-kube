@@ -113,6 +113,10 @@ type Config struct {
 		Default string `envconfig:"DRONE_SERVICE_ACCOUNT_DEFAULT"`
 	}
 
+	PriorityClass struct {
+		Default string `envconfig:"DRONE_PRIORITY_CLASS_DEFAULT"`
+	}
+
 	NodeSelector struct {
 		Default map[string]string `envconfig:"DRONE_NODE_SELECTOR_DEFAULT"`
 	}

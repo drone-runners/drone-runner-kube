@@ -22,6 +22,7 @@ func toPod(spec *Spec) *v1.Pod {
 		},
 		Spec: v1.PodSpec{
 			ServiceAccountName: spec.PodSpec.ServiceAccountName,
+			PriorityClassName: 	spec.PodSpec.PriorityClassName,
 			RestartPolicy:      v1.RestartPolicyNever,
 			Volumes:            toVolumes(spec),
 			Containers:         toContainers(spec),

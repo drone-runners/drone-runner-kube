@@ -6,26 +6,22 @@ package engine
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
+	"github.com/drone-runners/drone-runner-kube/engine/podwatcher"
 	"github.com/drone/runner-go/pipeline/runtime"
 	"github.com/hashicorp/go-multierror"
+	"github.com/sirupsen/logrus"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sruntime "k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/clientcmd"
-	watchtools "k8s.io/client-go/tools/watch"
 	"k8s.io/client-go/util/retry"
 )
 
@@ -38,57 +34,71 @@ var backoff = wait.Backoff{
 
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
-	client *kubernetes.Clientset
+	client  *kubernetes.Clientset
+	watcher *podwatcher.PodWatcher
 }
 
-// New returns a new engine.
-func New() (*Kubernetes, error) {
-	engine, err := NewInCluster()
+// New returns a new engine. It tries first with in-cluster config, if it fails it will try with out-of-cluster config.
+func New() (engine runtime.Engine, err error) {
+	engine, err = NewInCluster()
 	if err == nil {
-		return engine, nil
+		return
 	}
-	dir, _ := os.UserHomeDir()
+
+	dir, err := os.UserHomeDir()
+	if err != nil {
+		return
+	}
 	dir = filepath.Join(dir, ".kube", "config")
-	engine, xerr := NewFromConfig(dir)
-	if xerr == nil {
-		return engine, nil
+
+	engine, err = NewFromConfig(dir)
+	if err != nil {
+		return
 	}
-	return nil, err
+
+	return
 }
 
 // NewFromConfig returns a new out-of-cluster engine.
-func NewFromConfig(path string) (*Kubernetes, error) {
+func NewFromConfig(path string) (engine runtime.Engine, err error) {
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", path)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	// create the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, err
+		return
 	}
-	return &Kubernetes{
+
+	engine = &Kubernetes{
 		client: clientset,
-	}, nil
+	}
+
+	return
 }
 
 // NewInCluster returns a new in-cluster engine.
-func NewInCluster() (*Kubernetes, error) {
+func NewInCluster() (engine runtime.Engine, err error) {
 	// creates the in-cluster config
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, err
+		return
 	}
+
 	// creates the clientset
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, err
+		return
 	}
-	return &Kubernetes{
+
+	engine = &Kubernetes{
 		client: clientset,
-	}, nil
+	}
+
+	return
 }
 
 // Setup the pipeline environment.
@@ -114,10 +124,24 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
 		return err
 	}
 
-	_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
+	pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
 	if err != nil {
 		return err
 	}
+
+	// Start a watcher that watches all k8s event related to the pod just created.
+	// The watcher will finish when the pod is deleted.
+	k.watcher = &podwatcher.PodWatcher{}
+	for idx, step := range spec.Steps {
+		// register all steps as containers inside the pod
+		k.watcher.AddContainer(idx, step.ID, step.Image, step.Placeholder)
+	}
+	k.watcher.Start(ctx, &podwatcher.KubernetesWatcher{
+		PodNamespace: pod.Namespace,
+		PodName:      pod.Name,
+		Clientset:    k.client,
+		Period:       time.Minute,
+	})
 
 	return nil
 }
@@ -126,9 +150,7 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
 func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 	// HACK: this timeout delays deleting the Pod to ensure
 	// there is enough time to stream the logs.
-	select {
-	case <-time.After(time.Second * 5):
-	}
+	time.Sleep(time.Second * 5)
 
 	spec := specv.(*Spec)
 	var result error
@@ -157,6 +179,11 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 		}
 	}
 
+	err = k.watcher.WaitPodDeleted()
+	if err != nil {
+		result = multierror.Append(result, err)
+	}
+
 	return result
 }
 
@@ -167,13 +194,12 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 
 	err := k.start(spec, step)
 	if err != nil {
-		// if ctx.Err() != nil {
-		// 	return nil, ctx.Err()
-		// }
 		return nil, err
 	}
 
-	err = k.waitForReady(ctx, spec, step)
+	logrus.Tracef("Step %q: %q (%s)\n", step.ID, step.Name, step.Image)
+
+	err = k.watcher.WaitContainerStart(step.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -201,86 +227,15 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return nil, err
 	}
 
-	return k.waitForTerminated(ctx, spec, step)
-}
-
-func (k *Kubernetes) waitFor(ctx context.Context, spec *Spec, conditionFunc func(e watch.Event) (bool, error)) error {
-	label := fmt.Sprintf("io.drone.name=%s", spec.PodSpec.Name)
-	lw := &cache.ListWatch{
-		ListFunc: func(options metav1.ListOptions) (k8sruntime.Object, error) {
-			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).List(metav1.ListOptions{
-				LabelSelector: label,
-			})
-		},
-		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return k.client.CoreV1().Pods(spec.PodSpec.Namespace).Watch(metav1.ListOptions{
-				LabelSelector: label,
-			})
-		},
-	}
-
-	preconditionFunc := func(store cache.Store) (bool, error) {
-		_, exists, err := store.Get(&metav1.ObjectMeta{Namespace: spec.PodSpec.Namespace, Name: spec.PodSpec.Name})
-		if err != nil {
-			return true, err
-		}
-		if !exists {
-			return true, err
-		}
-		return false, nil
-	}
-
-	_, err := watchtools.UntilWithSync(ctx, lw, &v1.Pod{}, preconditionFunc, conditionFunc)
-	return err
-}
-
-func (k *Kubernetes) waitForReady(ctx context.Context, spec *Spec, step *Step) error {
-	return k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
-		switch t := e.Type; t {
-		case watch.Added, watch.Modified:
-			pod, ok := e.Object.(*v1.Pod)
-			if !ok || pod.ObjectMeta.Name != spec.PodSpec.Name {
-				return false, nil
-			}
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name != step.ID {
-					continue
-				}
-				if !image.Match(cs.Image, step.Placeholder) && (cs.State.Running != nil || cs.State.Terminated != nil) {
-					return true, nil
-				}
-			}
-		}
-		return false, nil
-	})
-}
-
-func (k *Kubernetes) waitForTerminated(ctx context.Context, spec *Spec, step *Step) (*runtime.State, error) {
-	state := &runtime.State{
-		Exited:    true,
-		OOMKilled: false,
-	}
-	err := k.waitFor(ctx, spec, func(e watch.Event) (bool, error) {
-		switch t := e.Type; t {
-		case watch.Added, watch.Modified:
-			pod, ok := e.Object.(*v1.Pod)
-			if !ok || pod.ObjectMeta.Name != spec.PodSpec.Name {
-				return false, nil
-			}
-			for _, cs := range pod.Status.ContainerStatuses {
-				if cs.Name != step.ID {
-					continue
-				}
-				if !image.Match(cs.Image, step.Placeholder) && cs.State.Terminated != nil {
-					state.ExitCode = int(cs.State.Terminated.ExitCode)
-					return true, nil
-				}
-			}
-		}
-		return false, nil
-	})
+	code, err := k.watcher.WaitContainerTerminated(step.ID)
 	if err != nil {
 		return nil, err
+	}
+
+	state := &runtime.State{
+		ExitCode:  code,
+		Exited:    true,
+		OOMKilled: false,
 	}
 
 	return state, nil
@@ -316,20 +271,24 @@ func (k *Kubernetes) start(spec *Spec, step *Step) error {
 		// steps to Start at once.
 		spec.podUpdateMutex.Lock()
 		defer spec.podUpdateMutex.Unlock()
+
 		pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Get(spec.PodSpec.Name, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
 
 		for i, container := range pod.Spec.Containers {
-			if container.Name == step.ID {
-				pod.Spec.Containers[i].Image = step.Image
-				if pod.ObjectMeta.Annotations == nil {
-					pod.ObjectMeta.Annotations = map[string]string{}
-				}
-				for _, env := range statusesWhiteList {
-					pod.ObjectMeta.Annotations[env] = step.Envs[env]
-				}
+			if container.Name != step.ID {
+				continue
+			}
+
+			pod.Spec.Containers[i].Image = step.Image
+
+			if pod.ObjectMeta.Annotations == nil {
+				pod.ObjectMeta.Annotations = map[string]string{}
+			}
+			for _, env := range statusesWhiteList {
+				pod.ObjectMeta.Annotations[env] = step.Envs[env]
 			}
 		}
 

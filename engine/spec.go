@@ -231,3 +231,7 @@ func (s *Step) Clone() runtime.Step {
 	dst.Envs = environ.Combine(s.Envs)
 	return dst
 }
+
+func (s *Step) GetImage() string {
+	return s.Image
+}

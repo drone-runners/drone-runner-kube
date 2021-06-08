@@ -80,7 +80,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	var kube *engine.Kubernetes
+	var kube runtime.Engine
 	if path := config.Runner.Config; path != "" {
 		// if the configuration path is specified, we create
 		// the kubernetes client from the configuration file.

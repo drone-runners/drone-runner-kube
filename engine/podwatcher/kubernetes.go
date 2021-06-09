@@ -33,21 +33,19 @@ func (w *KubernetesWatcher) Name() string {
 // Watch is a part of ContainerWatcher implementation for the KubernetesWatcher struct.
 // It will create a Kubernetes watcher that watches all events coming from a specific pod.
 // The method will run until the pod terminates and is deleted (until the "Deleted" event arrives).
-func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []containerCurrentStatus) error {
+func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []containerInfo) error {
 	defer close(containers)
 
 	label := "io.drone.name=" + w.PodName
 
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (k8sruntime.Object, error) {
-			return w.Clientset.CoreV1().Pods(w.PodNamespace).List(metav1.ListOptions{
-				LabelSelector: label,
-			})
+			options.LabelSelector = label
+			return w.Clientset.CoreV1().Pods(w.PodNamespace).List(options)
 		},
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
-			return w.Clientset.CoreV1().Pods(w.PodNamespace).Watch(metav1.ListOptions{
-				LabelSelector: label,
-			})
+			options.LabelSelector = label
+			return w.Clientset.CoreV1().Pods(w.PodNamespace).Watch(options)
 		},
 	}
 
@@ -77,7 +75,7 @@ func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []conta
 	return err
 }
 
-func (w *KubernetesWatcher) PeriodicCheck(ctx context.Context, containers chan<- []containerCurrentStatus, stop <-chan struct{}) error {
+func (w *KubernetesWatcher) PeriodicCheck(ctx context.Context, containers chan<- []containerInfo, stop <-chan struct{}) error {
 	if w.Period == 0 {
 		return nil
 	}
@@ -109,12 +107,12 @@ func (w *KubernetesWatcher) PeriodicCheck(ctx context.Context, containers chan<-
 	}
 }
 
-func extractContainers(pod *v1.Pod) (result []containerCurrentStatus) {
+func extractContainers(pod *v1.Pod) (result []containerInfo) {
 	if pod == nil {
 		return
 	}
 
-	result = make([]containerCurrentStatus, len(pod.Status.ContainerStatuses))
+	result = make([]containerInfo, len(pod.Status.ContainerStatuses))
 
 	for i, cs := range pod.Status.ContainerStatuses {
 		var (
@@ -135,14 +133,12 @@ func extractContainers(pod *v1.Pod) (result []containerCurrentStatus) {
 			state, stateInfo = stateWaiting, ""
 		}
 
-		result[i] = containerCurrentStatus{
-			id: cs.Name,
-			containerStatus: containerStatus{
-				currentState:     state,
-				currentStateInfo: stateInfo,
-				currentImage:     cs.Image,
-				exitCode:         exitCode,
-			},
+		result[i] = containerInfo{
+			id:        cs.Name,
+			state:     state,
+			stateInfo: stateInfo,
+			image:     cs.Image,
+			exitCode:  exitCode,
 		}
 	}
 

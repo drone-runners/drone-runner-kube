@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
+
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,6 +42,9 @@ type PodWatcher struct {
 	// errDone is used to store an eventual error from container watcher.
 	errDone error
 
+	// containerRegCh is a channel through which new containers are registered.
+	containerRegCh chan containerInfo
+
 	// clientCh is a channel through which new wait clients are added.
 	clientCh chan *client
 
@@ -56,31 +60,14 @@ const (
 	stateDone
 )
 
-// AddContainer registers a container for state tracking.
-func (pw *PodWatcher) AddContainer(idx int, id, image, placeholder string) {
-	if pw.state != stateInit {
-		panic("AddContainer must be called before Start")
-	}
-
-	if pw.containerMap == nil {
-		pw.containerMap = make(map[string]*containerInfo)
-	}
-
-	pw.containerMap[id] = &containerInfo{
-		idx:         idx,
-		id:          id,
-		image:       image,
-		placeholder: placeholder,
-	}
-}
-
 func (pw *PodWatcher) Start(ctx context.Context, w ContainerWatcher) {
 	if pw.state != stateInit {
 		panic("Start can be called only once")
 	}
 
 	pw.state = stateStarted
-	pw.stop = make(chan struct{})    // stop channel, close the channel to terminate the PodWatcher
+	pw.stop = make(chan struct{}) // stop channel, close the channel to terminate the PodWatcher
+	pw.containerRegCh = make(chan containerInfo)
 	pw.clientCh = make(chan *client) // a channel for accepting new wait clients
 
 	logrus.Debugf("Pod=%s watcher started", w.Name())
@@ -89,14 +76,14 @@ func (pw *PodWatcher) Start(ctx context.Context, w ContainerWatcher) {
 	wg.Add(3)
 
 	// Listening container events related to the pod.
-	chEvents := make(chan []containerCurrentStatus)
+	chEvents := make(chan []containerInfo)
 	go func() {
 		defer wg.Done()
 		pw.errDone = w.Watch(ctx, chEvents)
 	}()
 
 	// Periodic scanning of containers. This should help in case an event was missed.
-	chPeriodic := make(chan []containerCurrentStatus)
+	chPeriodic := make(chan []containerInfo)
 	go func() {
 		defer wg.Done()
 		_ = w.PeriodicCheck(ctx, chPeriodic, pw.stop)
@@ -127,6 +114,15 @@ func (pw *PodWatcher) Start(ctx context.Context, w ContainerWatcher) {
 				}
 
 				pw.updateContainers(containers)
+
+			case c := <-pw.containerRegCh:
+				if pw.containerMap == nil {
+					pw.containerMap = make(map[string]*containerInfo)
+				}
+
+				pw.containerMap[c.id] = &c
+
+				logrus.Tracef("Pod=%s Watching: container=%s placeholder=%s", w.Name(), c.id, c.placeholder)
 
 			case cl := <-pw.clientCh: // a new client is waiting for a container status
 				if cl.containerId == "" {
@@ -173,39 +169,25 @@ func (pw *PodWatcher) terminate() {
 
 // updateContainers examines all containers in a pod and if any changes are detected it executes
 // the method notifyClientsContainerChange for each changed container.
-func (pw *PodWatcher) updateContainers(containers []containerCurrentStatus) {
+func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 	for _, cs := range containers {
 		c, ok := pw.containerMap[cs.id]
 		if !ok {
 			continue // unknown container
 		}
 
-		c.currentImage = cs.currentImage // update container's current image
+		if c.image != cs.image || c.state != cs.state || c.stateInfo != cs.stateInfo {
+			c.image = cs.image
+			c.state = cs.state
+			c.stateInfo = cs.stateInfo
+			c.exitCode = cs.exitCode
 
-		var (
-			newState     containerState
-			newStateInfo string
-			exitCode     int32
-		)
+			if c.image == c.placeholder {
+				continue
+			}
 
-		if image.Match(c.currentImage, c.placeholder) {
-			// If container's current image is a placeholder image,
-			// then it's state is Pending, whatever the actual container state is in.
-			newState = statePending
-			newStateInfo = ""
-		} else {
-			newState = cs.currentState
-			newStateInfo = cs.currentStateInfo
-			exitCode = cs.exitCode
-		}
-
-		if c.currentState != newState || c.currentStateInfo != newStateInfo {
-			c.currentState = newState
-			c.currentStateInfo = newStateInfo
-			c.exitCode = exitCode
-
-			logrus.Tracef("-> Container state changed: idx=%02d name=%s image=%s -> %s (%s)",
-				c.idx, c.id, c.currentImage, c.currentState, c.currentStateInfo)
+			logrus.Tracef("-> Container state changed: name=%s image=%s -> %s (%s)",
+				c.id, c.image, c.state, c.stateInfo)
 
 			pw.notifyClientsContainerChange(c)
 		}
@@ -216,11 +198,11 @@ func (pw *PodWatcher) updateContainers(containers []containerCurrentStatus) {
 // For example: A container in TERMINATED state will resolve all clients waiting for it to enter RUNNING state
 // and all clients waiting for it to enter TERMINATED state.
 func _tryResolveWaitClient(cl *client, c *containerInfo) bool {
-	if cl.containerId != c.id {
+	if cl.containerId != c.id || image.Match(c.image, c.placeholder) {
 		return false
 	}
 
-	if c.currentState >= cl.containerState {
+	if c.state >= cl.containerState {
 		if cl.containerState == stateTerminated && c.exitCode != 0 {
 			// tell the client that the container failed with an exit code != 0
 			cl.resolveCh <- exitCodeError(int(c.exitCode))
@@ -310,4 +292,16 @@ func (pw *PodWatcher) WaitContainerTerminated(containerId string) (int, error) {
 // WaitPodDeleted waits until the pod is deleted.
 func (pw *PodWatcher) WaitPodDeleted() (err error) {
 	return pw.waitForEvent("", stateTerminated /* the state is unimportant */)
+}
+
+// AddContainer registers a container for state tracking.
+func (pw *PodWatcher) AddContainer(id string, placeholder string) {
+	pw.containerRegCh <- containerInfo{
+		id:          id,
+		state:       stateWaiting,
+		stateInfo:   "",
+		image:       placeholder,
+		placeholder: placeholder,
+		exitCode:    0,
+	}
 }

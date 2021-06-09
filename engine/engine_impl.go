@@ -132,10 +132,6 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
 	// Start a watcher that watches all k8s event related to the pod just created.
 	// The watcher will finish when the pod is deleted.
 	k.watcher = &podwatcher.PodWatcher{}
-	for idx, step := range spec.Steps {
-		// register all steps as containers inside the pod
-		k.watcher.AddContainer(idx, step.ID, step.Image, step.Placeholder)
-	}
 	k.watcher.Start(ctx, &podwatcher.KubernetesWatcher{
 		PodNamespace: pod.Namespace,
 		PodName:      pod.Name,
@@ -191,6 +187,9 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Step, output io.Writer) (*runtime.State, error) {
 	spec := specv.(*Spec)
 	step := stepv.(*Step)
+
+	// start tracking the container with this name
+	k.watcher.AddContainer(step.ID, step.Placeholder)
 
 	err := k.start(spec, step)
 	if err != nil {

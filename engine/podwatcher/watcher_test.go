@@ -178,7 +178,16 @@ func TestPodWatcher(t *testing.T) {
 			name:       "unknown container",
 			containers: []string{"A", "B"},
 			steps: []step{
-				{op: opWaitContainer, containerId: "Z", state: stateRunning, expected: ErrUnknownContainer},
+				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: ErrUnknownContainer},
+			},
+		},
+		{
+			name:       "unknown image",
+			containers: []string{"A"},
+			steps: []step{
+				{op: opContAdd, containerId: "A"},
+				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: ErrFailedContainer},
+				{op: opContSetStatePlaceholder, containerId: "A", state: stateTerminated, exitCode: 2},
 			},
 		},
 		{

@@ -21,6 +21,10 @@ var (
 
 	// ErrPodTerminated is an error that container wait functions return when the pod is already terminated.
 	ErrPodTerminated = errors.New("pod is terminated")
+
+	// ErrFailedContainer is returned when placeholder container terminated abnormally.
+	// The correct container image failed to load. Usually happens when image doesn't exist.
+	ErrFailedContainer = errors.New("container failed to start (invalid image?)")
 )
 
 // PodWatcher is used to monitor status of a Kubernetes pod and containers inside of it.
@@ -174,6 +178,18 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 			c.exitCode = cs.exitCode
 
 			if c.image == c.placeholder {
+				if c.state == stateTerminated && c.exitCode != 0 {
+					logrus.
+						WithField("pod", pw.containerWatcher.Name()).
+						WithField("container", c.id).
+						WithField("image", c.image).
+						WithField("state", c.state).
+						WithField("stateInfo", c.stateInfo).
+						Debug("PodWatcher: Placeholder terminated abnormally")
+
+					pw.notifyClientsContainerChange(c)
+				}
+
 				continue
 			}
 
@@ -194,8 +210,17 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 // For example: A container in TERMINATED state will resolve all clients waiting for it to enter RUNNING state
 // and all clients waiting for it to enter TERMINATED state.
 func _tryResolveWaitClient(cl *waitClient, c *containerInfo) bool {
-	if cl.containerId != c.id || image.Match(c.image, c.placeholder) {
+	if cl.containerId != c.id {
 		return false
+	}
+
+	if image.Match(c.image, c.placeholder) {
+		if c.state == stateTerminated && c.exitCode != 0 {
+			cl.resolveCh <- ErrFailedContainer
+			return true
+		} else {
+			return false
+		}
 	}
 
 	if c.state >= cl.containerState {

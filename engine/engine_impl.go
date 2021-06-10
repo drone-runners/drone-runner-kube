@@ -168,14 +168,13 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 		}
 	}
 
-	k.watchers.Range(func(p, w interface{}) bool {
+	if w, loaded := k.watchers.LoadAndDelete(spec.PodSpec.Name); loaded {
 		watcher := w.(*podwatcher.PodWatcher)
 		err := watcher.WaitPodDeleted()
 		if err != nil {
 			result = multierror.Append(result, err)
 		}
-		return true
-	})
+	}
 
 	return result
 }

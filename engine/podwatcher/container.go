@@ -10,7 +10,7 @@ import (
 )
 
 type ContainerWatcher interface {
-	// Name returns the name of the pod that contains the containers
+	// Name returns name of the pod that contains the containers
 	Name() string
 
 	// Watch waits for updates of the containers and puts the updated data to the channel passed as a parameter.

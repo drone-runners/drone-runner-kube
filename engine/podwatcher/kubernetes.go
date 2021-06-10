@@ -59,7 +59,10 @@ func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []conta
 			return false, nil
 		}
 
-		logrus.Tracef("Pod=%s: Event=%s", pod.Name, event.Type)
+		logrus.
+			WithField("pod", pod.Name).
+			WithField("event", event.Type).
+			Trace("PodWatcher: Event", pod.Name, event.Type)
 
 		if event.Type == watch.Deleted {
 			return true, nil // stop listening to further events
@@ -93,11 +96,16 @@ func (w *KubernetesWatcher) PeriodicCheck(ctx context.Context, containers chan<-
 		case <-ticker.C:
 			pod, err := w.Clientset.CoreV1().Pods(w.PodNamespace).Get(w.PodName, metav1.GetOptions{})
 			if err != nil {
-				logrus.WithError(err).Warnf("Failed to read pod=%s", w.PodName)
+				logrus.
+					WithError(err).
+					WithField("pod", w.PodName).
+					Warn("PodWatcher: Failed to read pod")
 				continue
 			}
 
-			logrus.Tracef("Pod=%s: Periodic containers status check", w.PodName)
+			logrus.
+				WithField("pod", w.PodName).
+				Trace("PodWatcher: Periodic container state check")
 
 			containers <- extractContainers(pod)
 		}

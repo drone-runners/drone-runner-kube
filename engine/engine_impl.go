@@ -9,6 +9,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/engine/podwatcher"
@@ -34,8 +35,8 @@ var backoff = wait.Backoff{
 
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
-	client  *kubernetes.Clientset
-	watcher *podwatcher.PodWatcher
+	client   *kubernetes.Clientset
+	watchers *sync.Map
 }
 
 // New returns a new engine. It tries first with in-cluster config, if it fails it will try with out-of-cluster config.
@@ -102,42 +103,34 @@ func NewInCluster() (engine runtime.Engine, err error) {
 }
 
 // Setup the pipeline environment.
-func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) error {
+func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) (err error) {
 	spec := specv.(*Spec)
 
 	if spec.Namespace != "" {
-		_, err := k.client.CoreV1().Namespaces().Create(toNamespace(spec.Namespace, spec.PodSpec.Labels))
+		_, err = k.client.CoreV1().Namespaces().Create(toNamespace(spec.Namespace, spec.PodSpec.Labels))
 		if err != nil {
 			return err
 		}
 	}
 
 	if spec.PullSecret != nil {
-		_, err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toDockerConfigSecret(spec))
+		_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toDockerConfigSecret(spec))
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toSecret(spec))
+	_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toSecret(spec))
 	if err != nil {
 		return err
 	}
 
-	pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
+	_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
 	if err != nil {
 		return err
 	}
 
-	// Start a watcher that watches all k8s event related to the pod just created.
-	// The watcher will finish when the pod is deleted.
-	k.watcher = &podwatcher.PodWatcher{}
-	k.watcher.Start(ctx, &podwatcher.KubernetesWatcher{
-		PodNamespace: pod.Namespace,
-		PodName:      pod.Name,
-		Clientset:    k.client,
-		Period:       time.Minute,
-	})
+	k.watchers = &sync.Map{}
 
 	return nil
 }
@@ -175,10 +168,14 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 		}
 	}
 
-	err = k.watcher.WaitPodDeleted()
-	if err != nil {
-		result = multierror.Append(result, err)
-	}
+	k.watchers.Range(func(p, w interface{}) bool {
+		watcher := w.(*podwatcher.PodWatcher)
+		err := watcher.WaitPodDeleted()
+		if err != nil {
+			result = multierror.Append(result, err)
+		}
+		return true
+	})
 
 	return result
 }
@@ -188,17 +185,39 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	spec := specv.(*Spec)
 	step := stepv.(*Step)
 
-	// start tracking the container with this name
-	k.watcher.AddContainer(step.ID, step.Placeholder)
+	podId := spec.PodSpec.Name
+	podNamespace := spec.PodSpec.Namespace
+	stepName := step.Name
+	containerId := step.ID
+	containerImage := step.Image
+	containerPlaceholder := step.Placeholder
+
+	w, loaded := k.watchers.LoadOrStore(podId, &podwatcher.PodWatcher{})
+	watcher := w.(*podwatcher.PodWatcher)
+	if !loaded {
+		watcher.Start(ctx, &podwatcher.KubernetesWatcher{
+			PodNamespace: podNamespace,
+			PodName:      podId,
+			Clientset:    k.client,
+			Period:       time.Minute,
+		})
+	}
+
+	watcher.AddContainer(step.ID, step.Placeholder)
+
+	logrus.
+		WithField("pod", podId).
+		WithField("container", containerId).
+		WithField("image", containerImage).
+		WithField("placeholder", containerPlaceholder).
+		Debugf("Engine: Starting step: %q", stepName)
 
 	err := k.start(spec, step)
 	if err != nil {
 		return nil, err
 	}
 
-	logrus.Tracef("Step %q: %q (%s)\n", step.ID, step.Name, step.Image)
-
-	err = k.watcher.WaitContainerStart(step.ID)
+	err = watcher.WaitContainerStart(containerId)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +245,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return nil, err
 	}
 
-	code, err := k.watcher.WaitContainerTerminated(step.ID)
+	code, err := watcher.WaitContainerTerminated(containerId)
 	if err != nil {
 		return nil, err
 	}

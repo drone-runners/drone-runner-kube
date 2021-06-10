@@ -256,10 +256,16 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		dump(state)
 	}
 	if err != nil {
+		logrus.
+			WithError(err).
+			Error("Stage failed with an error")
 		return err
 	}
 	switch state.Stage.Status {
 	case drone.StatusError, drone.StatusFailing, drone.StatusKilled:
+		logrus.
+			WithField("status", state.Stage.Status).
+			Warn("Stage failed")
 		os.Exit(1)
 	}
 	return nil

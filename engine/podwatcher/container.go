@@ -10,31 +10,29 @@ import (
 )
 
 type ContainerWatcher interface {
-	// Name returns and of the pod that contains the containers
+	// Name returns the name of the pod that contains the containers
 	Name() string
 
-	// Watch waits for the container updates and puts the new status to the channel.
-	// The function should close the containers channel when it finishes.
+	// Watch waits for updates of the containers and puts the updated data to the channel passed as a parameter.
 	// It should finish either when the context is done or when no more events are expected.
 	Watch(ctx context.Context, containers chan<- []containerInfo) error
 
 	// PeriodicCheck should periodically put the current state of the containers to the channel.
-	// The function should close the containers channel when it finishes.
 	// It should finish either when the context is done or when the stop channel is closed.
-	// To disable the feature, the function should be a no op, and the containers channel should remain open.
+	// To disable the feature, the implementation should be an empty function.
 	PeriodicCheck(ctx context.Context, containers chan<- []containerInfo, stop <-chan struct{}) error
 }
 
-// client represents a process that waits for a container state change.
-// Wait is resolved by writing an error value to the resolveCh channel.
+// waitClient is a process that waits for state of a container (with id = containerId) to change to containerState.
+// It is resolved by writing an error value to the resolveCh channel, or nil if no error occurred.
 // If containerId is an empty string, the process waits for whole the pod to finish.
-type client struct {
+type waitClient struct {
 	containerId    string
 	containerState containerState
 	resolveCh      chan error
 }
 
-// containerInfo is used by the PodWatcher to track state of each container inside of a pod.
+// containerInfo is used by the PodWatcher to track state of each container inside a pod.
 type containerInfo struct {
 	id          string
 	state       containerState

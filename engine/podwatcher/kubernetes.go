@@ -34,8 +34,6 @@ func (w *KubernetesWatcher) Name() string {
 // It will create a Kubernetes watcher that watches all events coming from a specific pod.
 // The method will run until the pod terminates and is deleted (until the "Deleted" event arrives).
 func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []containerInfo) error {
-	defer close(containers)
-
 	label := "io.drone.name=" + w.PodName
 
 	lw := &cache.ListWatch{
@@ -75,12 +73,11 @@ func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []conta
 	return err
 }
 
+// PeriodicCheck is a part of ContainerWatcher implementation for the KubernetesWatcher struct.
 func (w *KubernetesWatcher) PeriodicCheck(ctx context.Context, containers chan<- []containerInfo, stop <-chan struct{}) error {
 	if w.Period == 0 {
 		return nil
 	}
-
-	defer close(containers)
 
 	ticker := time.NewTicker(w.Period)
 	defer ticker.Stop()

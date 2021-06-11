@@ -31,6 +31,9 @@ var (
 // It is started with the Start method. Prior to waiting for a container state change,
 // the container should be registered with a call to AddContainer.
 type PodWatcher struct {
+	// podName holds name of the pod. It's used mainly for logging.
+	podName string
+
 	// containerMap holds all containers in the pod, for each it holds current image and its state.
 	containerMap map[string]*containerInfo
 
@@ -52,8 +55,6 @@ type PodWatcher struct {
 
 	// clientList is an array of wait clients that are currently waiting for an event.
 	clientList []*waitClient
-
-	containerWatcher ContainerWatcher
 }
 
 type watcherState byte
@@ -64,19 +65,21 @@ const (
 	stateDone
 )
 
-func (pw *PodWatcher) Start(ctx context.Context, containerWatcher ContainerWatcher) {
+func (pw *PodWatcher) Start(ctx context.Context, cw ContainerWatcher) {
 	if pw.state != stateInit {
 		panic("Start can be called only once")
 	}
 
-	pw.containerWatcher = containerWatcher
+	podName := cw.Name()
+
+	pw.podName = podName
 	pw.state = stateStarted
 	pw.stop = make(chan struct{}) // stop channel, close the channel to terminate the PodWatcher
 	pw.containerRegCh = make(chan containerInfo)
 	pw.clientCh = make(chan *waitClient) // a channel for accepting new wait clients
 
 	logrus.
-		WithField("pod", containerWatcher.Name()).
+		WithField("pod", podName).
 		Debug("PodWatcher: Started")
 
 	errDone := make(chan error)
@@ -88,14 +91,14 @@ func (pw *PodWatcher) Start(ctx context.Context, containerWatcher ContainerWatch
 	chEvents := make(chan []containerInfo)
 	go func() {
 		defer wg.Done()
-		errDone <- containerWatcher.Watch(ctx, chEvents)
+		errDone <- cw.Watch(ctx, chEvents)
 	}()
 
 	// Periodic scanning of containers. This should help in case an event was missed.
 	chPeriodic := make(chan []containerInfo)
 	go func() {
 		defer wg.Done()
-		_ = containerWatcher.PeriodicCheck(ctx, chPeriodic, pw.stop)
+		_ = cw.PeriodicCheck(ctx, chPeriodic, pw.stop)
 	}()
 
 	go func() {
@@ -157,7 +160,7 @@ func (pw *PodWatcher) Start(ctx context.Context, containerWatcher ContainerWatch
 	go func() {
 		wg.Wait()
 		logrus.
-			WithField("pod", containerWatcher.Name()).
+			WithField("pod", podName).
 			Debug("PodWatcher: Terminated")
 	}()
 }
@@ -180,7 +183,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 			if c.image == c.placeholder {
 				if c.state == stateTerminated && c.exitCode != 0 {
 					logrus.
-						WithField("pod", pw.containerWatcher.Name()).
+						WithField("pod", pw.podName).
 						WithField("container", c.id).
 						WithField("image", c.image).
 						WithField("state", c.state).
@@ -194,7 +197,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 			}
 
 			logrus.
-				WithField("pod", pw.containerWatcher.Name()).
+				WithField("pod", pw.podName).
 				WithField("container", c.id).
 				WithField("image", c.image).
 				WithField("state", c.state).
@@ -273,7 +276,7 @@ func (pw *PodWatcher) waitForEvent(containerId string, state containerState) (er
 	ch := make(chan error)
 
 	logrus.
-		WithField("pod", pw.containerWatcher.Name()).
+		WithField("pod", pw.podName).
 		WithField("container", containerId).
 		WithField("state", state.String()).
 		Debug("PodWatcher: Waiting...")
@@ -281,7 +284,7 @@ func (pw *PodWatcher) waitForEvent(containerId string, state containerState) (er
 	defer func(t time.Time) {
 		logrus.
 			WithError(err).
-			WithField("pod", pw.containerWatcher.Name()).
+			WithField("pod", pw.podName).
 			WithField("container", containerId).
 			WithField("state", state.String()).
 			Debugf("PodWatcher: Wait finished. Duration=%.2fs", time.Since(t).Seconds())
@@ -338,5 +341,5 @@ func (pw *PodWatcher) AddContainer(id string, placeholder string) {
 }
 
 func (pw *PodWatcher) Name() string {
-	return pw.containerWatcher.Name()
+	return pw.podName
 }

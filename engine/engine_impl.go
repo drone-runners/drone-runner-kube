@@ -75,7 +75,8 @@ func NewFromConfig(path string) (engine runtime.Engine, err error) {
 	}
 
 	engine = &Kubernetes{
-		client: clientset,
+		client:   clientset,
+		watchers: &sync.Map{},
 	}
 
 	return
@@ -96,7 +97,8 @@ func NewInCluster() (engine runtime.Engine, err error) {
 	}
 
 	engine = &Kubernetes{
-		client: clientset,
+		client:   clientset,
+		watchers: &sync.Map{},
 	}
 
 	return
@@ -129,8 +131,6 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) (err error) 
 	if err != nil {
 		return err
 	}
-
-	k.watchers = &sync.Map{}
 
 	return nil
 }

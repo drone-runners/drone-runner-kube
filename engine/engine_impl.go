@@ -171,7 +171,7 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 	if w, loaded := k.watchers.LoadAndDelete(spec.PodSpec.Name); loaded {
 		watcher := w.(*podwatcher.PodWatcher)
 		err := watcher.WaitPodDeleted()
-		if err != nil {
+		if err != nil && err != context.Canceled {
 			result = multierror.Append(result, err)
 		}
 	}

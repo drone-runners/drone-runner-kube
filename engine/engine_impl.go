@@ -75,7 +75,8 @@ func NewFromConfig(path string) (engine runtime.Engine, err error) {
 	}
 
 	engine = &Kubernetes{
-		client: clientset,
+		client:   clientset,
+		watchers: &sync.Map{},
 	}
 
 	return
@@ -96,7 +97,8 @@ func NewInCluster() (engine runtime.Engine, err error) {
 	}
 
 	engine = &Kubernetes{
-		client: clientset,
+		client:   clientset,
+		watchers: &sync.Map{},
 	}
 
 	return
@@ -129,8 +131,6 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) (err error) 
 	if err != nil {
 		return err
 	}
-
-	k.watchers = &sync.Map{}
 
 	return nil
 }
@@ -168,14 +168,13 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 		}
 	}
 
-	k.watchers.Range(func(p, w interface{}) bool {
+	if w, loaded := k.watchers.LoadAndDelete(spec.PodSpec.Name); loaded {
 		watcher := w.(*podwatcher.PodWatcher)
 		err := watcher.WaitPodDeleted()
-		if err != nil {
+		if err != nil && err != context.Canceled {
 			result = multierror.Append(result, err)
 		}
-		return true
-	})
+	}
 
 	return result
 }

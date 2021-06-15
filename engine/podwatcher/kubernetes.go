@@ -62,7 +62,7 @@ func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []conta
 		logrus.
 			WithField("pod", pod.Name).
 			WithField("event", event.Type).
-			Trace("PodWatcher: Event", pod.Name, event.Type)
+			Trace("PodWatcher: Event")
 
 		if event.Type == watch.Deleted {
 			return true, nil // stop listening to further events

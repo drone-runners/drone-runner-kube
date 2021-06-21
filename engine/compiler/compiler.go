@@ -653,9 +653,6 @@ func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	if len(step.Entrypoint) > 0 {
 		return false
 	}
-	if len(step.Volumes) > 0 {
-		return false
-	}
 	// privileged-by-default mode is disabled if the
 	// pipeline step attempts to alter
 	if isRestrictedVariable(step.Environment) {

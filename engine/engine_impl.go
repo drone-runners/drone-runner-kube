@@ -13,9 +13,9 @@ import (
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/engine/podwatcher"
+	"github.com/drone/runner-go/logger"
 	"github.com/drone/runner-go/pipeline/runtime"
-	"github.com/hashicorp/go-multierror"
-	"github.com/sirupsen/logrus"
+
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/wait"
@@ -142,41 +142,54 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 	time.Sleep(time.Second * 5)
 
 	spec := specv.(*Spec)
-	var result error
 
 	if spec.PullSecret != nil {
-		err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PullSecret.Name, &metav1.DeleteOptions{})
-		if err != nil {
-			result = multierror.Append(result, err)
+		if err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PullSecret.Name, &metav1.DeleteOptions{}); err != nil {
+			logger.FromContext(ctx).
+				WithError(err).
+				WithField("pull-secret", spec.PullSecret.Name).
+				WithField("namespace", spec.PodSpec.Namespace).
+				Error("failed to delete pull secret")
 		}
 	}
 
-	err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
-	if err != nil {
-		result = multierror.Append(result, err)
+	if err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{}); err != nil {
+		logger.FromContext(ctx).
+			WithError(err).
+			WithField("pod", spec.PodSpec.Name).
+			WithField("namespace", spec.PodSpec.Namespace).
+			Error("failed to delete secrets")
 	}
 
-	err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{})
-	if err != nil {
-		result = multierror.Append(result, err)
+	if err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{}); err != nil {
+		logger.FromContext(ctx).
+			WithError(err).
+			WithField("pod", spec.PodSpec.Name).
+			WithField("namespace", spec.PodSpec.Namespace).
+			Error("failed to delete pod")
 	}
 
 	if spec.Namespace != "" {
-		err := k.client.CoreV1().Namespaces().Delete(spec.Namespace, &metav1.DeleteOptions{})
-		if err != nil {
-			result = multierror.Append(result, err)
+		if err := k.client.CoreV1().Namespaces().Delete(spec.Namespace, &metav1.DeleteOptions{}); err != nil {
+			logger.FromContext(ctx).
+				WithError(err).
+				WithField("namespace", spec.PodSpec.Namespace).
+				Error("failed to delete namespace")
 		}
 	}
 
 	if w, loaded := k.watchers.LoadAndDelete(spec.PodSpec.Name); loaded {
 		watcher := w.(*podwatcher.PodWatcher)
-		err := watcher.WaitPodDeleted()
-		if err != nil && err != context.Canceled {
-			result = multierror.Append(result, err)
+		if err := watcher.WaitPodDeleted(); err != nil && err != context.Canceled {
+			logger.FromContext(ctx).
+				WithError(err).
+				WithField("pod", spec.PodSpec.Name).
+				WithField("namespace", spec.PodSpec.Namespace).
+				Error("failed to wait for removal of pod")
 		}
 	}
 
-	return result
+	return nil
 }
 
 // Run runs the pipeline step.
@@ -204,7 +217,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 
 	watcher.AddContainer(step.ID, step.Placeholder)
 
-	logrus.
+	logger.FromContext(ctx).
 		WithField("pod", podId).
 		WithField("container", containerId).
 		WithField("image", containerImage).

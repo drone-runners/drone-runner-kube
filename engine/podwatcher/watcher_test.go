@@ -6,6 +6,8 @@ package podwatcher
 
 import (
 	"context"
+	"errors"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -186,7 +188,7 @@ func TestPodWatcher(t *testing.T) {
 			containers: []string{"A"},
 			steps: []step{
 				{op: opContAdd, containerId: "A"},
-				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: ErrFailedContainer},
+				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: errors.New(MessageFailedContainer)},
 				{op: opContSetStatePlaceholder, containerId: "A", state: stateTerminated, exitCode: 2},
 			},
 		},
@@ -302,7 +304,7 @@ func TestPodWatcher(t *testing.T) {
 							err := pw.WaitContainerStart(containerId)
 							if err != nil && expected == nil {
 								t.Errorf("test %q, step=%d failed: expected no error but got %v", testName, stepIdx, err)
-							} else if expected != nil && err != expected {
+							} else if expected != nil && (err == nil || !strings.HasPrefix(err.Error(), expected.Error())) {
 								t.Errorf("test %q, step=%d failed: expected error %v but got %v", testName, stepIdx, expected, err)
 							}
 						}(test.name, s.containerId, stepIdx, s.expected)

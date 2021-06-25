@@ -5,7 +5,6 @@
 package compiler
 
 import (
-	"path/filepath"
 	"strings"
 
 	"github.com/drone-runners/drone-runner-kube/engine"
@@ -146,33 +145,6 @@ func convertPullPolicy(s string) engine.PullPolicy {
 	default:
 		return engine.PullDefault
 	}
-}
-
-// helper function returns true if mounting the volume
-// is restricted for un-trusted containers.
-func isRestrictedVolume(path string) bool {
-	path, _ = filepath.Abs(path)
-	path = strings.ToLower(path)
-	switch {
-	case path == "/":
-	case path == "/var":
-	case path == "/etc":
-	case strings.Contains(path, "/var/run"):
-	case strings.Contains(path, "/proc"):
-	case strings.Contains(path, "/mount"):
-	case strings.Contains(path, "/bin"):
-	case strings.Contains(path, "/usr/local/bin"):
-	case strings.Contains(path, "/usr/local/sbin"):
-	case strings.Contains(path, "/usr/bin"):
-	case strings.Contains(path, "/mnt"):
-	case strings.Contains(path, "/media"):
-	case strings.Contains(path, "/sys"):
-	case strings.Contains(path, "/dev"):
-	case strings.Contains(path, "/etc/docker"):
-	default:
-		return false
-	}
-	return true
 }
 
 // helper function returns true if the environment variable

@@ -7,6 +7,7 @@ package podwatcher
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 	"time"
 
@@ -22,9 +23,9 @@ var (
 	// ErrPodTerminated is an error that container wait functions return when the pod is already terminated.
 	ErrPodTerminated = errors.New("pod is terminated")
 
-	// ErrFailedContainer is returned when placeholder container terminated abnormally.
+	// MessageFailedContainer is returned as error when placeholder container terminates abnormally.
 	// The correct container image failed to load. Usually happens when image doesn't exist.
-	ErrFailedContainer = errors.New("container failed to start (invalid image?)")
+	MessageFailedContainer = "container failed to start"
 )
 
 // PodWatcher is used to monitor status of a Kubernetes pod and containers inside of it.
@@ -77,10 +78,6 @@ func (pw *PodWatcher) Start(ctx context.Context, cw ContainerWatcher) {
 	pw.stop = make(chan struct{}) // stop channel, close the channel to terminate the PodWatcher
 	pw.containerRegCh = make(chan containerInfo)
 	pw.clientCh = make(chan *waitClient) // a channel for accepting new wait clients
-
-	logrus.
-		WithField("pod", podName).
-		Debug("PodWatcher: Started")
 
 	errDone := make(chan error)
 
@@ -159,9 +156,7 @@ func (pw *PodWatcher) Start(ctx context.Context, cw ContainerWatcher) {
 
 	go func() {
 		wg.Wait()
-		logrus.
-			WithField("pod", podName).
-			Debug("PodWatcher: Terminated")
+		//...
 	}()
 }
 
@@ -202,7 +197,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 				WithField("image", c.image).
 				WithField("state", c.state).
 				WithField("stateInfo", c.stateInfo).
-				Trace("PodWatcher: Container state changed")
+				Debug("PodWatcher: Container state changed")
 
 			pw.notifyClientsContainerChange(c)
 		}
@@ -219,7 +214,7 @@ func _tryResolveWaitClient(cl *waitClient, c *containerInfo) bool {
 
 	if image.Match(c.image, c.placeholder) {
 		if c.state == stateTerminated && c.exitCode != 0 {
-			cl.resolveCh <- ErrFailedContainer
+			cl.resolveCh <- fmt.Errorf("%s: exitCode=%d reason=%s", MessageFailedContainer, c.exitCode, c.stateInfo)
 			return true
 		} else {
 			return false

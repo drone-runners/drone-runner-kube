@@ -9,14 +9,13 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/validation"
-
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/policy"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 
 	"github.com/drone/runner-go/clone"
+	"github.com/drone/runner-go/container"
 	"github.com/drone/runner-go/environ"
 	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/labels"
@@ -28,6 +27,7 @@ import (
 
 	"github.com/dchest/uniuri"
 	"github.com/gosimple/slug"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 // random generator function
@@ -149,7 +149,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// reset the workspace path if attempting to mount
 	// volumes that are internal use only.
-	if isRestrictedVolume(workspace) {
+	if container.IsRestrictedVolume(workspace) {
 		workspace = "/drone/src"
 	}
 
@@ -664,7 +664,7 @@ func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	// privileged-by-default mode is disabled if the
 	// pipeline step mounts a restricted volume.
 	for _, mount := range step.Volumes {
-		if isRestrictedVolume(mount.MountPath) {
+		if container.IsRestrictedVolume(mount.MountPath) {
 			return false
 		}
 	}

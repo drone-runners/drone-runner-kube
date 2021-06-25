@@ -187,6 +187,11 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 				WithField("namespace", spec.PodSpec.Namespace).
 				Error("failed to wait for removal of pod")
 		}
+
+		logger.FromContext(ctx).
+			WithField("pod", spec.PodSpec.Name).
+			WithField("namespace", spec.PodSpec.Namespace).
+			Debug("PodWatcher terminated")
 	}
 
 	return nil
@@ -211,8 +216,13 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 			PodNamespace: podNamespace,
 			PodName:      podId,
 			Clientset:    k.client,
-			Period:       time.Minute,
+			Period:       20 * time.Second,
 		})
+
+		logger.FromContext(ctx).
+			WithField("pod", podId).
+			WithField("step", stepName).
+			Debug("PodWatcher started")
 	}
 
 	watcher.AddContainer(step.ID, step.Placeholder)
@@ -235,24 +245,6 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	}
 
 	err = k.tail(ctx, spec, step, output)
-	// this feature flag retries fetching the logs if it fails on
-	// the first attempt. This is meant to help triage the following
-	// issue:
-	//
-	//    https://discourse.drone.io/t/kubernetes-runner-intermittently-fails-steps/7372
-	//
-	// BEGIN: FEATURE FLAG
-	if err != nil {
-		if os.Getenv("DRONE_FEATURE_FLAG_RETRY_LOGS") == "true" {
-			<-time.After(time.Second * 5)
-			err = k.tail(ctx, spec, step, output)
-		}
-		if err != nil {
-			<-time.After(time.Second * 5)
-			err = k.tail(ctx, spec, step, output)
-		}
-	}
-	// END: FEATURE FAG
 	if err != nil {
 		return nil, err
 	}

@@ -6,11 +6,13 @@ package podwatcher
 
 import (
 	"context"
-	"errors"
-	"strings"
+	"os"
+	"reflect"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/sirupsen/logrus"
 )
 
 const placeholder = "placeholder"
@@ -73,8 +75,8 @@ func (w *testContainerWatcher) PeriodicCheck(ctx context.Context, containers cha
 }
 
 func TestPodWatcher(t *testing.T) {
-	//logrus.SetLevel(logrus.TraceLevel)
-	//logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.PanicLevel)
+	logrus.SetOutput(os.Stdout)
 
 	type operation int
 
@@ -177,10 +179,19 @@ func TestPodWatcher(t *testing.T) {
 			},
 		},
 		{
+			name:       "wait running, exit code = 1",
+			containers: []string{"A"},
+			steps: []step{
+				{op: opContAdd, containerId: "A"},
+				{op: opWaitContainer, containerId: "A", state: stateRunning, exitCode: 1, expected: nil},
+				{op: opContSetState, containerId: "A", state: stateTerminated, exitCode: 1},
+			},
+		},
+		{
 			name:       "unknown container",
 			containers: []string{"A", "B"},
 			steps: []step{
-				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: ErrUnknownContainer},
+				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: UnknownContainerError{}},
 			},
 		},
 		{
@@ -188,7 +199,7 @@ func TestPodWatcher(t *testing.T) {
 			containers: []string{"A"},
 			steps: []step{
 				{op: opContAdd, containerId: "A"},
-				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: errors.New(MessageFailedContainer)},
+				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: FailedContainerError{}},
 				{op: opContSetStatePlaceholder, containerId: "A", state: stateTerminated, exitCode: 2},
 			},
 		},
@@ -206,7 +217,7 @@ func TestPodWatcher(t *testing.T) {
 			containers: []string{"A"},
 			steps: []step{
 				{op: opContAdd, containerId: "A"},
-				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: ErrPodTerminated},
+				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: PodTerminatedError{}},
 				{op: opPodTerm},
 			},
 		},
@@ -216,7 +227,7 @@ func TestPodWatcher(t *testing.T) {
 			steps: []step{
 				{op: opContAdd, containerId: "A"},
 				{op: opPodTerm},
-				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: ErrPodTerminated},
+				{op: opWaitContainer, containerId: "A", state: stateRunning, expected: PodTerminatedError{}},
 			},
 		},
 		{
@@ -243,9 +254,9 @@ func TestPodWatcher(t *testing.T) {
 				{op: opWaitContainer, containerId: "A", state: stateTerminated, expected: nil},
 				{op: opContAdd, containerId: "B"},
 				{op: opWaitContainer, containerId: "A", state: stateTerminated, expected: nil},
-				{op: opWaitContainer, containerId: "B", state: stateRunning, expected: ErrPodTerminated},
+				{op: opWaitContainer, containerId: "B", state: stateRunning, expected: PodTerminatedError{}},
 				{op: opContAdd, containerId: "C"},
-				{op: opWaitContainer, containerId: "C", state: stateTerminated, expected: ErrPodTerminated},
+				{op: opWaitContainer, containerId: "C", state: stateTerminated, expected: PodTerminatedError{}},
 				{op: opContSetState, containerId: "A", state: stateTerminated},
 				{op: opPodTerm},
 			},
@@ -253,7 +264,7 @@ func TestPodWatcher(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		//logrus.Infof("--- test: %s ---", test.name)
+		logrus.Infof("--- test: %s ---", test.name)
 
 		func() {
 			ctx, cancelFunc := context.WithCancel(context.Background())
@@ -304,7 +315,7 @@ func TestPodWatcher(t *testing.T) {
 							err := pw.WaitContainerStart(containerId)
 							if err != nil && expected == nil {
 								t.Errorf("test %q, step=%d failed: expected no error but got %v", testName, stepIdx, err)
-							} else if expected != nil && (err == nil || !strings.HasPrefix(err.Error(), expected.Error())) {
+							} else if expected != nil && (err == nil || reflect.TypeOf(err) != reflect.TypeOf(expected)) {
 								t.Errorf("test %q, step=%d failed: expected error %v but got %v", testName, stepIdx, expected, err)
 							}
 						}(test.name, s.containerId, stepIdx, s.expected)
@@ -315,7 +326,7 @@ func TestPodWatcher(t *testing.T) {
 							exitCode, err := pw.WaitContainerTerminated(containerId)
 							if err != nil && expected == nil {
 								t.Errorf("test %q, step=%d failed: expected no error but got %v", testName, stepIdx, err)
-							} else if expected != nil && err != expected {
+							} else if expected != nil && (err == nil || reflect.TypeOf(err) != reflect.TypeOf(expected)) {
 								t.Errorf("test %q, step=%d failed: expected error %v but got %v", testName, stepIdx, expected, err)
 							}
 							if exitCode != expectedExitCode {
@@ -331,7 +342,7 @@ func TestPodWatcher(t *testing.T) {
 						err := pw.WaitPodDeleted()
 						if err != nil && expected == nil {
 							t.Errorf("test %q, step=%d failed: expected no error but got %v", testName, stepIdx, err)
-						} else if expected != nil && err != expected {
+						} else if expected != nil && (err == nil || reflect.TypeOf(err) != reflect.TypeOf(expected)) {
 							t.Errorf("test %q, step=%d failed: expected error %v but got %v", testName, stepIdx, expected, err)
 						}
 					}(test.name, stepIdx, s.expected)

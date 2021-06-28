@@ -12,31 +12,25 @@ import (
 	"sync"
 	"time"
 
+	"github.com/drone-runners/drone-runner-kube/engine/launcher"
 	"github.com/drone-runners/drone-runner-kube/engine/podwatcher"
+
 	"github.com/drone/runner-go/logger"
 	"github.com/drone/runner-go/pipeline/runtime"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/util/wait"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
-	"k8s.io/client-go/util/retry"
 )
-
-var backoff = wait.Backoff{
-	Steps:    15,
-	Duration: 500 * time.Millisecond,
-	Factor:   1.0,
-	Jitter:   0.5,
-}
 
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
-	client   *kubernetes.Clientset
-	watchers *sync.Map
+	client    *kubernetes.Clientset
+	watchers  *sync.Map
+	launchers *sync.Map
 }
 
 // New returns a new engine. It tries first with in-cluster config, if it fails it will try with out-of-cluster config.
@@ -75,8 +69,9 @@ func NewFromConfig(path string) (engine runtime.Engine, err error) {
 	}
 
 	engine = &Kubernetes{
-		client:   clientset,
-		watchers: &sync.Map{},
+		client:    clientset,
+		watchers:  &sync.Map{},
+		launchers: &sync.Map{},
 	}
 
 	return
@@ -97,8 +92,9 @@ func NewInCluster() (engine runtime.Engine, err error) {
 	}
 
 	engine = &Kubernetes{
-		client:   clientset,
-		watchers: &sync.Map{},
+		client:    clientset,
+		watchers:  &sync.Map{},
+		launchers: &sync.Map{},
 	}
 
 	return
@@ -178,6 +174,11 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 		}
 	}
 
+	if _l, loaded := k.launchers.LoadAndDelete(spec.PodSpec.Name); loaded {
+		l := _l.(*launcher.Launcher)
+		l.Stop()
+	}
+
 	if w, loaded := k.watchers.LoadAndDelete(spec.PodSpec.Name); loaded {
 		watcher := w.(*podwatcher.PodWatcher)
 		if err := watcher.WaitPodDeleted(); err != nil && err != context.Canceled {
@@ -185,20 +186,20 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 				WithError(err).
 				WithField("pod", spec.PodSpec.Name).
 				WithField("namespace", spec.PodSpec.Namespace).
-				Error("failed to wait for removal of pod")
+				Error("PodWatcher terminated with error")
+		} else {
+			logger.FromContext(ctx).
+				WithField("pod", spec.PodSpec.Name).
+				WithField("namespace", spec.PodSpec.Namespace).
+				Debug("PodWatcher terminated")
 		}
-
-		logger.FromContext(ctx).
-			WithField("pod", spec.PodSpec.Name).
-			WithField("namespace", spec.PodSpec.Namespace).
-			Debug("PodWatcher terminated")
 	}
 
 	return nil
 }
 
 // Run runs the pipeline step.
-func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Step, output io.Writer) (*runtime.State, error) {
+func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.Step, output io.Writer) (state *runtime.State, err error) {
 	spec := specv.(*Spec)
 	step := stepv.(*Step)
 
@@ -212,7 +213,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	w, loaded := k.watchers.LoadOrStore(podId, &podwatcher.PodWatcher{})
 	watcher := w.(*podwatcher.PodWatcher)
 	if !loaded {
-		watcher.Start(ctx, &podwatcher.KubernetesWatcher{
+		watcher.Start(context.Background(), &podwatcher.KubernetesWatcher{
 			PodNamespace: podNamespace,
 			PodName:      podId,
 			Clientset:    k.client,
@@ -234,36 +235,36 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		WithField("placeholder", containerPlaceholder).
 		Debugf("Engine: Starting step: %q", stepName)
 
-	err := k.start(spec, step)
+	err = <-k.startContainer(ctx, spec, step)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	err = watcher.WaitContainerStart(containerId)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	err = k.tail(ctx, spec, step, output)
+	err = k.fetchLogs(ctx, spec, step, output)
 	if err != nil {
-		return nil, err
+		return
 	}
 
 	code, err := watcher.WaitContainerTerminated(containerId)
 	if err != nil {
-		return nil, err
+		return
 	}
 
-	state := &runtime.State{
+	state = &runtime.State{
 		ExitCode:  code,
 		Exited:    true,
 		OOMKilled: false,
 	}
 
-	return state, nil
+	return
 }
 
-func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
+func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
 	opts := &v1.PodLogOptions{
 		Follow:    true,
 		Container: step.ID,
@@ -285,38 +286,22 @@ func (k *Kubernetes) tail(ctx context.Context, spec *Spec, step *Step, output io
 	return cancellableCopy(ctx, output, readCloser)
 }
 
-func (k *Kubernetes) start(spec *Spec, step *Step) error {
-	err := retry.RetryOnConflict(backoff, func() error {
-		// We protect this read/modify/write with a mutex to reduce the
-		// chance of a self-inflicted concurrent modification error
-		// when a DAG in a pipeline is fanning out and we have a lot of
-		// steps to Start at once.
-		spec.podUpdateMutex.Lock()
-		defer spec.podUpdateMutex.Unlock()
+func (k *Kubernetes) startContainer(ctx context.Context, spec *Spec, step *Step) <-chan error {
+	podName := spec.PodSpec.Name
+	podNamespace := spec.PodSpec.Namespace
+	containerName := step.ID
+	containerImage := step.Image
 
-		pod, err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Get(spec.PodSpec.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
+	_l, loaded := k.launchers.LoadOrStore(podName, launcher.New(podName, podNamespace, k.client, &spec.podUpdateMutex))
+	l := _l.(*launcher.Launcher)
+	if !loaded {
+		l.Start(ctx)
+	}
 
-		for i, container := range pod.Spec.Containers {
-			if container.Name != step.ID {
-				continue
-			}
+	statusEnvs := make(map[string]string)
+	for _, env := range statusesWhiteList {
+		statusEnvs[env] = step.Envs[env]
+	}
 
-			pod.Spec.Containers[i].Image = step.Image
-
-			if pod.ObjectMeta.Annotations == nil {
-				pod.ObjectMeta.Annotations = map[string]string{}
-			}
-			for _, env := range statusesWhiteList {
-				pod.ObjectMeta.Annotations[env] = step.Envs[env]
-			}
-		}
-
-		_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Update(pod)
-		return err
-	})
-
-	return err
+	return l.Launch(containerName, containerImage, statusEnvs)
 }

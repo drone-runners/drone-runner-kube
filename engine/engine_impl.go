@@ -6,6 +6,7 @@ package engine
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -226,7 +227,10 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 			Debug("PodWatcher started")
 	}
 
-	watcher.AddContainer(step.ID, step.Placeholder)
+	err = watcher.AddContainer(step.ID, step.Placeholder)
+	if err != nil {
+		return
+	}
 
 	logger.FromContext(ctx).
 		WithField("pod", podId).
@@ -240,7 +244,17 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return
 	}
 
-	err = watcher.WaitContainerStart(containerId)
+	chErrStart := make(chan error)
+	go func() {
+		chErrStart <- watcher.WaitContainerStart(containerId)
+	}()
+
+	select {
+	case err = <-chErrStart:
+	case <-time.After(3 * time.Minute):
+		err = fmt.Errorf("container=%s (image=%s) of pod=%s for step '%s' failed to start in timely manner",
+			containerId, containerImage, podId, stepName)
+	}
 	if err != nil {
 		return
 	}

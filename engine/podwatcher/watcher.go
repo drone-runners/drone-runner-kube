@@ -330,14 +330,19 @@ func (pw *PodWatcher) WaitPodDeleted() (err error) {
 // AddContainer registers a container for state tracking.
 // Adding containers is necessary because PodWatcher
 // must know name of the placeholder image for each container.
-func (pw *PodWatcher) AddContainer(id string, placeholder string) {
-	pw.containerRegCh <- containerInfo{
+func (pw *PodWatcher) AddContainer(id string, placeholder string) error {
+	select {
+	case pw.containerRegCh <- containerInfo{
 		id:          id,
 		state:       stateWaiting,
 		stateInfo:   "",
 		image:       placeholder,
 		placeholder: placeholder,
 		exitCode:    0,
+	}:
+		return nil
+	case <-pw.stop:
+		return PodTerminatedError{}
 	}
 }
 

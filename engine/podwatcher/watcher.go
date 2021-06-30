@@ -6,26 +6,12 @@ package podwatcher
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"sync"
 	"time"
 
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 
 	"github.com/sirupsen/logrus"
-)
-
-var (
-	// ErrUnknownContainer is an error that wait functions return when an unregistered container name is provided.
-	ErrUnknownContainer = errors.New("unknown container")
-
-	// ErrPodTerminated is an error that container wait functions return when the pod is already terminated.
-	ErrPodTerminated = errors.New("pod is terminated")
-
-	// MessageFailedContainer is returned as error when placeholder container terminates abnormally.
-	// The correct container image failed to load. Usually happens when image doesn't exist.
-	MessageFailedContainer = "container failed to start"
 )
 
 // PodWatcher is used to monitor status of a Kubernetes pod and containers inside of it.
@@ -141,7 +127,7 @@ func (pw *PodWatcher) Start(ctx context.Context, cw ContainerWatcher) {
 				if !ok {
 					// The waitClient is asking for an unknown container.
 					// Resolve the waitClient with the ErrUnknownContainer error.
-					cl.resolveCh <- ErrUnknownContainer
+					cl.resolveCh <- UnknownContainerError{container: cl.containerId}
 					break
 				}
 
@@ -169,28 +155,44 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 			continue // unknown container
 		}
 
-		if c.image != cs.image || c.state != cs.state || c.stateInfo != cs.stateInfo {
-			c.image = cs.image
-			c.state = cs.state
+		if c.image == cs.image && c.state == cs.state && c.stateInfo == cs.stateInfo {
+			continue
+		}
+
+		if cs.image == c.placeholder && c.image != c.placeholder {
+			logrus.
+				WithField("pod", pw.podName).
+				WithField("container", c.id).
+				WithField("image", cs.image).
+				WithField("state", cs.state).
+				WithField("stateInfo", cs.stateInfo).
+				Warn("PodWatcher: Image is placeholder again")
+
+			c.state = stateTerminated
 			c.stateInfo = cs.stateInfo
 			c.exitCode = cs.exitCode
+			pw.notifyClientsContainerChange(c)
+			continue
+		}
 
-			if c.image == c.placeholder {
-				if c.state == stateTerminated && c.exitCode != 0 {
-					logrus.
-						WithField("pod", pw.podName).
-						WithField("container", c.id).
-						WithField("image", c.image).
-						WithField("state", c.state).
-						WithField("stateInfo", c.stateInfo).
-						Debug("PodWatcher: Placeholder terminated abnormally")
+		c.image = cs.image
+		c.state = cs.state
+		c.stateInfo = cs.stateInfo
+		c.exitCode = cs.exitCode
 
-					pw.notifyClientsContainerChange(c)
-				}
+		if c.image == c.placeholder {
+			if c.state == stateTerminated {
+				logrus.
+					WithField("pod", pw.podName).
+					WithField("container", c.id).
+					WithField("image", c.image).
+					WithField("state", c.state).
+					WithField("stateInfo", c.stateInfo).
+					Warn("PodWatcher: Placeholder terminated")
 
-				continue
+				pw.notifyClientsContainerChange(c)
 			}
-
+		} else {
 			logrus.
 				WithField("pod", pw.podName).
 				WithField("container", c.id).
@@ -213,8 +215,12 @@ func _tryResolveWaitClient(cl *waitClient, c *containerInfo) bool {
 	}
 
 	if image.Match(c.image, c.placeholder) {
-		if c.state == stateTerminated && c.exitCode != 0 {
-			cl.resolveCh <- fmt.Errorf("%s: exitCode=%d reason=%s", MessageFailedContainer, c.exitCode, c.stateInfo)
+		if c.state == stateTerminated {
+			cl.resolveCh <- FailedContainerError{
+				container: c.id,
+				exitCode:  c.exitCode,
+				reason:    c.stateInfo,
+			}
 			return true
 		} else {
 			return false
@@ -260,7 +266,7 @@ func (pw *PodWatcher) notifyClientsPodTerminated(err error) {
 		} else if cl.containerId == "" {
 			cl.resolveCh <- nil
 		} else {
-			cl.resolveCh <- ErrPodTerminated
+			cl.resolveCh <- PodTerminatedError{}
 		}
 	}
 
@@ -274,7 +280,7 @@ func (pw *PodWatcher) waitForEvent(containerId string, state containerState) (er
 		WithField("pod", pw.podName).
 		WithField("container", containerId).
 		WithField("state", state.String()).
-		Debug("PodWatcher: Waiting...")
+		Trace("PodWatcher: Waiting...")
 
 	defer func(t time.Time) {
 		logrus.
@@ -293,7 +299,7 @@ func (pw *PodWatcher) waitForEvent(containerId string, state containerState) (er
 		if pw.errDone != nil {
 			err = pw.errDone
 		} else if containerId != "" {
-			err = ErrPodTerminated
+			err = PodTerminatedError{}
 		}
 	}
 
@@ -324,14 +330,19 @@ func (pw *PodWatcher) WaitPodDeleted() (err error) {
 // AddContainer registers a container for state tracking.
 // Adding containers is necessary because PodWatcher
 // must know name of the placeholder image for each container.
-func (pw *PodWatcher) AddContainer(id string, placeholder string) {
-	pw.containerRegCh <- containerInfo{
+func (pw *PodWatcher) AddContainer(id string, placeholder string) error {
+	select {
+	case pw.containerRegCh <- containerInfo{
 		id:          id,
 		state:       stateWaiting,
 		stateInfo:   "",
 		image:       placeholder,
 		placeholder: placeholder,
 		exitCode:    0,
+	}:
+		return nil
+	case <-pw.stop:
+		return PodTerminatedError{}
 	}
 }
 

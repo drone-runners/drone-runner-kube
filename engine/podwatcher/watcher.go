@@ -132,7 +132,7 @@ func (pw *PodWatcher) Start(ctx context.Context, cw ContainerWatcher) {
 				}
 
 				// Try to resolve the waitClient right now...
-				if !_tryResolveWaitClient(cl, c) {
+				if !_tryResolveWaitClient(cl, c, nil) {
 					// ... if can't, put the waitClient to the list of unresolved clients.
 					pw.clientList = append(pw.clientList, cl)
 				}
@@ -160,18 +160,18 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 		}
 
 		if cs.image == c.placeholder && c.image != c.placeholder {
-			logrus.
-				WithField("pod", pw.podName).
-				WithField("container", c.id).
-				WithField("image", cs.image).
-				WithField("state", cs.state).
-				WithField("stateInfo", cs.stateInfo).
-				Warn("PodWatcher: Image is placeholder again")
+			err := AbortedContainerError{
+				container: c.id,
+				state:     cs.state,
+				exitCode:  cs.exitCode,
+				reason:    cs.stateInfo,
+			}
 
 			c.state = stateTerminated
 			c.stateInfo = cs.stateInfo
 			c.exitCode = cs.exitCode
-			pw.notifyClientsContainerChange(c)
+			pw.notifyClientsContainerChange(c, err)
+
 			continue
 		}
 
@@ -182,15 +182,13 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 
 		if c.image == c.placeholder {
 			if c.state == stateTerminated {
-				logrus.
-					WithField("pod", pw.podName).
-					WithField("container", c.id).
-					WithField("image", c.image).
-					WithField("state", c.state).
-					WithField("stateInfo", c.stateInfo).
-					Warn("PodWatcher: Placeholder terminated")
+				err := FailedContainerError{
+					container: c.id,
+					exitCode:  c.exitCode,
+					reason:    c.stateInfo,
+				}
 
-				pw.notifyClientsContainerChange(c)
+				pw.notifyClientsContainerChange(c, err)
 			}
 		} else {
 			logrus.
@@ -201,7 +199,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 				WithField("stateInfo", c.stateInfo).
 				Debug("PodWatcher: Container state changed")
 
-			pw.notifyClientsContainerChange(c)
+			pw.notifyClientsContainerChange(c, nil)
 		}
 	}
 }
@@ -209,22 +207,19 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 // _tryResolveWaitClient will resolve the waitClient if the container state is greater or equal to the requested state.
 // For example: A container in TERMINATED state will resolve all clients waiting for it to enter RUNNING state
 // and all clients waiting for it to enter TERMINATED state.
-func _tryResolveWaitClient(cl *waitClient, c *containerInfo) bool {
+func _tryResolveWaitClient(cl *waitClient, c *containerInfo, err error) bool {
 	if cl.containerId != c.id {
 		return false
 	}
 
+	if err != nil {
+		// tell the waitClient to fail
+		cl.resolveCh <- err
+		return true
+	}
+
 	if image.Match(c.image, c.placeholder) {
-		if c.state == stateTerminated {
-			cl.resolveCh <- FailedContainerError{
-				container: c.id,
-				exitCode:  c.exitCode,
-				reason:    c.stateInfo,
-			}
-			return true
-		} else {
-			return false
-		}
+		return false
 	}
 
 	if c.state >= cl.containerState {
@@ -243,11 +238,11 @@ func _tryResolveWaitClient(cl *waitClient, c *containerInfo) bool {
 }
 
 // notifyClientsContainerChange resolves all wait clients that wait for a specific state of a container.
-func (pw *PodWatcher) notifyClientsContainerChange(c *containerInfo) {
+func (pw *PodWatcher) notifyClientsContainerChange(c *containerInfo, err error) {
 	for clIdx := 0; clIdx < len(pw.clientList); {
 		cl := pw.clientList[clIdx]
 
-		if _tryResolveWaitClient(cl, c) {
+		if _tryResolveWaitClient(cl, c, err) {
 			// remove the waitClient from the list (order is not preserved)
 			pw.clientList[clIdx] = pw.clientList[len(pw.clientList)-1]
 			pw.clientList[len(pw.clientList)-1] = nil

@@ -22,7 +22,7 @@ func (e PodTerminatedError) Error() string {
 	return "pod is terminated"
 }
 
-// FailedContainerError is as error when placeholder container terminates abnormally.
+// FailedContainerError is returned as an error when placeholder container terminates abnormally.
 // The correct container image failed to load. Usually happens when image doesn't exist.
 type FailedContainerError struct {
 	container string
@@ -32,6 +32,32 @@ type FailedContainerError struct {
 
 func (e FailedContainerError) Error() string {
 	return fmt.Sprintf(
-		"container failed to start: id=%s exitcode=%d reason=%s",
+		"kubernetes error: container failed to start: id=%s exitcode=%d reason=%s",
 		e.container, e.exitCode, e.reason)
+}
+
+// AbortedContainerError is an error returned when a container, that was earlier started successfully,
+// suddenly reverted image back to the placeholder image and terminated.
+type AbortedContainerError struct {
+	container string
+	state     containerState
+	exitCode  int32
+	reason    string
+}
+
+func (e AbortedContainerError) Error() string {
+	return fmt.Sprintf(
+		"kubernetes error: container failed to start and reverted back to placeholder image: id=%s state=%s exitCode=%d reason=%s",
+		e.container, e.state, e.exitCode, e.reason)
+}
+
+// StartTimeoutContainerError is returned as an error when a container fails to run after some predefined time.
+type StartTimeoutContainerError struct {
+	Container string
+}
+
+func (e StartTimeoutContainerError) Error() string {
+	return fmt.Sprintf(
+		"kubernetes error: container failed to start in timely manner: id=%s",
+		e.Container)
 }

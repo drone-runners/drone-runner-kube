@@ -6,7 +6,6 @@ package engine
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -237,7 +236,8 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		WithField("container", containerId).
 		WithField("image", containerImage).
 		WithField("placeholder", containerPlaceholder).
-		Debugf("Engine: Starting step: %q", stepName)
+		WithField("step", stepName).
+		Debugf("Engine: Starting step")
 
 	err = <-k.startContainer(ctx, spec, step)
 	if err != nil {
@@ -252,8 +252,15 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	select {
 	case err = <-chErrStart:
 	case <-time.After(3 * time.Minute):
-		err = fmt.Errorf("container=%s (image=%s) of pod=%s for step '%s' failed to start in timely manner",
-			containerId, containerImage, podId, stepName)
+		err = podwatcher.StartTimeoutContainerError{Container: containerId}
+		logger.FromContext(ctx).
+			WithError(err).
+			WithField("pod", podId).
+			WithField("container", containerId).
+			WithField("image", containerImage).
+			WithField("placeholder", containerPlaceholder).
+			WithField("step", stepName).
+			Warnf("Engine: Container start timeout")
 	}
 	if err != nil {
 		return

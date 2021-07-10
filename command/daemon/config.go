@@ -66,10 +66,12 @@ type Config struct {
 	}
 
 	Resources struct {
-		LimitCPU      int64     `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
-		LimitMemory   BytesSize `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
-		RequestCPU    int64     `envconfig:"DRONE_RESOURCE_REQUEST_CPU" default:"100"`
-		RequestMemory BytesSize `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY" default:"104857600"` // default 100MB
+		LimitCPU       int64     `envconfig:"DRONE_RESOURCE_LIMIT_CPU"`
+		LimitMemory    BytesSize `envconfig:"DRONE_RESOURCE_LIMIT_MEMORY"`
+		LimitStorage   BytesSize `envconfig:"DRONE_RESOURCE_LIMIT_STORAGE"`
+		RequestCPU     int64     `envconfig:"DRONE_RESOURCE_REQUEST_CPU" default:"100"`
+		RequestMemory  BytesSize `envconfig:"DRONE_RESOURCE_REQUEST_MEMORY" default:"104857600"` // default 100MB
+		RequestStorage BytesSize `envconfig:"DRONE_RESOURCE_REQUEST_STORAGE"`
 		// Defaults for min memory & cpu requests are set to ensure that default limitrange values are not used.
 		// Default for MinRequestMemory is set to 4MB. Anything below 4MB fails with
 		// "Error: Error response from daemon: Minimum memory limit allowed is 4MB" on gke

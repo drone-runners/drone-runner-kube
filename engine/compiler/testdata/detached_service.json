@@ -1,0 +1,110 @@
+{
+  "pod_spec": {
+    "name": "random",
+    "annotations": {},
+    "labels": {},
+    "host_aliases": [
+      {
+        "ip": "127.0.0.1",
+        "hostnames": [
+          "redis-service"
+        ]
+      }
+    ]
+  },
+  "platform": {},
+  "steps": [
+    {
+      "id": "random",
+      "environment": {},
+      "image": "drone/git:latest",
+      "name": "clone",
+      "placeholder": "drone/placeholder:1",
+      "resources": {},
+      "run_policy": "always",
+      "volumes": [
+        {
+          "name": "_workspace",
+          "path": "/drone/src"
+        },
+        {
+          "name": "_status",
+          "path": "/run/drone"
+        }
+      ],
+      "working_dir": "/drone/src"
+    },
+    {
+      "id": "random",
+      "detach": true,
+      "depends_on": [
+        "clone"
+      ],
+      "environment": {},
+      "image": "docker.io/library/redis:latest",
+      "name": "redis-service",
+      "placeholder": "drone/placeholder:1",
+      "resources": {},
+      "volumes": [
+        {
+          "name": "_workspace",
+          "path": "/drone/src"
+        },
+        {
+          "name": "_status",
+          "path": "/run/drone"
+        }
+      ]
+    },
+    {
+      "id": "random",
+      "args": [
+        "echo \"$DRONE_SCRIPT\" | /bin/sh"
+      ],
+      "depends_on": [
+        "redis-service"
+      ],
+      "entrypoint": [
+        "/bin/sh",
+        "-c"
+      ],
+      "environment": {},
+      "image": "docker.io/library/golang:latest",
+      "name": "build",
+      "placeholder": "drone/placeholder:1",
+      "resources": {},
+      "volumes": [
+        {
+          "name": "_workspace",
+          "path": "/drone/src"
+        },
+        {
+          "name": "_status",
+          "path": "/run/drone"
+        }
+      ],
+      "working_dir": "/drone/src"
+    }
+  ],
+  "volumes": [
+    {
+      "temp": {
+        "id": "random",
+        "name": "_workspace"
+      }
+    },
+    {
+      "downward_api": {
+        "id": "random",
+        "name": "_status",
+        "items": [
+          {
+            "path": "env",
+            "field_path": "metadata.annotations"
+          }
+        ]
+      }
+    }
+  ],
+  "secrets": {}
+}

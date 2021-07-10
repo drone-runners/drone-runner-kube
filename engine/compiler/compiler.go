@@ -421,6 +421,13 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 	}
 
+	for _, ahost := range pipeline.HostAliases {
+		spec.PodSpec.HostAliases = append(spec.PodSpec.HostAliases, engine.HostAlias{
+			IP:        ahost.IP,
+			Hostnames: ahost.Hostnames,
+		})
+	}
+
 	// create steps
 	for _, src := range pipeline.Steps {
 		dst := createStep(pipeline, src)

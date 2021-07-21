@@ -30,25 +30,26 @@ import (
 type compileCommand struct {
 	*internal.Flags
 
-	Source           *os.File
-	Privileged       []string
-	Volumes          map[string]string
-	Environ          map[string]string
-	Labels           map[string]string
-	Secrets          map[string]string
-	Clone            bool
-	Spec             bool
-	Config           string
-	LimitCPU         int64
-	LimitMemory      int64
-	RequestCPU       int64
-	RequestMemory    int64
-	MinRequestCPU    int64
-	MinRequestMemory int64
-	Tmate            compiler.Tmate
+	Source        *os.File
+	Privileged    []string
+	Volumes       map[string]string
+	Environ       map[string]string
+	Labels        map[string]string
+	Secrets       map[string]string
+	Clone         bool
+	Spec          bool
+	Config        string
+	Resource      compiler.Resources
+	StageRequests compiler.ResourceObject
+	Tmate         compiler.Tmate
 }
 
 func (c *compileCommand) run(*kingpin.ParseContext) error {
+	// resource memory amounts are provided in megabytes, so convert them to bytes.
+	c.Resource.Limits.Memory *= 1024 * 1024
+	c.Resource.MinRequests.Memory *= 1024 * 1024
+	c.StageRequests.Memory *= 1024 * 1024
+
 	rawsource, err := ioutil.ReadAll(c.Source)
 	if err != nil {
 		return err
@@ -112,20 +113,11 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 		Secret:     secret.Combine(),
 		Registry:   registry.Combine(),
 		Resources: compiler.Resources{
-			Limits: compiler.ResourceObject{
-				CPU:    c.LimitCPU,
-				Memory: c.LimitMemory,
-			},
-			MinRequests: compiler.ResourceObject{
-				CPU:    c.MinRequestCPU,
-				Memory: c.MinRequestMemory,
-			},
+			Limits:      c.Resource.Limits,
+			MinRequests: c.Resource.MinRequests,
 		},
-		StageRequests: compiler.ResourceObject{
-			CPU:    c.RequestCPU,
-			Memory: c.RequestMemory,
-		},
-		Tmate: c.Tmate,
+		StageRequests: c.StageRequests,
+		Tmate:         c.Tmate,
 	}
 
 	args := runtime.CompilerArgs{
@@ -188,23 +180,27 @@ func registerCompile(app *kingpin.Application) {
 	cmd.Flag("spec", "output the kubernetes spec").
 		BoolVar(&c.Spec)
 
-	cmd.Flag("limit-cpu", "limit container cpu").
-		Int64Var(&c.LimitCPU)
+	cmd.Flag("limit-memory", "memory limit in MiB for containers").
+		Int64Var(&c.Resource.Limits.Memory)
 
-	cmd.Flag("limit-memory", "limit container memory").
-		Int64Var(&c.LimitMemory)
+	cmd.Flag("limit-cpu", "cpu limit in millicores for containers").
+		Int64Var(&c.Resource.Limits.CPU)
 
-	cmd.Flag("request-cpu", "stage request cpu").
-		Int64Var(&c.RequestCPU)
+	cmd.Flag("request-memory", "memory in MiB for entire pod").
+		Default("100"). // Default is 100MiB
+		Int64Var(&c.StageRequests.Memory)
 
-	cmd.Flag("request-memory", "stage request memory").
-		Int64Var(&c.RequestMemory)
+	cmd.Flag("request-cpu", "cpu in millicores for entire pod").
+		Default("100").
+		Int64Var(&c.StageRequests.CPU)
 
-	cmd.Flag("min-request-cpu", "minimum container request cpu").
-		Int64Var(&c.MinRequestCPU)
+	cmd.Flag("min-request-memory", "min memory in MiB allocated to each container").
+		Default("4"). // Default is 4MiB
+		Int64Var(&c.Resource.MinRequests.Memory)
 
-	cmd.Flag("min-request-memory", "minimum container request memory").
-		Int64Var(&c.MinRequestMemory)
+	cmd.Flag("min-request-cpu", "min cpu in millicores allocated to each container").
+		Default("1").
+		Int64Var(&c.Resource.MinRequests.CPU)
 
 	cmd.Flag("tmate-image", "tmate docker image").
 		Default("drone/drone-runner-docker:latest").

@@ -30,18 +30,19 @@ import (
 type compileCommand struct {
 	*internal.Flags
 
-	Source        *os.File
-	Privileged    []string
-	Volumes       map[string]string
-	Environ       map[string]string
-	Labels        map[string]string
-	Secrets       map[string]string
-	Clone         bool
-	Spec          bool
-	Config        string
-	Resource      compiler.Resources
-	StageRequests compiler.ResourceObject
-	Tmate         compiler.Tmate
+	Source         *os.File
+	Privileged     []string
+	NetrcCloneOnly bool
+	Volumes        map[string]string
+	Environ        map[string]string
+	Labels         map[string]string
+	Secrets        map[string]string
+	Clone          bool
+	Spec           bool
+	Config         string
+	Resource       compiler.Resources
+	StageRequests  compiler.ResourceObject
+	Tmate          compiler.Tmate
 }
 
 func (c *compileCommand) run(*kingpin.ParseContext) error {
@@ -106,12 +107,13 @@ func (c *compileCommand) run(*kingpin.ParseContext) error {
 
 	// compile the pipeline to an intermediate representation.
 	comp := &compiler.Compiler{
-		Environ:    provider.Static(c.Environ),
-		Labels:     c.Labels,
-		Privileged: append(c.Privileged, compiler.Privileged...),
-		Volumes:    c.Volumes,
-		Secret:     secret.Combine(),
-		Registry:   registry.Combine(),
+		Environ:        provider.Static(c.Environ),
+		Labels:         c.Labels,
+		Privileged:     append(c.Privileged, compiler.Privileged...),
+		NetrcCloneOnly: c.NetrcCloneOnly,
+		Volumes:        c.Volumes,
+		Secret:         secret.Combine(),
+		Registry:       registry.Combine(),
 		Resources: compiler.Resources{
 			Limits:      c.Resource.Limits,
 			MinRequests: c.Resource.MinRequests,
@@ -220,6 +222,8 @@ func registerCompile(app *kingpin.Application) {
 
 	cmd.Flag("tmate-server-ed25519-fingerprint", "tmate server rsa fingerprint").
 		StringVar(&c.Tmate.ED25519)
+	cmd.Flag("netrc-clone-only", "netrc clone only").
+		BoolVar(&c.NetrcCloneOnly)
 
 		// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

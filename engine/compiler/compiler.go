@@ -88,6 +88,10 @@ type (
 		// are always privileged.
 		Privileged []string
 
+		// NetrcCloneOnly instrucs the compiler to only inject
+		// the netrc file into the clone setp.
+		NetrcCloneOnly bool
+
 		// Volumes provides a set of volumes that should be
 		// mounted to each pipeline container.
 		Volumes map[string]string
@@ -315,17 +319,10 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		envs["DRONE_DOCKER_VOLUME_PATH"] = workVolume.HostPath.Path
 	}
 
-	// create the netrc environment variables
-	if args.Netrc != nil && args.Netrc.Machine != "" {
-		envs["DRONE_NETRC_MACHINE"] = args.Netrc.Machine
-		envs["DRONE_NETRC_USERNAME"] = args.Netrc.Login
-		envs["DRONE_NETRC_PASSWORD"] = args.Netrc.Password
-		envs["DRONE_NETRC_FILE"] = fmt.Sprintf(
-			"machine %s login %s password %s",
-			args.Netrc.Machine,
-			args.Netrc.Login,
-			args.Netrc.Password,
-		)
+	// create the .netrc environment variables if not
+	// explicitly disabled
+	if c.NetrcCloneOnly == false {
+		envs = environ.Combine(envs, environ.Netrc(args.Netrc))
 	}
 
 	// create tmate variables
@@ -368,6 +365,12 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		step.WorkingDir = workspace
 		step.Volumes = append(step.Volumes, workMount, statusMount)
 		spec.Steps = append(spec.Steps, step)
+
+		// always set the .netrc file for the clone step.
+		// note that environment variables are only set
+		// if the .netrc file is not nil (it will always
+		// be nil for public repositories).
+		step.Envs = environ.Combine(step.Envs, environ.Netrc(args.Netrc))
 
 		// override default clone image.
 		if c.Cloner != "" {

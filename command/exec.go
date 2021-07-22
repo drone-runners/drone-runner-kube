@@ -41,27 +41,34 @@ import (
 type execCommand struct {
 	*internal.Flags
 
-	Source     *os.File
-	Include    []string
-	Exclude    []string
-	Privileged []string
-	Volumes    map[string]string
-	Environ    map[string]string
-	Labels     map[string]string
-	Secrets    map[string]string
-	Namespace  string
-	Config     string
-	Policy     string
-	Tmate      compiler.Tmate
-	Clone      bool
-	Pretty     bool
-	Procs      int64
-	Debug      bool
-	Trace      bool
-	Dump       bool
+	Source        *os.File
+	Include       []string
+	Exclude       []string
+	Privileged    []string
+	Volumes       map[string]string
+	Environ       map[string]string
+	Labels        map[string]string
+	Secrets       map[string]string
+	Resource      compiler.Resources
+	StageRequests compiler.ResourceObject
+	Namespace     string
+	Config        string
+	Policy        string
+	Tmate         compiler.Tmate
+	Clone         bool
+	Pretty        bool
+	Procs         int64
+	Debug         bool
+	Trace         bool
+	Dump          bool
 }
 
 func (c *execCommand) run(*kingpin.ParseContext) error {
+	// resource memory amounts are provided in megabytes, so convert them to bytes.
+	c.Resource.Limits.Memory *= 1024 * 1024
+	c.Resource.MinRequests.Memory *= 1024 * 1024
+	c.StageRequests.Memory *= 1024 * 1024
+
 	rawsource, err := ioutil.ReadAll(c.Source)
 	if err != nil {
 		return err
@@ -140,8 +147,13 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		Volumes:    c.Volumes,
 		Secret:     secret.StaticVars(c.Secrets),
 		Registry:   registry.Combine(),
-		Namespace:  c.Namespace,
-		Policies:   policies,
+		Resources: compiler.Resources{
+			Limits:      c.Resource.Limits,
+			MinRequests: c.Resource.MinRequests,
+		},
+		StageRequests: c.StageRequests,
+		Namespace:     c.Namespace,
+		Policies:      policies,
 	}
 
 	args := runtime.CompilerArgs{
@@ -317,6 +329,28 @@ func registerExec(app *kingpin.Application) {
 
 	cmd.Flag("kubeconfig", "path to the kubernetes config file").
 		StringVar(&c.Config)
+
+	cmd.Flag("limit-memory", "memory limit in MiB for containers").
+		Int64Var(&c.Resource.Limits.Memory)
+
+	cmd.Flag("limit-cpu", "cpu limit in millicores for containers").
+		Int64Var(&c.Resource.Limits.CPU)
+
+	cmd.Flag("request-memory", "memory in MiB for entire pod").
+		Default("100"). // Default is 100MiB
+		Int64Var(&c.StageRequests.Memory)
+
+	cmd.Flag("request-cpu", "cpu in millicores for entire pod").
+		Default("100").
+		Int64Var(&c.StageRequests.CPU)
+
+	cmd.Flag("min-request-memory", "min memory in MiB allocated to each container").
+		Default("4"). // Default is 4MiB
+		Int64Var(&c.Resource.MinRequests.Memory)
+
+	cmd.Flag("min-request-cpu", "min cpu in millicores allocated to each container").
+		Default("1").
+		Int64Var(&c.Resource.MinRequests.CPU)
 
 	cmd.Flag("policy", "path to the pipeline policy file").
 		StringVar(&c.Policy)

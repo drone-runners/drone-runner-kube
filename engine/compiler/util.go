@@ -158,24 +158,6 @@ func isRestrictedVariable(env map[string]*manifest.Variable) bool {
 	return false
 }
 
-// Upper value for cpu and memory requests for step containers.
-// It is same as stage resource request if set in pipeline. Otherwise, it defaults to
-// runner environment variable values.
-func getStepUpperRequestVal(stageResources resource.Resources,
-	defaultRequests ResourceObject) ResourceObject {
-	r := ResourceObject{
-		CPU:    stageResources.Requests.CPU,
-		Memory: int64(stageResources.Requests.Memory),
-	}
-	if r.CPU == 0 {
-		r.CPU = defaultRequests.CPU
-	}
-	if r.Memory == 0 {
-		r.Memory = defaultRequests.Memory
-	}
-	return r
-}
-
 func max(a, b int64) int64 {
 	if a > b {
 		return a
@@ -188,6 +170,15 @@ func min(a, b int64) int64 {
 		return a
 	}
 	return b
+}
+
+func firstNonZero(values ...int64) int64 {
+	for _, value := range values {
+		if value != 0 {
+			return value
+		}
+	}
+	return 0
 }
 
 // list of restricted variables

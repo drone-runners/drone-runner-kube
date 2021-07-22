@@ -84,26 +84,16 @@ func (p *Policy) Apply(spec *engine.Spec) {
 
 	// apply resource requests
 	if v := p.Resources.Request.CPU; v != 0 {
-		for _, s := range spec.Steps {
-			s.Resources.Requests.CPU = v
-		}
+		spec.Resources.Requests.CPU = v
 	}
 	if v := p.Resources.Request.Memory; v != 0 {
-		for _, s := range spec.Steps {
-			s.Resources.Requests.Memory = int64(v)
-		}
+		spec.Resources.Requests.Memory = int64(v)
 	}
-
-	// apply resource limits
 	if v := p.Resources.Limit.CPU; v != 0 {
-		for _, s := range spec.Steps {
-			s.Resources.Limits.CPU = v
-		}
+		spec.Resources.Limits.CPU = v
 	}
 	if v := p.Resources.Limit.Memory; v != 0 {
-		for _, s := range spec.Steps {
-			s.Resources.Limits.Memory = int64(v)
-		}
+		spec.Resources.Limits.Memory = int64(v)
 	}
 
 	// apply the default nodeselector.

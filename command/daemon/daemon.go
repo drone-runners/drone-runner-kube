@@ -122,6 +122,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Compiler: &compiler.Compiler{
 			Cloner:         config.Images.Clone,
 			Placeholder:    config.Images.Placeholder,
+			NetrcCloneOnly: config.Netrc.CloneOnly,
 			Volumes:        config.Runner.Volumes,
 			Namespace:      config.Namespace.Default,
 			Labels:         config.Labels.Default,

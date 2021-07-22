@@ -88,6 +88,10 @@ type Config struct {
 		SkipVerify bool   `envconfig:"DRONE_SECRET_PLUGIN_SKIP_VERIFY"`
 	}
 
+	Netrc struct {
+		CloneOnly bool `envconfig:"DRONE_NETRC_CLONE_ONLY"`
+	}
+
 	Registry struct {
 		Endpoint   string `envconfig:"DRONE_REGISTRY_PLUGIN_ENDPOINT"`
 		Token      string `envconfig:"DRONE_REGISTRY_PLUGIN_TOKEN"`

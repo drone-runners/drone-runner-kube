@@ -131,7 +131,6 @@ type (
 		Name        string                         `json:"name,omitempty"`
 		Privileged  bool                           `json:"privileged,omitempty"`
 		Pull        string                         `json:"pull,omitempty"`
-		Resources   Resources                      `json:"resource,omitempty"`
 		Settings    map[string]*manifest.Parameter `json:"settings,omitempty"`
 		Shell       string                         `json:"shell,omitempty"`
 		User        *int64                         `json:"user,omitempty"`

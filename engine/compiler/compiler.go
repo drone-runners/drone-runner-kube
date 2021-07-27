@@ -415,15 +415,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 	}
 
-	if len(hostnames) > 0 {
-		spec.PodSpec.HostAliases = []engine.HostAlias{
-			{
-				IP:        "127.0.0.1",
-				Hostnames: hostnames,
-			},
-		}
-	}
-
 	// create steps
 	for _, src := range pipeline.Steps {
 		dst := createStep(pipeline, src)
@@ -444,11 +435,24 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			dst.Placeholder = c.Placeholder
 		}
 
+		if dst.Detach && len(validation.IsDNS1123Subdomain(src.Name)) == 0 {
+			hostnames = append(hostnames, src.Name)
+		}
+
 		// if the pipeline step has an approved image, it is
 		// automatically defaulted to run with escalalated
 		// privileges.
 		if c.isPrivileged(src) {
 			dst.Privileged = true
+		}
+	}
+
+	if len(hostnames) > 0 {
+		spec.PodSpec.HostAliases = []engine.HostAlias{
+			{
+				IP:        "127.0.0.1",
+				Hostnames: hostnames,
+			},
 		}
 	}
 

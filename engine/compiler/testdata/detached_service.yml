@@ -1,0 +1,13 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+steps:
+- name: redis-service
+  detach: true
+  image: redis
+
+- name: build
+  image: golang
+  commands:
+  - go build

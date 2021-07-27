@@ -48,6 +48,11 @@ func TestCompile_Services(t *testing.T) {
 	testCompile(t, "testdata/service.yml", "testdata/service.json")
 }
 
+// This test verifies a detached service.
+func TestCompile_DetachedService(t *testing.T) {
+	testCompile(t, "testdata/detached_service.yml", "testdata/detached_service.json")
+}
+
 // This test verifies the pipeline dependency graph. It also
 // verifies that pipeline steps with no dependencies depend on
 // the initial clone step.

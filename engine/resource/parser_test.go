@@ -95,6 +95,12 @@ func TestParse(t *testing.T) {
 						"GOOS":   &manifest.Variable{Value: "linux"},
 						"GOARCH": &manifest.Variable{Value: "arm64"},
 					},
+					Resources: Resources{
+						Limits: ResourceObject{
+							CPU:    1000,
+							Memory: 524288000,
+						},
+					},
 					Failure: "ignore",
 					When: manifest.Conditions{
 						Event: manifest.Condition{

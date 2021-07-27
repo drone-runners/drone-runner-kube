@@ -613,21 +613,18 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		c.StageRequests.CPU)             // from DRONE_RESOURCE_REQUEST_CPU environment variable
 
 	spec.Resources.Limits.Memory = firstNonZero(
-		spec.Resources.Limits.Memory,            // from a policy: resources.limit.memory
-		int64(pipeline.Resources.Limits.Memory), // from yaml: resources.limits.memory
-		c.Resources.Limits.Memory)               // from DRONE_RESOURCE_LIMIT_MEMORY environment variable
+		spec.Resources.Limits.Memory, // from a policy: resources.limit.memory
+		//int64(pipeline.Resources.Limits.Memory), // from yaml: resources.limits.memory (forbidden: limits are set per step)
+		c.Resources.Limits.Memory) // from DRONE_RESOURCE_LIMIT_MEMORY environment variable
 
 	spec.Resources.Limits.CPU = firstNonZero(
-		spec.Resources.Limits.CPU,     // from a policy: resources.limit.cpu
-		pipeline.Resources.Limits.CPU, // from yaml: resources.limits.cpu
-		c.Resources.Limits.CPU)        // from DRONE_RESOURCE_LIMIT_CPU environment variable
+		spec.Resources.Limits.CPU, // from a policy: resources.limit.cpu
+		//pipeline.Resources.Limits.CPU, // from yaml: resources.limits.cpu (forbidden: limits are set per step)
+		c.Resources.Limits.CPU) // from DRONE_RESOURCE_LIMIT_CPU environment variable
 
 	// Distribute resources across all containers (steps):
 	// The amounts specified as "spec.Resources.Requests" refer to a pod as a whole.
-	// This helps Kubernetes to pick a node on which to run the pod.
-	// This amount is equally split among all steps/containers.
-	// In addition to that, no container can have less than it is defined with "MinRequests"
-	// and more than it is defined with "spec.Resources.Limits".
+	// This helps Kubernetes to pick a node on which to run the pod. The amount is equally split among all steps/containers.
 
 	numSteps := len(spec.Steps)
 
@@ -637,10 +634,28 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	partsCPU := divideIntEqually(spec.Resources.Requests.CPU, numSteps, 1)
 
 	for i, v := range spec.Steps {
-		// set limit to each container of a pod
-		v.Resources.Limits = spec.Resources.Limits
+		// Set limit to each container of a pod.
+		// Rules are:
+		// * in yaml, per step: 0   0   X   X
+		// * policy or env var: 0   X   0   Y
+		// -----------------------------------------
+		// final value -------> 0   X   X   min(X, Y)
 
-		// set request values from each container of a pod
+		if spec.Resources.Limits.Memory > 0 && v.Resources.Limits.Memory > 0 {
+			v.Resources.Limits.Memory = min(v.Resources.Limits.Memory, spec.Resources.Limits.Memory)
+		} else {
+			v.Resources.Limits.Memory = max(v.Resources.Limits.Memory, spec.Resources.Limits.Memory)
+		}
+
+		if spec.Resources.Limits.CPU > 0 && v.Resources.Limits.CPU > 0 {
+			v.Resources.Limits.CPU = min(v.Resources.Limits.CPU, spec.Resources.Limits.CPU)
+		} else {
+			v.Resources.Limits.CPU = max(v.Resources.Limits.CPU, spec.Resources.Limits.CPU)
+		}
+
+		// Set request values from each container of a pod.
+		// Ignore the value that was in v.Resources.Requests
+		// (it is forbidden to set request per step, only per pipeline is allowed).
 
 		mem := max(partsMem[i], valuesMin.Memory)
 		if v.Resources.Limits.Memory > 0 {

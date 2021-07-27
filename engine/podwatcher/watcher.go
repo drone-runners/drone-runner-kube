@@ -239,6 +239,22 @@ func _tryResolveWaitClient(cl *waitClient, c *containerInfo, err error) bool {
 
 // notifyClientsContainerChange resolves all wait clients that wait for a specific state of a container.
 func (pw *PodWatcher) notifyClientsContainerChange(c *containerInfo, err error) {
+	if err != nil {
+		_, isFailed := err.(FailedContainerError)
+		_, isAborted := err.(AbortedContainerError)
+		if isKubeError := isFailed || isAborted; isKubeError {
+			for _, cl := range pw.clientList {
+				if cl.containerId == c.id {
+					cl.resolveCh <- err
+				} else {
+					cl.resolveCh <- OtherContainerError{Err: err}
+				}
+			}
+			pw.clientList = nil
+			return
+		}
+	}
+
 	for clIdx := 0; clIdx < len(pw.clientList); {
 		cl := pw.clientList[clIdx]
 

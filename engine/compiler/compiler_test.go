@@ -11,6 +11,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/dchest/uniuri"
@@ -247,4 +248,72 @@ func dump(v interface{}) {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	enc.Encode(v)
+}
+
+func TestDivideIntEqually(t *testing.T) {
+	tests := []struct {
+		name     string
+		amount   int64
+		count    int
+		unit     int64
+		expected []int64
+	}{
+		{
+			name:     "one part, no splitting",
+			amount:   10,
+			count:    1,
+			unit:     1,
+			expected: []int64{10},
+		},
+		{
+			name:     "two halves",
+			amount:   10,
+			count:    2,
+			unit:     1,
+			expected: []int64{5, 5},
+		},
+		{
+			name:     "one part, convert to unit multiple",
+			amount:   10,
+			count:    1,
+			unit:     3,
+			expected: []int64{12}, // must be multiple of unit
+		},
+		{
+			name:     "split 1 to two parts",
+			amount:   1,
+			count:    2,
+			unit:     1,
+			expected: []int64{1, 0},
+		},
+		{
+			name:     "split 12/5, unit 1",
+			amount:   12,
+			count:    5,
+			unit:     1,
+			expected: []int64{3, 3, 2, 2, 2},
+		},
+		{
+			name:     "split 12/5, unit 2",
+			amount:   12,
+			count:    5,
+			unit:     2,
+			expected: []int64{4, 2, 2, 2, 2},
+		},
+		{
+			name:     "split 12/5, unit 3",
+			amount:   12,
+			count:    5,
+			unit:     3,
+			expected: []int64{3, 3, 3, 3, 0},
+		},
+	}
+
+	for _, test := range tests {
+		result := divideIntEqually(test.amount, test.count, test.unit)
+		if !reflect.DeepEqual(result, test.expected) {
+			t.Errorf("test %q failed, amount=%d, count=%d, unit=%d, expected=%v, got=%v",
+				test.name, test.amount, test.count, test.unit, test.expected, result)
+		}
+	}
 }

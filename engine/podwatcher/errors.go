@@ -61,3 +61,15 @@ func (e StartTimeoutContainerError) Error() string {
 		"kubernetes error: container failed to start in timely manner: id=%s",
 		e.Container)
 }
+
+// OtherContainerError is returned as an error by wait function when some other container
+// in the same pod fails with a kubernetes error.
+type OtherContainerError struct {
+	Err error
+}
+
+func (e OtherContainerError) Error() string {
+	return fmt.Sprintf(
+		"kubernetes error: aborting due to error: %s",
+		e.Err)
+}

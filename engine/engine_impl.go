@@ -251,7 +251,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 
 	select {
 	case err = <-chErrStart:
-	case <-time.After(3 * time.Minute):
+	case <-time.After(8 * time.Minute):
 		err = podwatcher.StartTimeoutContainerError{Container: containerId}
 		logger.FromContext(ctx).
 			WithError(err).

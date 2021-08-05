@@ -14,6 +14,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 
+	"github.com/drone/drone-go/drone"
 	"github.com/drone/runner-go/clone"
 	"github.com/drone/runner-go/container"
 	"github.com/drone/runner-go/environ"
@@ -319,12 +320,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		envs["DRONE_DOCKER_VOLUME_PATH"] = workVolume.HostPath.Path
 	}
 
-	// create the .netrc environment variables if not
-	// explicitly disabled
-	if c.NetrcCloneOnly == false {
-		envs = environ.Combine(envs, environ.Netrc(args.Netrc))
-	}
-
 	// create tmate variables
 	if c.Tmate.Server != "" {
 		envs["DRONE_TMATE_HOST"] = c.Tmate.Server
@@ -365,12 +360,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		step.WorkingDir = workspace
 		step.Volumes = append(step.Volumes, workMount, statusMount)
 		spec.Steps = append(spec.Steps, step)
-
-		// always set the .netrc file for the clone step.
-		// note that environment variables are only set
-		// if the .netrc file is not nil (it will always
-		// be nil for public repositories).
-		step.Envs = environ.Combine(step.Envs, environ.Netrc(args.Netrc))
 
 		// override default clone image.
 		if c.Cloner != "" {
@@ -493,7 +482,13 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		removeCloneDeps(spec)
 	}
 
-	for _, step := range append(spec.Steps, spec.Internal...) {
+	hasNetrc := packNetrcSecrets(spec, args.Netrc)
+
+	for stepIdx, step := range append(spec.Steps, spec.Internal...) {
+		if hasNetrc && (stepIdx == 0 && c.NetrcCloneOnly || !c.NetrcCloneOnly) {
+			setNetrcSecretsToStep(step, spec)
+		}
+
 		for _, s := range step.Secrets {
 			// if the secret was already fetched and stored in the
 			// secret map it can be skipped.
@@ -744,6 +739,45 @@ func (c *Compiler) findSecret(ctx context.Context, args runtime.CompilerArgs, na
 		return
 	}
 	return found.Data, true
+}
+
+const (
+	envNetrcMachine  = "DRONE_NETRC_MACHINE"
+	envNetrcUsername = "DRONE_NETRC_USERNAME"
+	envNetrcPassword = "DRONE_NETRC_PASSWORD"
+	envNetrcFile     = "DRONE_NETRC_FILE"
+)
+
+// packNetrcSecrets is helper function that packs kubernetes secrets required for netrc to engine.Spec.
+// The function returns true if netrc secrets are set and false if netrc is empty.
+func packNetrcSecrets(spec *engine.Spec, netrc *drone.Netrc) bool {
+	if netrc == nil || netrc.Machine == "" {
+		return false
+	}
+
+	fileData := fmt.Sprintf(
+		"machine %s login %s password %s",
+		netrc.Machine,
+		netrc.Login,
+		netrc.Password)
+
+	spec.Secrets[envNetrcMachine] = &engine.Secret{Name: envNetrcMachine, Data: netrc.Machine}
+	spec.Secrets[envNetrcUsername] = &engine.Secret{Name: envNetrcUsername, Data: netrc.Login, Mask: true}
+	spec.Secrets[envNetrcPassword] = &engine.Secret{Name: envNetrcPassword, Data: netrc.Password, Mask: true}
+	spec.Secrets[envNetrcFile] = &engine.Secret{Name: envNetrcFile, Data: fileData}
+
+	return true
+}
+
+// setNetrcSecretsToStep is a helper function that sets netrc secrets to a engine.Step
+func setNetrcSecretsToStep(step *engine.Step, spec *engine.Spec) {
+	envVars := []string{envNetrcMachine, envNetrcUsername, envNetrcPassword, envNetrcFile}
+	for _, envVar := range envVars {
+		if v, ok := spec.Secrets[envVar]; ok {
+			step.Secrets = append(step.Secrets, &engine.SecretVar{Name: v.Name, Env: v.Name})
+			step.SpecSecrets = append(step.SpecSecrets, v)
+		}
+	}
 }
 
 func divideIntEqually(amount int64, count int, units int64) []int64 {

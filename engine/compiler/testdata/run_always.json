@@ -21,6 +21,18 @@
       "image": "docker.io/library/golang:latest",
       "placeholder": "drone/placeholder:1",
       "run_policy": "always",
+      "secrets": [
+        { "name": "DRONE_NETRC_MACHINE", "env": "DRONE_NETRC_MACHINE" },
+        { "name": "DRONE_NETRC_USERNAME", "env": "DRONE_NETRC_USERNAME" },
+        { "name": "DRONE_NETRC_PASSWORD", "env": "DRONE_NETRC_PASSWORD" },
+        { "name": "DRONE_NETRC_FILE", "env": "DRONE_NETRC_FILE" }
+      ],
+      "spec_secrets": [
+        { "name": "DRONE_NETRC_MACHINE", "data": "github.com" },
+        { "name": "DRONE_NETRC_USERNAME", "data": "octocat", "mask": true },
+        { "name": "DRONE_NETRC_PASSWORD", "data": "correct-horse-battery-staple", "mask": true },
+        { "name": "DRONE_NETRC_FILE", "data": "machine github.com login octocat password correct-horse-battery-staple" }
+      ],
       "volumes": [
         {
           "name": "_workspace",
@@ -55,5 +67,10 @@
       }
     }
   ],
-  "secrets": {}
+  "secrets": {
+    "DRONE_NETRC_MACHINE": { "name": "DRONE_NETRC_MACHINE", "data": "github.com" },
+    "DRONE_NETRC_USERNAME": { "name": "DRONE_NETRC_USERNAME", "data": "octocat", "mask": true },
+    "DRONE_NETRC_PASSWORD": { "name": "DRONE_NETRC_PASSWORD", "data": "correct-horse-battery-staple", "mask": true },
+    "DRONE_NETRC_FILE": { "name": "DRONE_NETRC_FILE", "data": "machine github.com login octocat password correct-horse-battery-staple" }
+  }
 }

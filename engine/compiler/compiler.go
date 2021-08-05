@@ -504,6 +504,14 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				}
 				spec.Secrets[s.Name] = s
 				step.SpecSecrets = append(step.SpecSecrets, s)
+			} else {
+				s := &engine.Secret{
+					Name: s.Name,
+					Data: "",
+					Mask: false,
+				}
+				spec.Secrets[s.Name] = s
+				step.SpecSecrets = append(step.SpecSecrets, s)
 			}
 		}
 	}

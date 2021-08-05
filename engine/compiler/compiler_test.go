@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/dchest/uniuri"
@@ -135,24 +136,17 @@ func TestCompile_Secrets(t *testing.T) {
 	// pipeline step.
 	{
 		got := ir.Steps[0].Secrets
+		// sort to avoid changed order
+		sort.Slice(got, func(i, j int) bool {
+			return got[i].Name < got[j].Name
+		})
+
 		want := []*engine.SecretVar{
-			{
-				Name: "my_password",
-				Env:  "PASSWORD",
-				// Data: nil, // secret not found, data nil
-				// Mask: true,
-			},
-			{
-				Name: "my_username",
-				Env:  "USERNAME",
-				// Data: []byte("octocat"), // secret found
-				// Mask: true,
-			},
+			{Name: "my_password", Env: "PASSWORD"},
+			{Name: "my_username", Env: "USERNAME"},
 		}
 		if diff := cmp.Diff(got, want); len(diff) != 0 {
-			// TODO(bradrydzewski) ordering is not guaranteed. this
-			// unit tests needs to be adjusted accordingly.
-			t.Skipf(diff)
+			t.Error(diff)
 		}
 	}
 
@@ -164,7 +158,7 @@ func TestCompile_Secrets(t *testing.T) {
 			"my_password": {
 				Name: "my_password",
 				Data: "", // secret not found, data empty
-				Mask: true,
+				Mask: false,
 			},
 			"my_username": {
 				Name: "my_username",
@@ -173,9 +167,7 @@ func TestCompile_Secrets(t *testing.T) {
 			},
 		}
 		if diff := cmp.Diff(got, want); len(diff) != 0 {
-			// TODO(bradrydzewski) ordering is not guaranteed. this
-			// unit tests needs to be adjusted accordingly.
-			t.Skipf(diff)
+			t.Error(diff)
 		}
 	}
 }
@@ -234,14 +226,85 @@ func testCompile(t *testing.T, source, golden string) *engine.Spec {
 
 	opts := cmp.Options{
 		cmpopts.IgnoreUnexported(engine.Spec{}),
-		cmpopts.IgnoreFields(engine.Step{}, "Envs", "Secrets"),
+		cmpopts.IgnoreFields(engine.Spec{}, "Secrets"),
+		cmpopts.IgnoreFields(engine.Step{}, "Envs", "Secrets", "SpecSecrets"),
 		cmpopts.IgnoreFields(engine.PodSpec{}, "Annotations", "Labels"),
 	}
 	if diff := cmp.Diff(got, want, opts...); len(diff) != 0 {
-		t.Errorf(diff)
+		t.Error(diff)
 	}
 
 	return got.(*engine.Spec)
+}
+
+func TestCompile_Netrc(t *testing.T) {
+	testCompileNetrc(t, "testdata/netrc.yml", "testdata/netrc.json", false)
+}
+
+func TestCompile_NetrcOnly(t *testing.T) {
+	testCompileNetrc(t, "testdata/netrc.yml", "testdata/netrc_only_clone.json", true)
+}
+
+// This test verifies that netrc values are properly defined as kubernetes secrets.
+func testCompileNetrc(t *testing.T, source, golden string, netRcCloneOnly bool) {
+	// replace the default random function with one that
+	// is deterministic, for testing purposes.
+	random = notRandom
+
+	// restore the default random function and the previously
+	// specified temporary directory
+	defer func() {
+		random = uniuri.New
+	}()
+
+	manifest, err := manifest.ParseFile(source)
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	compiler := &Compiler{
+		Environ:  provider.Static(nil),
+		Registry: registry.Static(nil),
+		Secret: secret.StaticVars(map[string]string{
+			"token":       "3DA541559918A808C2402BBA5012F6C60B27661C",
+			"password":    "password",
+			"my_username": "octocat",
+		}),
+		NetrcCloneOnly: netRcCloneOnly,
+	}
+	args := runtime.CompilerArgs{
+		Repo:     &drone.Repo{},
+		Build:    &drone.Build{Target: "master"},
+		Stage:    &drone.Stage{},
+		System:   &drone.System{},
+		Netrc:    &drone.Netrc{Machine: "github.com", Login: "octocat", Password: "correct-horse-battery-staple"},
+		Manifest: manifest,
+		Pipeline: manifest.Resources[0].(*resource.Pipeline),
+		Secret:   secret.Static(nil),
+	}
+
+	got := compiler.Compile(nocontext, args)
+
+	raw, err := ioutil.ReadFile(golden)
+	if err != nil {
+		t.Error(err)
+	}
+
+	want := new(engine.Spec)
+	err = json.Unmarshal(raw, want)
+	if err != nil {
+		t.Error(err)
+	}
+
+	opts := cmp.Options{
+		cmpopts.IgnoreUnexported(engine.Spec{}),
+		cmpopts.IgnoreFields(engine.Step{}, "Envs"),
+		cmpopts.IgnoreFields(engine.PodSpec{}, "Annotations", "Labels"),
+	}
+	if diff := cmp.Diff(got, want, opts...); len(diff) != 0 {
+		t.Error(diff)
+	}
 }
 
 func dump(v interface{}) {

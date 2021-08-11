@@ -7,8 +7,6 @@ package engine
 import (
 	"context"
 	"io"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -22,82 +20,22 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/kubernetes/scheme"
-	"k8s.io/client-go/rest"
-	"k8s.io/client-go/tools/clientcmd"
 )
 
 // Kubernetes implements a Kubernetes pipeline engine.
 type Kubernetes struct {
-	client    *kubernetes.Clientset
+	client    kubernetes.Interface
 	watchers  *sync.Map
 	launchers *sync.Map
 }
 
-// New returns a new engine. It tries first with in-cluster config, if it fails it will try with out-of-cluster config.
-func New() (engine runtime.Engine, err error) {
-	engine, err = NewInCluster()
-	if err == nil {
-		return
-	}
-
-	dir, err := os.UserHomeDir()
-	if err != nil {
-		return
-	}
-	dir = filepath.Join(dir, ".kube", "config")
-
-	engine, err = NewFromConfig(dir)
-	if err != nil {
-		return
-	}
-
-	return
-}
-
-// NewFromConfig returns a new out-of-cluster engine.
-func NewFromConfig(path string) (engine runtime.Engine, err error) {
-	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", path)
-	if err != nil {
-		return
-	}
-
-	// create the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return
-	}
-
-	engine = &Kubernetes{
-		client:    clientset,
+// New returns a new engine with the provided kubernetes client
+func New(client kubernetes.Interface) runtime.Engine {
+	return &Kubernetes{
+		client:    client,
 		watchers:  &sync.Map{},
 		launchers: &sync.Map{},
 	}
-
-	return
-}
-
-// NewInCluster returns a new in-cluster engine.
-func NewInCluster() (engine runtime.Engine, err error) {
-	// creates the in-cluster config
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		return
-	}
-
-	// creates the clientset
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		return
-	}
-
-	engine = &Kubernetes{
-		client:    clientset,
-		watchers:  &sync.Map{},
-		launchers: &sync.Map{},
-	}
-
-	return
 }
 
 // Setup the pipeline environment.
@@ -216,7 +154,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		watcher.Start(context.Background(), &podwatcher.KubernetesWatcher{
 			PodNamespace: podNamespace,
 			PodName:      podId,
-			Clientset:    k.client,
+			KubeClient:   k.client,
 			Period:       20 * time.Second,
 		})
 

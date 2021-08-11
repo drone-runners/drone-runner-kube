@@ -22,7 +22,7 @@ import (
 type KubernetesWatcher struct {
 	PodNamespace string
 	PodName      string
-	Clientset    *kubernetes.Clientset
+	KubeClient   kubernetes.Interface
 	Period       time.Duration
 }
 
@@ -39,11 +39,11 @@ func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []conta
 	lw := &cache.ListWatch{
 		ListFunc: func(options metav1.ListOptions) (k8sruntime.Object, error) {
 			options.LabelSelector = label
-			return w.Clientset.CoreV1().Pods(w.PodNamespace).List(options)
+			return w.KubeClient.CoreV1().Pods(w.PodNamespace).List(options)
 		},
 		WatchFunc: func(options metav1.ListOptions) (watch.Interface, error) {
 			options.LabelSelector = label
-			return w.Clientset.CoreV1().Pods(w.PodNamespace).Watch(options)
+			return w.KubeClient.CoreV1().Pods(w.PodNamespace).Watch(options)
 		},
 	}
 
@@ -94,7 +94,7 @@ func (w *KubernetesWatcher) PeriodicCheck(ctx context.Context, containers chan<-
 			return nil
 
 		case <-ticker.C:
-			pod, err := w.Clientset.CoreV1().Pods(w.PodNamespace).Get(w.PodName, metav1.GetOptions{})
+			pod, err := w.KubeClient.CoreV1().Pods(w.PodNamespace).Get(w.PodName, metav1.GetOptions{})
 			if err != nil {
 				logrus.
 					WithError(err).

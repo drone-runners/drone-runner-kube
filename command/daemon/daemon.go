@@ -12,6 +12,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
+	"github.com/drone-runners/drone-runner-kube/internal/kube"
 	"github.com/drone-runners/drone-runner-kube/internal/match"
 
 	"github.com/drone/runner-go/client"
@@ -32,6 +33,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"k8s.io/client-go/kubernetes"
 )
 
 // empty context.
@@ -80,27 +82,30 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	var kube runtime.Engine
+	var kubeClient kubernetes.Interface
+
 	if path := config.Runner.Config; path != "" {
 		// if the configuration path is specified, we create
 		// the kubernetes client from the configuration file.
 		// This is used primarily for local out-of-cluster
 		// testing.
-		kube, err = engine.NewFromConfig(path)
+		kubeClient, err = kube.NewFromConfig(path)
 		if err != nil {
 			logrus.WithError(err).
-				Fatalln("cannot load the kubernetes engine from config")
+				Fatalln("cannot load the kubernetes client from config")
 		}
 	} else {
 		// else, if no configuration is specified, we create
 		// the kubernetes client using the in-cluster
 		// configuration file.
-		kube, err = engine.NewInCluster()
+		kubeClient, err = kube.NewInCluster()
 		if err != nil {
 			logrus.WithError(err).
-				Fatalln("cannot load the in-cluster kubernetes engine")
+				Fatalln("cannot load the in-cluster kubernetes client")
 		}
 	}
+
+	kubeEngine := engine.New(kubeClient)
 
 	remote := remote.New(cli)
 	tracer := history.New(remote)
@@ -185,7 +190,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Exec: runtime.NewExecer(
 			tracer,
 			remote,
-			kube,
+			kubeEngine,
 			config.Runner.Procs,
 		).Exec,
 	}

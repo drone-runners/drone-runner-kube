@@ -25,7 +25,7 @@ const aggregateTimer = 400 * time.Millisecond
 type Launcher struct {
 	stop, stopped chan struct{}
 
-	kubeClient  *kubernetes.Clientset
+	kubeClient  kubernetes.Interface
 	podUpdateMx *sync.Mutex
 
 	podNamespace string
@@ -45,7 +45,7 @@ type request struct {
 }
 
 // New creates a new Launcher.
-func New(podName, podNamespace string, clientset *kubernetes.Clientset, podUpdateMx *sync.Mutex) *Launcher {
+func New(podName, podNamespace string, clientset kubernetes.Interface, podUpdateMx *sync.Mutex) *Launcher {
 	l := &Launcher{
 		stop:         make(chan struct{}),
 		stopped:      make(chan struct{}),

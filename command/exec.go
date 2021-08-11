@@ -20,6 +20,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/policy"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
+	"github.com/drone-runners/drone-runner-kube/internal/kube"
 	"github.com/drone/drone-go/drone"
 	"github.com/drone/envsubst"
 	"github.com/drone/runner-go/environ"
@@ -252,10 +253,12 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 	)
 
 	// change to out-of-cluster for local testing
-	engine, err := engine.NewFromConfig(kubeconfig)
+	kubeClient, err := kube.NewFromConfig(kubeconfig)
 	if err != nil {
 		return err
 	}
+
+	engine := engine.New(kubeClient)
 
 	err = runtime.NewExecer(
 		pipeline.NopReporter(),

@@ -6,3 +6,5 @@ release/*
 TODO.md
 NOTES.md
 .idea
+kube.config
+.vscode/

@@ -42,29 +42,44 @@ func New(client kubernetes.Interface) runtime.Engine {
 func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) (err error) {
 	spec := specv.(*Spec)
 
+	log := logger.FromContext(ctx).
+		WithField("pod", spec.PodSpec.Name).
+		WithField("namespace", spec.PodSpec.Namespace)
+
 	if spec.Namespace != "" {
-		_, err = k.client.CoreV1().Namespaces().Create(toNamespace(spec.Namespace, spec.PodSpec.Labels))
+		namespace := toNamespace(spec.Namespace, spec.PodSpec.Labels)
+		_, err = k.client.CoreV1().Namespaces().Create(namespace)
 		if err != nil {
+			log.WithError(err).Error("failed to create namespace")
 			return err
 		}
+		log.Trace("created namespace")
 	}
 
 	if spec.PullSecret != nil {
-		_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toDockerConfigSecret(spec))
+		pullSecret := toDockerConfigSecret(spec)
+		_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(pullSecret)
 		if err != nil {
+			log.WithError(err).Error("failed to create pull secret")
 			return err
 		}
+		log.Trace("created pull secret")
 	}
 
-	_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(toSecret(spec))
+	secret := toSecret(spec)
+	_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(secret)
 	if err != nil {
+		log.WithError(err).Error("failed to create secret")
 		return err
 	}
+	log.Trace("created secret")
 
 	_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
 	if err != nil {
+		log.WithError(err).Error("failed to create pod")
 		return err
 	}
+	log.Trace("created pod")
 
 	return nil
 }
@@ -77,38 +92,35 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 
 	spec := specv.(*Spec)
 
+	log := logger.FromContext(ctx).
+		WithField("pod", spec.PodSpec.Name).
+		WithField("namespace", spec.PodSpec.Namespace)
+
 	if spec.PullSecret != nil {
 		if err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PullSecret.Name, &metav1.DeleteOptions{}); err != nil {
-			logger.FromContext(ctx).
-				WithError(err).
-				WithField("pull-secret", spec.PullSecret.Name).
-				WithField("namespace", spec.PodSpec.Namespace).
-				Error("failed to delete pull secret")
+			log.WithError(err).Error("failed to delete pull secret")
+		} else {
+			log.Trace("deleted pull secret")
 		}
 	}
 
 	if err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{}); err != nil {
-		logger.FromContext(ctx).
-			WithError(err).
-			WithField("pod", spec.PodSpec.Name).
-			WithField("namespace", spec.PodSpec.Namespace).
-			Error("failed to delete secrets")
+		log.WithError(err).Error("failed to delete secret")
+	} else {
+		log.Trace("deleted secret")
 	}
 
 	if err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{}); err != nil {
-		logger.FromContext(ctx).
-			WithError(err).
-			WithField("pod", spec.PodSpec.Name).
-			WithField("namespace", spec.PodSpec.Namespace).
-			Error("failed to delete pod")
+		log.WithError(err).Error("failed to delete pod")
+	} else {
+		log.Trace("deleted pod")
 	}
 
 	if spec.Namespace != "" {
 		if err := k.client.CoreV1().Namespaces().Delete(spec.Namespace, &metav1.DeleteOptions{}); err != nil {
-			logger.FromContext(ctx).
-				WithError(err).
-				WithField("namespace", spec.PodSpec.Namespace).
-				Error("failed to delete namespace")
+			log.WithError(err).Error("failed to delete namespace")
+		} else {
+			log.Trace("deleted namespace")
 		}
 	}
 
@@ -120,16 +132,9 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 	if w, loaded := k.watchers.LoadAndDelete(spec.PodSpec.Name); loaded {
 		watcher := w.(*podwatcher.PodWatcher)
 		if err := watcher.WaitPodDeleted(); err != nil && err != context.Canceled {
-			logger.FromContext(ctx).
-				WithError(err).
-				WithField("pod", spec.PodSpec.Name).
-				WithField("namespace", spec.PodSpec.Namespace).
-				Error("PodWatcher terminated with error")
+			log.WithError(err).Error("PodWatcher terminated with error")
 		} else {
-			logger.FromContext(ctx).
-				WithField("pod", spec.PodSpec.Name).
-				WithField("namespace", spec.PodSpec.Namespace).
-				Debug("PodWatcher terminated")
+			log.Trace("PodWatcher terminated")
 		}
 	}
 
@@ -148,6 +153,14 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	containerImage := step.Image
 	containerPlaceholder := step.Placeholder
 
+	log := logger.FromContext(ctx).
+		WithField("pod", podId).
+		WithField("namespace", podNamespace).
+		WithField("image", containerImage).
+		WithField("placeholder", containerPlaceholder).
+		WithField("container", containerId).
+		WithField("step", stepName)
+
 	w, loaded := k.watchers.LoadOrStore(podId, &podwatcher.PodWatcher{})
 	watcher := w.(*podwatcher.PodWatcher)
 	if !loaded {
@@ -158,10 +171,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 			Period:       20 * time.Second,
 		})
 
-		logger.FromContext(ctx).
-			WithField("pod", podId).
-			WithField("step", stepName).
-			Debug("PodWatcher started")
+		log.Trace("PodWatcher started")
 	}
 
 	err = watcher.AddContainer(step.ID, step.Placeholder)
@@ -169,13 +179,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return
 	}
 
-	logger.FromContext(ctx).
-		WithField("pod", podId).
-		WithField("container", containerId).
-		WithField("image", containerImage).
-		WithField("placeholder", containerPlaceholder).
-		WithField("step", stepName).
-		Debugf("Engine: Starting step")
+	log.Debug("Engine: Starting step")
 
 	err = <-k.startContainer(ctx, spec, step)
 	if err != nil {
@@ -191,14 +195,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	case err = <-chErrStart:
 	case <-time.After(8 * time.Minute):
 		err = podwatcher.StartTimeoutContainerError{Container: containerId}
-		logger.FromContext(ctx).
-			WithError(err).
-			WithField("pod", podId).
-			WithField("container", containerId).
-			WithField("image", containerImage).
-			WithField("placeholder", containerPlaceholder).
-			WithField("step", stepName).
-			Warnf("Engine: Container start timeout")
+		log.WithError(err).Error("Engine: Container start timeout")
 	}
 	if err != nil {
 		return
@@ -238,6 +235,13 @@ func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, outp
 
 	readCloser, err := req.Stream()
 	if err != nil {
+		logger.FromContext(ctx).
+			WithError(err).
+			WithField("pod", spec.PodSpec.Name).
+			WithField("namespace", spec.PodSpec.Namespace).
+			WithField("container", step.ID).
+			WithField("step", step.Name).
+			Error("failed to stream logs")
 		return err
 	}
 	defer readCloser.Close()

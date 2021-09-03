@@ -32,7 +32,7 @@ type FailedContainerError struct {
 
 func (e FailedContainerError) Error() string {
 	return fmt.Sprintf(
-		"kubernetes error: container failed to start: id=%s exitcode=%d reason=%s",
+		"kubernetes has failed: container failed to start: id=%s exitcode=%d reason=%s",
 		e.container, e.exitCode, e.reason)
 }
 
@@ -47,7 +47,7 @@ type AbortedContainerError struct {
 
 func (e AbortedContainerError) Error() string {
 	return fmt.Sprintf(
-		"kubernetes error: container failed to start and reverted back to placeholder image: id=%s state=%s exitCode=%d reason=%s",
+		"kubernetes has failed: container failed to start and reverted back to placeholder image: id=%s state=%s exitCode=%d reason=%s",
 		e.container, e.state, e.exitCode, e.reason)
 }
 
@@ -58,18 +58,18 @@ type StartTimeoutContainerError struct {
 
 func (e StartTimeoutContainerError) Error() string {
 	return fmt.Sprintf(
-		"kubernetes error: container failed to start in timely manner: id=%s",
+		"kubernetes has failed: container failed to start in timely manner: id=%s",
 		e.Container)
 }
 
 // OtherContainerError is returned as an error by wait function when some other container
-// in the same pod fails with a kubernetes error.
+// in the same pod fails with a "kubernetes has failed" error.
 type OtherContainerError struct {
 	Err error
 }
 
 func (e OtherContainerError) Error() string {
 	return fmt.Sprintf(
-		"kubernetes error: aborting due to error: %s",
+		"aborting due to error: %s",
 		e.Err)
 }

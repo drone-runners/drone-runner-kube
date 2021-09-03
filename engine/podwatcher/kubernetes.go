@@ -59,7 +59,7 @@ func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []conta
 			return false, nil
 		}
 
-		logrus.
+		logrus.WithContext(ctx).
 			WithField("pod", pod.Name).
 			WithField("event", event.Type).
 			Trace("PodWatcher: Event")
@@ -72,6 +72,14 @@ func (w *KubernetesWatcher) Watch(ctx context.Context, containers chan<- []conta
 
 		return false, nil
 	})
+
+	if err != nil {
+		logrus.WithContext(ctx).
+			WithError(err).
+			WithField("pod", w.PodName).
+			WithField("namespace", w.PodNamespace).
+			Error("PodWatcher: Failed to watch")
+	}
 
 	return err
 }
@@ -99,12 +107,14 @@ func (w *KubernetesWatcher) PeriodicCheck(ctx context.Context, containers chan<-
 				logrus.
 					WithError(err).
 					WithField("pod", w.PodName).
+					WithField("namespace", w.PodNamespace).
 					Warn("PodWatcher: Failed to read pod")
 				continue
 			}
 
 			logrus.
 				WithField("pod", w.PodName).
+				WithField("namespace", w.PodNamespace).
 				Trace("PodWatcher: Periodic container state check")
 
 			containers <- extractContainers(pod)

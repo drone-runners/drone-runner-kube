@@ -174,7 +174,7 @@ func (l *Launcher) startContainers(requests map[string]*request) {
 	if err != nil {
 		logrus.
 			WithError(err).
-			Debugf("Launch of %d containers failed. Duration=%.2fs", len(requests), time.Since(t).Seconds())
+			Errorf("Launch of %d containers failed. Duration=%.2fs", len(requests), time.Since(t).Seconds())
 
 		for _, req := range requests {
 			req.chErr <- err

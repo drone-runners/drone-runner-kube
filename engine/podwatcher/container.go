@@ -7,6 +7,7 @@ package podwatcher
 import (
 	"context"
 	"fmt"
+	"time"
 )
 
 type ContainerWatcher interface {
@@ -40,6 +41,36 @@ type containerInfo struct {
 	placeholder string
 	image       string
 	exitCode    int32
+
+	// failAt is used by PodWatcher to recover from invalid Kubernetes events.
+	_failAt time.Time
+}
+
+func (info *containerInfo) diff(old *containerInfo) (m map[string]interface{}) {
+	if old == nil {
+		return
+	}
+
+	m = make(map[string]interface{})
+
+	if info.state != old.state {
+		m["state"] = old.state.String() + "->" + info.state.String()
+	}
+	if info.stateInfo != old.stateInfo {
+		if old.stateInfo == "" {
+			m["stateInfo"] = info.stateInfo
+		} else {
+			m["stateInfo"] = old.stateInfo + "->" + info.stateInfo
+		}
+	}
+	if info.image != old.image {
+		m["image"] = old.image + "->" + info.image
+	}
+	if info.exitCode != old.exitCode {
+		m["exitCode"] = info.exitCode
+	}
+
+	return
 }
 
 type containerState int

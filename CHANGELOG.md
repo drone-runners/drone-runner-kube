@@ -1,6 +1,20 @@
 # Changelog
 
-## [v1.0.0-beta.9](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.9) (2021-08-16)
+## [v1.0.0-beta.10](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.10) (2021-09-09)
+
+[Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-beta.9...v1.0.0-beta.10)
+
+**Implemented enhancements:**
+
+- improved logging of k8s api calls [\#73](https://github.com/drone-runners/drone-runner-kube/pull/73) ([marko-gacesa](https://github.com/marko-gacesa))
+
+**Fixed bugs:**
+
+- \(fix\) updated code for k8s error detection: removed 'aborted container' error [\#74](https://github.com/drone-runners/drone-runner-kube/pull/74) ([marko-gacesa](https://github.com/marko-gacesa))
+- \(bug\) handling an error in container launcher code [\#72](https://github.com/drone-runners/drone-runner-kube/pull/72) ([marko-gacesa](https://github.com/marko-gacesa))
+- \(bugfix\) upgrade envsubst for better parsing [\#71](https://github.com/drone-runners/drone-runner-kube/pull/71) ([tphoney](https://github.com/tphoney))
+
+## [v1.0.0-beta.9](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.9) (2021-08-17)
 
 [Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-beta.8...v1.0.0-beta.9)
 
@@ -16,6 +30,10 @@
 - Increased container start timeout to 8 minutes [\#66](https://github.com/drone-runners/drone-runner-kube/pull/66) ([marko-gacesa](https://github.com/marko-gacesa))
 - fail all containers when a kube error occurs [\#65](https://github.com/drone-runners/drone-runner-kube/pull/65) ([marko-gacesa](https://github.com/marko-gacesa))
 - Updated resource distribution, resources for exec command [\#63](https://github.com/drone-runners/drone-runner-kube/pull/63) ([marko-gacesa](https://github.com/marko-gacesa))
+
+**Merged pull requests:**
+
+- \(maint\) release prep and adding changelog generator [\#70](https://github.com/drone-runners/drone-runner-kube/pull/70) ([tphoney](https://github.com/tphoney))
 
 
 

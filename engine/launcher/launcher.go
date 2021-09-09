@@ -90,7 +90,7 @@ func (l *Launcher) Start(ctx context.Context) {
 				return
 
 			case <-l.timer.C:
-				l.startContainers(l.requests)
+				l.startContainers(ctx, l.requests)
 				l.requests = nil
 
 			case req := <-l.requestCh:
@@ -126,7 +126,7 @@ func (l *Launcher) Launch(containerID, containerImage string, statusEnvs map[str
 	return chErr
 }
 
-func (l *Launcher) startContainers(requests map[string]*request) {
+func (l *Launcher) startContainers(ctx context.Context, requests map[string]*request) {
 	var backoff = wait.Backoff{
 		Steps:    15,
 		Duration: 500 * time.Millisecond,
@@ -144,7 +144,7 @@ func (l *Launcher) startContainers(requests map[string]*request) {
 		l.podUpdateMx.Lock()
 		defer l.podUpdateMx.Unlock()
 
-		pod, err := l.kubeClient.CoreV1().Pods(l.podNamespace).Get(l.podName, metav1.GetOptions{})
+		pod, err := l.kubeClient.CoreV1().Pods(l.podNamespace).Get(ctx, l.podName, metav1.GetOptions{})
 		if err != nil {
 			return err
 		}
@@ -167,7 +167,7 @@ func (l *Launcher) startContainers(requests map[string]*request) {
 			}
 		}
 
-		_, err = l.kubeClient.CoreV1().Pods(l.podNamespace).Update(pod)
+		_, err = l.kubeClient.CoreV1().Pods(l.podNamespace).Update(ctx, pod, metav1.UpdateOptions{})
 
 		return err
 	})

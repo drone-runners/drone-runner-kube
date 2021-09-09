@@ -48,7 +48,7 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) (err error) 
 
 	if spec.Namespace != "" {
 		namespace := toNamespace(spec.Namespace, spec.PodSpec.Labels)
-		_, err = k.client.CoreV1().Namespaces().Create(namespace)
+		_, err = k.client.CoreV1().Namespaces().Create(ctx, namespace, metav1.CreateOptions{})
 		if err != nil {
 			log.WithError(err).Error("failed to create namespace")
 			return err
@@ -58,7 +58,7 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) (err error) 
 
 	if spec.PullSecret != nil {
 		pullSecret := toDockerConfigSecret(spec)
-		_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(pullSecret)
+		_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(ctx, pullSecret, metav1.CreateOptions{})
 		if err != nil {
 			log.WithError(err).Error("failed to create pull secret")
 			return err
@@ -67,14 +67,14 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) (err error) 
 	}
 
 	secret := toSecret(spec)
-	_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(secret)
+	_, err = k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Create(ctx, secret, metav1.CreateOptions{})
 	if err != nil {
 		log.WithError(err).Error("failed to create secret")
 		return err
 	}
 	log.Trace("created secret")
 
-	_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(toPod(spec))
+	_, err = k.client.CoreV1().Pods(spec.PodSpec.Namespace).Create(ctx, toPod(spec), metav1.CreateOptions{})
 	if err != nil {
 		log.WithError(err).Error("failed to create pod")
 		return err
@@ -97,27 +97,27 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 		WithField("namespace", spec.PodSpec.Namespace)
 
 	if spec.PullSecret != nil {
-		if err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PullSecret.Name, &metav1.DeleteOptions{}); err != nil {
+		if err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(context.Background(), spec.PullSecret.Name, metav1.DeleteOptions{}); err != nil {
 			log.WithError(err).Error("failed to delete pull secret")
 		} else {
 			log.Trace("deleted pull secret")
 		}
 	}
 
-	if err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{}); err != nil {
+	if err := k.client.CoreV1().Secrets(spec.PodSpec.Namespace).Delete(context.Background(), spec.PodSpec.Name, metav1.DeleteOptions{}); err != nil {
 		log.WithError(err).Error("failed to delete secret")
 	} else {
 		log.Trace("deleted secret")
 	}
 
-	if err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(spec.PodSpec.Name, &metav1.DeleteOptions{}); err != nil {
+	if err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(context.Background(), spec.PodSpec.Name, metav1.DeleteOptions{}); err != nil {
 		log.WithError(err).Error("failed to delete pod")
 	} else {
 		log.Trace("deleted pod")
 	}
 
 	if spec.Namespace != "" {
-		if err := k.client.CoreV1().Namespaces().Delete(spec.Namespace, &metav1.DeleteOptions{}); err != nil {
+		if err := k.client.CoreV1().Namespaces().Delete(context.Background(), spec.Namespace, metav1.DeleteOptions{}); err != nil {
 			log.WithError(err).Error("failed to delete namespace")
 		} else {
 			log.Trace("deleted namespace")
@@ -233,7 +233,7 @@ func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, outp
 		SubResource("log").
 		VersionedParams(opts, scheme.ParameterCodec)
 
-	readCloser, err := req.Stream()
+	readCloser, err := req.Stream(ctx)
 	if err != nil {
 		logger.FromContext(ctx).
 			WithError(err).

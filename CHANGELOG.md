@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.0.0-beta.11](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.11) (2021-09-09)
+
+[Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-beta.10...v1.0.0-beta.11)
+
+**Fixed bugs:**
+
+- use image.Match to compare images [\#76](https://github.com/drone-runners/drone-runner-kube/pull/76) ([sethpollack](https://github.com/sethpollack))
+
 ## [v1.0.0-beta.10](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.10) (2021-09-09)
 
 [Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-beta.9...v1.0.0-beta.10)
@@ -13,6 +21,10 @@
 - \(fix\) updated code for k8s error detection: removed 'aborted container' error [\#74](https://github.com/drone-runners/drone-runner-kube/pull/74) ([marko-gacesa](https://github.com/marko-gacesa))
 - \(bug\) handling an error in container launcher code [\#72](https://github.com/drone-runners/drone-runner-kube/pull/72) ([marko-gacesa](https://github.com/marko-gacesa))
 - \(bugfix\) upgrade envsubst for better parsing [\#71](https://github.com/drone-runners/drone-runner-kube/pull/71) ([tphoney](https://github.com/tphoney))
+
+**Merged pull requests:**
+
+- update for change log for release of 1.0.0-beta.10 [\#75](https://github.com/drone-runners/drone-runner-kube/pull/75) ([marko-gacesa](https://github.com/marko-gacesa))
 
 ## [v1.0.0-beta.9](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.9) (2021-08-17)
 

@@ -155,52 +155,135 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 			continue // unknown container
 		}
 
-		if c.image == cs.image && c.state == cs.state && c.stateInfo == cs.stateInfo {
+		// If we already declared a container as finished, just notify all
+		// that the container is terminated (with or without an error)
+		if c.state == stateTerminated {
+			var err error
+
+			if cs.state != stateTerminated {
+				// Should not happen... a container that was marked as terminated is now running again...
+				diff := cs.diff(c)
+				logrus.
+					WithField("pod", pw.podName).
+					WithField("container", c.id).
+					WithFields(diff).
+					Trace("PodWatcher: Container zombie found...")
+
+				err = FailedContainerError{
+					container: c.id,
+					exitCode:  c.exitCode,
+					reason:    c.stateInfo,
+				}
+			} else if c.image == c.placeholder {
+				err = FailedContainerError{
+					container: c.id,
+					exitCode:  c.exitCode,
+					reason:    c.stateInfo,
+				}
+			}
+
+			pw.notifyClientsContainerChange(c, err)
 			continue
 		}
 
-		if cs.image == c.placeholder && c.image != c.placeholder {
-			err := AbortedContainerError{
-				container: c.id,
-				state:     cs.state,
-				exitCode:  cs.exitCode,
-				reason:    cs.stateInfo,
+		if cs.state == stateTerminated {
+			diff := cs.diff(c)
+
+			// Sometimes, kubernetes sends an event about a terminated container with:
+			// Terminated.ExitCode=2 and Terminated.Reason="Error".
+			// Often container image will revert back to the placeholder image.
+			// In these cases we give Kubernetes some time to send the correct event,
+			// but if it fails, we do declare the container as terminated.
+			// Note: For this logic to work, the periodic container status check must work.
+			if cs.exitCode == 2 && cs.stateInfo == "Error" {
+				if c._failAt.IsZero() {
+					logrus.
+						WithField("pod", pw.podName).
+						WithField("container", c.id).
+						WithFields(diff).
+						Trace("PodWatcher: Container failed. Trying recovery...")
+					c._failAt = time.Now()
+				} else if time.Since(c._failAt) < 15*time.Second {
+					logrus.
+						WithField("pod", pw.podName).
+						WithField("container", c.id).
+						WithFields(diff).
+						Trace("PodWatcher: Container failed. Waiting to recover...")
+				} else {
+					logrus.
+						WithField("pod", pw.podName).
+						WithField("container", c.id).
+						WithFields(diff).
+						Warn("PodWatcher: Container failed.")
+
+					c.state = stateTerminated
+					c.stateInfo = cs.stateInfo
+					c.image = cs.image
+					c.exitCode = cs.exitCode
+
+					err := FailedContainerError{
+						container: c.id,
+						exitCode:  c.exitCode,
+						reason:    c.stateInfo,
+					}
+
+					pw.notifyClientsContainerChange(c, err)
+				}
+
+				continue
 			}
 
 			c.state = stateTerminated
 			c.stateInfo = cs.stateInfo
+			c.image = cs.image
 			c.exitCode = cs.exitCode
+			c._failAt = time.Time{}
+
+			var err error
+
+			if c.image == c.placeholder {
+				err = FailedContainerError{
+					container: c.id,
+					exitCode:  c.exitCode,
+					reason:    c.stateInfo,
+				}
+				logrus.
+					WithField("pod", pw.podName).
+					WithField("container", c.id).
+					WithFields(diff).
+					Warn("PodWatcher: Container failed.")
+			} else {
+				logrus.
+					WithField("pod", pw.podName).
+					WithField("container", c.id).
+					WithFields(diff).
+					Debug("PodWatcher: Container terminated.")
+			}
+
 			pw.notifyClientsContainerChange(c, err)
 
 			continue
 		}
 
-		c.image = cs.image
+		if c.image == cs.image && c.state == cs.state && c.stateInfo == cs.stateInfo {
+			continue // container unchanged
+		}
+
+		diff := cs.diff(c)
+
 		c.state = cs.state
+		c.image = cs.image
 		c.stateInfo = cs.stateInfo
 		c.exitCode = cs.exitCode
+		c._failAt = time.Time{}
 
-		if c.image == c.placeholder {
-			if c.state == stateTerminated {
-				err := FailedContainerError{
-					container: c.id,
-					exitCode:  c.exitCode,
-					reason:    c.stateInfo,
-				}
+		logrus.
+			WithField("pod", pw.podName).
+			WithField("container", c.id).
+			WithFields(diff).
+			Debug("PodWatcher: Container state changed")
 
-				pw.notifyClientsContainerChange(c, err)
-			}
-		} else {
-			logrus.
-				WithField("pod", pw.podName).
-				WithField("container", c.id).
-				WithField("image", c.image).
-				WithField("state", c.state).
-				WithField("stateInfo", c.stateInfo).
-				Debug("PodWatcher: Container state changed")
-
-			pw.notifyClientsContainerChange(c, nil)
-		}
+		pw.notifyClientsContainerChange(c, nil)
 	}
 }
 
@@ -241,8 +324,7 @@ func _tryResolveWaitClient(cl *waitClient, c *containerInfo, err error) bool {
 func (pw *PodWatcher) notifyClientsContainerChange(c *containerInfo, err error) {
 	if err != nil {
 		_, isFailed := err.(FailedContainerError)
-		_, isAborted := err.(AbortedContainerError)
-		if isKubeError := isFailed || isAborted; isKubeError {
+		if isKubeError := isFailed; isKubeError {
 			for _, cl := range pw.clientList {
 				if cl.containerId == c.id {
 					cl.resolveCh <- err
@@ -291,7 +373,7 @@ func (pw *PodWatcher) waitForEvent(containerId string, state containerState) (er
 		WithField("pod", pw.podName).
 		WithField("container", containerId).
 		WithField("state", state.String()).
-		Trace("PodWatcher: Waiting...")
+		Debug("PodWatcher: Waiting...")
 
 	defer func(t time.Time) {
 		logrus.

@@ -36,21 +36,6 @@ func (e FailedContainerError) Error() string {
 		e.container, e.exitCode, e.reason)
 }
 
-// AbortedContainerError is an error returned when a container, that was earlier started successfully,
-// suddenly reverted image back to the placeholder image and terminated.
-type AbortedContainerError struct {
-	container string
-	state     containerState
-	exitCode  int32
-	reason    string
-}
-
-func (e AbortedContainerError) Error() string {
-	return fmt.Sprintf(
-		"kubernetes has failed: container failed to start and reverted back to placeholder image: id=%s state=%s exitCode=%d reason=%s",
-		e.container, e.state, e.exitCode, e.reason)
-}
-
 // StartTimeoutContainerError is returned as an error when a container fails to run after some predefined time.
 type StartTimeoutContainerError struct {
 	Container string

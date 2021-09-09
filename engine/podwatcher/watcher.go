@@ -174,7 +174,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 					exitCode:  c.exitCode,
 					reason:    c.stateInfo,
 				}
-			} else if c.image == c.placeholder {
+			} else if image.Match(c.image, c.placeholder) {
 				err = FailedContainerError{
 					container: c.id,
 					exitCode:  c.exitCode,
@@ -241,7 +241,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 
 			var err error
 
-			if c.image == c.placeholder {
+			if image.Match(c.image, c.placeholder) {
 				err = FailedContainerError{
 					container: c.id,
 					exitCode:  c.exitCode,
@@ -265,7 +265,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 			continue
 		}
 
-		if c.image == cs.image && c.state == cs.state && c.stateInfo == cs.stateInfo {
+		if image.Match(c.image, cs.image) && c.state == cs.state && c.stateInfo == cs.stateInfo {
 			continue // container unchanged
 		}
 

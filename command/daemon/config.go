@@ -144,6 +144,10 @@ type Config struct {
 		RSA     string `envconfig:"DRONE_TMATE_FINGERPRINT_RSA"`
 		ED25519 string `envconfig:"DRONE_TMATE_FINGERPRINT_ED25519"`
 	}
+
+	Engine struct {
+		ContainerStartTimeout int `envconfig:"DRONE_ENGINE_CONTAINER_START_TIMEOUT" default:"480"`
+	}
 }
 
 // legacy environment variables. the key is the legacy

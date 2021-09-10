@@ -62,6 +62,8 @@ type execCommand struct {
 	Debug         bool
 	Trace         bool
 	Dump          bool
+
+	ContainerStartTimeout int
 }
 
 func (c *execCommand) run(*kingpin.ParseContext) error {
@@ -258,7 +260,8 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		return err
 	}
 
-	engine := engine.New(kubeClient)
+	engine := engine.New(kubeClient,
+		time.Duration(c.ContainerStartTimeout)*time.Second)
 
 	err = runtime.NewExecer(
 		pipeline.NopReporter(),
@@ -398,6 +401,10 @@ func registerExec(app *kingpin.Application) {
 
 	cmd.Flag("tmate-server-ed25519-fingerprint", "tmate server rsa fingerprint").
 		StringVar(&c.Tmate.ED25519)
+
+	cmd.Flag("engine-container-start-timeout", "number of seconds to wait for a container to start").
+		Default("480").
+		IntVar(&c.ContainerStartTimeout)
 
 	// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

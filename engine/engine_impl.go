@@ -27,14 +27,22 @@ type Kubernetes struct {
 	client    kubernetes.Interface
 	watchers  *sync.Map
 	launchers *sync.Map
+
+	containerStartTimeout time.Duration
 }
 
 // New returns a new engine with the provided kubernetes client
-func New(client kubernetes.Interface) runtime.Engine {
+func New(client kubernetes.Interface, containerStartTimeout time.Duration) runtime.Engine {
+	if containerStartTimeout < time.Second {
+		containerStartTimeout = time.Second
+	}
+
 	return &Kubernetes{
 		client:    client,
 		watchers:  &sync.Map{},
 		launchers: &sync.Map{},
+
+		containerStartTimeout: containerStartTimeout,
 	}
 }
 
@@ -193,7 +201,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 
 	select {
 	case err = <-chErrStart:
-	case <-time.After(8 * time.Minute):
+	case <-time.After(k.containerStartTimeout):
 		err = podwatcher.StartTimeoutContainerError{Container: containerId}
 		log.WithError(err).Error("Engine: Container start timeout")
 	}

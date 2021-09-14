@@ -131,29 +131,31 @@ func extractContainers(pod *v1.Pod) (result []containerInfo) {
 
 	for i, cs := range pod.Status.ContainerStatuses {
 		var (
-			state     containerState
-			stateInfo string
-			exitCode  int32
+			state    containerState
+			reason   string
+			exitCode int32
 		)
 
 		if cs.State.Terminated != nil {
-			state, stateInfo = stateTerminated, cs.State.Terminated.Reason
+			state, reason = stateTerminated, cs.State.Terminated.Reason
 			exitCode = cs.State.Terminated.ExitCode
 		} else if cs.State.Running != nil {
-			state, stateInfo = stateRunning, ""
+			state, reason = stateRunning, ""
 		} else if cs.State.Waiting != nil {
-			state, stateInfo = stateWaiting, cs.State.Waiting.Reason
+			state, reason = stateWaiting, cs.State.Waiting.Reason
 		} else {
 			// kubernetes doc explains that this situation should be treated as Waiting state
-			state, stateInfo = stateWaiting, ""
+			state, reason = stateWaiting, ""
 		}
 
 		result[i] = containerInfo{
-			id:        cs.Name,
-			state:     state,
-			stateInfo: stateInfo,
-			image:     cs.Image,
-			exitCode:  exitCode,
+			id:           cs.Name,
+			state:        state,
+			image:        cs.Image,
+			exitCode:     exitCode,
+			reason:       reason,
+			restartCount: cs.RestartCount,
+			ready:        cs.Ready,
 		}
 	}
 

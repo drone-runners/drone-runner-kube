@@ -1,5 +1,17 @@
 # Changelog
 
+## [v1.0.0-beta.12](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.12) (2021-09-14)
+
+[Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-beta.11...v1.0.0-beta.12)
+
+**Implemented enhancements:**
+
+- \(feat\) container start timeout is a parameter [\#77](https://github.com/drone-runners/drone-runner-kube/pull/77) ([marko-gacesa](https://github.com/marko-gacesa))
+
+**Fixed bugs:**
+
+- refactor of podwatcher to improve clarity and stability [\#78](https://github.com/drone-runners/drone-runner-kube/pull/78) ([marko-gacesa](https://github.com/marko-gacesa))
+
 ## [v1.0.0-beta.11](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.11) (2021-09-09)
 
 [Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-beta.10...v1.0.0-beta.11)

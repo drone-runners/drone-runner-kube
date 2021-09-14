@@ -28,23 +28,25 @@ type FailedContainerError struct {
 	container string
 	exitCode  int32
 	reason    string
+	image     string
 }
 
 func (e FailedContainerError) Error() string {
 	return fmt.Sprintf(
-		"kubernetes has failed: container failed to start: id=%s exitcode=%d reason=%s",
-		e.container, e.exitCode, e.reason)
+		"kubernetes has failed: container failed to start: id=%s exitcode=%d reason=%s image=%s",
+		e.container, e.exitCode, e.reason, e.image)
 }
 
 // StartTimeoutContainerError is returned as an error when a container fails to run after some predefined time.
 type StartTimeoutContainerError struct {
 	Container string
+	Image     string
 }
 
 func (e StartTimeoutContainerError) Error() string {
 	return fmt.Sprintf(
-		"kubernetes has failed: container failed to start in timely manner: id=%s",
-		e.Container)
+		"kubernetes has failed: container failed to start in timely manner: id=%s image=%s",
+		e.Container, e.Image)
 }
 
 // OtherContainerError is returned as an error by wait function when some other container

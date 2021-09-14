@@ -118,10 +118,13 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 		log.Trace("deleted secret")
 	}
 
+	var isPodDeleted bool
+
 	if err := k.client.CoreV1().Pods(spec.PodSpec.Namespace).Delete(context.Background(), spec.PodSpec.Name, metav1.DeleteOptions{}); err != nil {
 		log.WithError(err).Error("failed to delete pod")
 	} else {
 		log.Trace("deleted pod")
+		isPodDeleted = true
 	}
 
 	if spec.Namespace != "" {
@@ -138,11 +141,13 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 	}
 
 	if w, loaded := k.watchers.LoadAndDelete(spec.PodSpec.Name); loaded {
-		watcher := w.(*podwatcher.PodWatcher)
-		if err := watcher.WaitPodDeleted(); err != nil && err != context.Canceled {
-			log.WithError(err).Error("PodWatcher terminated with error")
-		} else {
-			log.Trace("PodWatcher terminated")
+		if isPodDeleted {
+			watcher := w.(*podwatcher.PodWatcher)
+			if err := watcher.WaitPodDeleted(); err != nil && err != context.Canceled {
+				log.WithError(err).Error("PodWatcher terminated with error")
+			} else {
+				log.Trace("PodWatcher terminated")
+			}
 		}
 	}
 
@@ -182,7 +187,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		log.Trace("PodWatcher started")
 	}
 
-	err = watcher.AddContainer(step.ID, step.Placeholder)
+	err = watcher.AddContainer(step.ID, step.Placeholder, step.Image)
 	if err != nil {
 		return
 	}
@@ -202,7 +207,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	select {
 	case err = <-chErrStart:
 	case <-time.After(k.containerStartTimeout):
-		err = podwatcher.StartTimeoutContainerError{Container: containerId}
+		err = podwatcher.StartTimeoutContainerError{Container: containerId, Image: containerImage}
 		log.WithError(err).Error("Engine: Container start timeout")
 	}
 	if err != nil {

@@ -28,49 +28,60 @@ type ContainerWatcher interface {
 // It is resolved by writing an error value to the resolveCh channel, or nil if no error occurred.
 // If containerId is an empty string, the process waits for whole the pod to finish.
 type waitClient struct {
-	containerId    string
-	containerState containerState
-	resolveCh      chan error
+	containerId  string
+	waitForState stepState
+	resolveCh    chan error
 }
 
-// containerInfo is used by the PodWatcher to track state of each container inside a pod.
-type containerInfo struct {
-	id          string
-	state       containerState
-	stateInfo   string
+// containerRegInfo is used by the PodWatcher register new containers to watch.
+type containerRegInfo struct {
+	containerId string
 	placeholder string
 	image       string
-	exitCode    int32
-
-	// failAt is used by PodWatcher to recover from invalid Kubernetes events.
-	_failAt time.Time
 }
 
-func (info *containerInfo) diff(old *containerInfo) (m map[string]interface{}) {
-	if old == nil {
-		return
-	}
+// containerInfo is used by the ContainerWatcher to send info about a container to PodWatcher.
+type containerInfo struct {
+	id           string
+	state        containerState
+	image        string
+	exitCode     int32
+	reason       string
+	restartCount int32
+	ready        bool
+}
 
+func (info *containerInfo) stateToMap() (m map[string]interface{}) {
 	m = make(map[string]interface{})
-
-	if info.state != old.state {
-		m["state"] = old.state.String() + "->" + info.state.String()
-	}
-	if info.stateInfo != old.stateInfo {
-		if old.stateInfo == "" {
-			m["stateInfo"] = info.stateInfo
-		} else {
-			m["stateInfo"] = old.stateInfo + "->" + info.stateInfo
-		}
-	}
-	if info.image != old.image {
-		m["image"] = old.image + "->" + info.image
-	}
-	if info.exitCode != old.exitCode {
+	m["state"] = info.state.String()
+	m["image"] = info.image
+	if info.exitCode != 0 {
 		m["exitCode"] = info.exitCode
 	}
-
+	if info.reason != "" {
+		m["reason"] = info.reason
+	}
+	if info.restartCount != 0 {
+		m["restartCount"] = info.restartCount
+	}
+	if !info.ready {
+		m["ready"] = "true"
+	}
 	return
+}
+
+// containerWatchInfo is used by the PodWatcher to track the state of each container inside a pod.
+type containerWatchInfo struct {
+	id          string
+	image       string
+	placeholder string
+
+	stepState stepState
+
+	exitCode int32
+	reason   string
+
+	addedAt time.Time
 }
 
 type containerState int
@@ -89,6 +100,34 @@ func (s containerState) String() string {
 		return "RUNNING"
 	case stateTerminated:
 		return "TERMINATED"
+	default:
+		panic("unsupported containerInfo state")
+	}
+}
+
+// stepState is used to track the current state of a step.
+type stepState int
+
+const (
+	stepStateWaiting = iota
+	stepStateRunning
+	stepStateFinished
+	stepStatePlaceholderFailed
+	stepStateFailed
+)
+
+func (s stepState) String() string {
+	switch s {
+	case stepStateWaiting:
+		return "waiting"
+	case stepStateRunning:
+		return "running"
+	case stepStateFinished:
+		return "finished"
+	case stepStatePlaceholderFailed:
+		return "failed-p"
+	case stepStateFailed:
+		return "failed"
 	default:
 		panic("unsupported containerInfo state")
 	}

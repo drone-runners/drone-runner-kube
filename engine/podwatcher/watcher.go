@@ -21,8 +21,8 @@ type PodWatcher struct {
 	// podName holds name of the pod. It's used mainly for logging.
 	podName string
 
-	// containerMap holds all containers in the pod, for each it holds current image and its state.
-	containerMap map[string]*containerInfo
+	// containerWatchInfo holds info about all containers in the pod.
+	containerMap map[string]*containerWatchInfo
 
 	// state represents PodWatcher state and can be: "init", "started" or "done".
 	state watcherState
@@ -35,7 +35,7 @@ type PodWatcher struct {
 	errDone error
 
 	// containerRegCh is a channel through which new containers are registered.
-	containerRegCh chan containerInfo
+	containerRegCh chan containerRegInfo
 
 	// clientCh is a channel through which new wait clients are added.
 	clientCh chan *waitClient
@@ -62,7 +62,7 @@ func (pw *PodWatcher) Start(ctx context.Context, cw ContainerWatcher) {
 	pw.podName = podName
 	pw.state = stateStarted
 	pw.stop = make(chan struct{}) // stop channel, close the channel to terminate the PodWatcher
-	pw.containerRegCh = make(chan containerInfo)
+	pw.containerRegCh = make(chan containerRegInfo)
 	pw.clientCh = make(chan *waitClient) // a channel for accepting new wait clients
 
 	errDone := make(chan error)
@@ -110,10 +110,16 @@ func (pw *PodWatcher) Start(ctx context.Context, cw ContainerWatcher) {
 
 			case c := <-pw.containerRegCh:
 				if pw.containerMap == nil {
-					pw.containerMap = make(map[string]*containerInfo)
+					pw.containerMap = make(map[string]*containerWatchInfo)
 				}
 
-				pw.containerMap[c.id] = &c
+				pw.containerMap[c.containerId] = &containerWatchInfo{
+					id:          c.containerId,
+					image:       c.image,
+					placeholder: c.placeholder,
+					stepState:   stepStateWaiting,
+					addedAt:     time.Now(),
+				}
 
 			case cl := <-pw.clientCh: // a new waitClient is waiting for a container state
 				if cl.containerId == "" {
@@ -132,7 +138,7 @@ func (pw *PodWatcher) Start(ctx context.Context, cw ContainerWatcher) {
 				}
 
 				// Try to resolve the waitClient right now...
-				if !_tryResolveWaitClient(cl, c, nil) {
+				if !_tryResolveWaitClient(cl, c) {
 					// ... if can't, put the waitClient to the list of unresolved clients.
 					pw.clientList = append(pw.clientList, cl)
 				}
@@ -155,199 +161,148 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 			continue // unknown container
 		}
 
-		// If we already declared a container as finished, just notify all
-		// that the container is terminated (with or without an error)
-		if c.state == stateTerminated {
-			var err error
-
+		// We've already declared the container as finished or failed, so just notify all that it's terminated.
+		if c.stepState >= stepStateFinished {
 			if cs.state != stateTerminated {
-				// Should not happen... a container that was marked as terminated is now running again...
-				diff := cs.diff(c)
+				// Should not happen: A container that was marked as terminated is now running again... just log and proceed
 				logrus.
 					WithField("pod", pw.podName).
 					WithField("container", c.id).
-					WithFields(diff).
-					Trace("PodWatcher: Container zombie found...")
-
-				err = FailedContainerError{
-					container: c.id,
-					exitCode:  c.exitCode,
-					reason:    c.stateInfo,
-				}
-			} else if image.Match(c.image, c.placeholder) {
-				err = FailedContainerError{
-					container: c.id,
-					exitCode:  c.exitCode,
-					reason:    c.stateInfo,
-				}
+					WithFields(cs.stateToMap()).
+					Warn("PodWatcher: Container zombie found...")
 			}
-
-			pw.notifyClientsContainerChange(c, err)
+			pw.notifyClients(c)
 			continue
 		}
 
-		if cs.state == stateTerminated {
-			diff := cs.diff(c)
+		isPlaceholder := image.Match(cs.image, c.placeholder)
 
-			// Sometimes, kubernetes sends an event about a terminated container with:
-			// Terminated.ExitCode=2 and Terminated.Reason="Error".
-			// Often container image will revert back to the placeholder image.
-			// In these cases we give Kubernetes some time to send the correct event,
-			// but if it fails, we do declare the container as terminated.
-			// Note: For this logic to work, the periodic container status check must work.
-			if cs.exitCode == 2 && cs.stateInfo == "Error" {
-				if c._failAt.IsZero() {
-					logrus.
-						WithField("pod", pw.podName).
-						WithField("container", c.id).
-						WithFields(diff).
-						Trace("PodWatcher: Container failed. Trying recovery...")
-					c._failAt = time.Now()
-				} else if time.Since(c._failAt) < 15*time.Second {
-					logrus.
-						WithField("pod", pw.podName).
-						WithField("container", c.id).
-						WithFields(diff).
-						Trace("PodWatcher: Container failed. Waiting to recover...")
-				} else {
-					logrus.
-						WithField("pod", pw.podName).
-						WithField("container", c.id).
-						WithFields(diff).
-						Warn("PodWatcher: Container failed.")
+		// A running container with placeholder image (that we track, so present in pw.containerMap)
+		// usually means that Kubernetes is downloading the real step image in background.
+		if isPlaceholder && (cs.state == stateWaiting || cs.state == stateRunning) && cs.restartCount == 0 {
+			continue
+		}
 
-					c.state = stateTerminated
-					c.stateInfo = cs.stateInfo
-					c.image = cs.image
-					c.exitCode = cs.exitCode
+		// Sometimes, kubernetes sends an event about a terminated container with:
+		// Terminated.ExitCode=2 and Terminated.Reason="Error".
+		// Often container the current image will revert back to the placeholder image.
+		// Kubernetes is probably downloading an image for the container in the background.
+		if cs.state == stateTerminated && cs.exitCode == 2 && cs.reason == "Error" {
+			continue
+		}
 
-					err := FailedContainerError{
-						container: c.id,
-						exitCode:  c.exitCode,
-						reason:    c.stateInfo,
-					}
+		switch cs.state {
+		case stateTerminated:
+			if isPlaceholder {
+				c.stepState = stepStatePlaceholderFailed
 
-					pw.notifyClientsContainerChange(c, err)
-				}
-
-				continue
-			}
-
-			c.state = stateTerminated
-			c.stateInfo = cs.stateInfo
-			c.image = cs.image
-			c.exitCode = cs.exitCode
-			c._failAt = time.Time{}
-
-			var err error
-
-			if image.Match(c.image, c.placeholder) {
-				err = FailedContainerError{
-					container: c.id,
-					exitCode:  c.exitCode,
-					reason:    c.stateInfo,
-				}
 				logrus.
 					WithField("pod", pw.podName).
 					WithField("container", c.id).
-					WithFields(diff).
-					Warn("PodWatcher: Container failed.")
+					WithFields(cs.stateToMap()).
+					Debug("PodWatcher: Container failed.")
 			} else {
+				c.stepState = stepStateFinished
+
 				logrus.
 					WithField("pod", pw.podName).
 					WithField("container", c.id).
-					WithFields(diff).
+					WithFields(cs.stateToMap()).
 					Debug("PodWatcher: Container terminated.")
 			}
+			c.exitCode = cs.exitCode
+			c.reason = cs.reason
 
-			pw.notifyClientsContainerChange(c, err)
+			pw.notifyClients(c)
 
-			continue
-		}
-
-		if image.Match(c.image, cs.image) && c.state == cs.state && c.stateInfo == cs.stateInfo {
-			continue // container unchanged
-		}
-
-		diff := cs.diff(c)
-
-		c.state = cs.state
-		c.image = cs.image
-		c.stateInfo = cs.stateInfo
-		c.exitCode = cs.exitCode
-		c._failAt = time.Time{}
-
-		logrus.
-			WithField("pod", pw.podName).
-			WithField("container", c.id).
-			WithFields(diff).
-			Debug("PodWatcher: Container state changed")
-
-		pw.notifyClientsContainerChange(c, nil)
-	}
-}
-
-// _tryResolveWaitClient will resolve the waitClient if the container state is greater or equal to the requested state.
-// For example: A container in TERMINATED state will resolve all clients waiting for it to enter RUNNING state
-// and all clients waiting for it to enter TERMINATED state.
-func _tryResolveWaitClient(cl *waitClient, c *containerInfo, err error) bool {
-	if cl.containerId != c.id {
-		return false
-	}
-
-	if err != nil {
-		// tell the waitClient to fail
-		cl.resolveCh <- err
-		return true
-	}
-
-	if image.Match(c.image, c.placeholder) {
-		return false
-	}
-
-	if c.state >= cl.containerState {
-		if cl.containerState == stateTerminated && c.exitCode != 0 {
-			// tell the waitClient that the container failed with an exit code != 0
-			cl.resolveCh <- exitCodeError(int(c.exitCode))
-		} else {
-			// tell the waitClient to proceed
-			cl.resolveCh <- nil
-		}
-
-		return true
-	}
-
-	return false
-}
-
-// notifyClientsContainerChange resolves all wait clients that wait for a specific state of a container.
-func (pw *PodWatcher) notifyClientsContainerChange(c *containerInfo, err error) {
-	if err != nil {
-		_, isFailed := err.(FailedContainerError)
-		if isKubeError := isFailed; isKubeError {
-			for _, cl := range pw.clientList {
-				if cl.containerId == c.id {
-					cl.resolveCh <- err
-				} else {
-					cl.resolveCh <- OtherContainerError{Err: err}
-				}
+		case stateWaiting, stateRunning:
+			var s stepState
+			if isPlaceholder || cs.state == stateWaiting {
+				s = stepStateWaiting
+			} else {
+				s = stepStateRunning
 			}
-			pw.clientList = nil
-			return
+
+			if s == c.stepState && c.reason == cs.reason {
+				continue // step state unchanged
+			}
+
+			c.stepState = s
+			c.exitCode = 0
+			c.reason = cs.reason
+
+			logrus.
+				WithField("pod", pw.podName).
+				WithField("container", c.id).
+				WithField("stepState", c.stepState).
+				WithFields(cs.stateToMap()).
+				Debug("PodWatcher: Container state changed")
+
+			pw.notifyClients(c)
 		}
 	}
+}
+
+func (pw *PodWatcher) notifyClients(c *containerWatchInfo) {
+	switch c.stepState {
+	case stepStateWaiting:
+	case stepStateRunning, stepStateFinished:
+		pw.notifyClientsContainerChange(c)
+	case stepStatePlaceholderFailed, stepStateFailed:
+		pw.notifyClientsError(c, FailedContainerError{
+			container: c.id,
+			exitCode:  c.exitCode,
+			reason:    c.reason,
+			image:     c.image,
+		})
+	}
+}
+
+// notifyClientsError resolves wait clients with an error.
+func (pw *PodWatcher) notifyClientsError(c *containerWatchInfo, err error) {
+	_, isFailed := err.(FailedContainerError)
+	isKubeError := isFailed
 
 	for clIdx := 0; clIdx < len(pw.clientList); {
 		cl := pw.clientList[clIdx]
 
-		if _tryResolveWaitClient(cl, c, err) {
-			// remove the waitClient from the list (order is not preserved)
-			pw.clientList[clIdx] = pw.clientList[len(pw.clientList)-1]
-			pw.clientList[len(pw.clientList)-1] = nil
-			pw.clientList = pw.clientList[:len(pw.clientList)-1]
+		if isKubeError {
+			if cl.containerId == "" {
+				clIdx++
+				continue
+			} else if cl.containerId == c.id {
+				cl.resolveCh <- err
+			} else {
+				cl.resolveCh <- OtherContainerError{Err: err}
+			}
+		} else if cl.containerId == c.id {
+			cl.resolveCh <- err
 		} else {
 			clIdx++
+			continue
 		}
+
+		// remove the waitClient from the list (order is not preserved)
+		pw.clientList[clIdx] = pw.clientList[len(pw.clientList)-1]
+		pw.clientList[len(pw.clientList)-1] = nil
+		pw.clientList = pw.clientList[:len(pw.clientList)-1]
+	}
+}
+
+// notifyClientsContainerChange resolves all wait clients that wait for a specific state of a container.
+func (pw *PodWatcher) notifyClientsContainerChange(c *containerWatchInfo) {
+	for clIdx := 0; clIdx < len(pw.clientList); {
+		cl := pw.clientList[clIdx]
+
+		if !_tryResolveWaitClient(cl, c) {
+			clIdx++
+			continue
+		}
+
+		// remove the waitClient from the list (order is not preserved)
+		pw.clientList[clIdx] = pw.clientList[len(pw.clientList)-1]
+		pw.clientList[len(pw.clientList)-1] = nil
+		pw.clientList = pw.clientList[:len(pw.clientList)-1]
 	}
 }
 
@@ -366,13 +321,36 @@ func (pw *PodWatcher) notifyClientsPodTerminated(err error) {
 	pw.clientList = nil
 }
 
-func (pw *PodWatcher) waitForEvent(containerId string, state containerState) (err error) {
+// _tryResolveWaitClient will resolve the waitClient if the step state is greater or equal to the requested state.
+// For example: A container in "finished" state will resolve all clients waiting for it to enter either
+// "running" or "finished" state.
+func _tryResolveWaitClient(cl *waitClient, c *containerWatchInfo) bool {
+	if cl.containerId != c.id {
+		return false
+	}
+
+	if c.stepState < cl.waitForState {
+		return false
+	}
+
+	if cl.waitForState == stepStateFinished && c.exitCode != 0 {
+		// tell the waitClient that the container failed with an exit code != 0
+		cl.resolveCh <- exitCodeError(int(c.exitCode))
+	} else {
+		// tell the waitClient to proceed
+		cl.resolveCh <- nil
+	}
+
+	return true
+}
+
+func (pw *PodWatcher) waitForEvent(containerId string, stepState stepState) (err error) {
 	ch := make(chan error)
 
 	logrus.
 		WithField("pod", pw.podName).
 		WithField("container", containerId).
-		WithField("state", state.String()).
+		WithField("stepState", stepState.String()).
 		Debug("PodWatcher: Waiting...")
 
 	defer func(t time.Time) {
@@ -380,12 +358,12 @@ func (pw *PodWatcher) waitForEvent(containerId string, state containerState) (er
 			WithError(err).
 			WithField("pod", pw.podName).
 			WithField("container", containerId).
-			WithField("state", state.String()).
+			WithField("stepState", stepState.String()).
 			Debugf("PodWatcher: Wait finished. Duration=%.2fs", time.Since(t).Seconds())
 	}(time.Now())
 
 	select {
-	case pw.clientCh <- &waitClient{containerId: containerId, containerState: state, resolveCh: ch}:
+	case pw.clientCh <- &waitClient{containerId: containerId, waitForState: stepState, resolveCh: ch}:
 		err = <-ch
 
 	case <-pw.stop:
@@ -401,12 +379,12 @@ func (pw *PodWatcher) waitForEvent(containerId string, state containerState) (er
 
 // WaitContainerStart waits until a container in the pod starts.
 func (pw *PodWatcher) WaitContainerStart(containerId string) error {
-	return pw.waitForEvent(containerId, stateRunning)
+	return pw.waitForEvent(containerId, stepStateRunning)
 }
 
 // WaitContainerTerminated waits until a container in the pod is terminated.
 func (pw *PodWatcher) WaitContainerTerminated(containerId string) (int, error) {
-	err := pw.waitForEvent(containerId, stateTerminated)
+	err := pw.waitForEvent(containerId, stepStateFinished)
 	if code, ok := err.(exitCodeError); ok { // exit codes != 0 are masked as a exitCodeError
 		return int(code), nil
 	}
@@ -417,22 +395,15 @@ func (pw *PodWatcher) WaitContainerTerminated(containerId string) (int, error) {
 // WaitPodDeleted waits until the pod is deleted.
 func (pw *PodWatcher) WaitPodDeleted() (err error) {
 	// note: the state used below is unimportant, it's used only for logging
-	return pw.waitForEvent("", stateTerminated)
+	return pw.waitForEvent("", stepStateFinished)
 }
 
 // AddContainer registers a container for state tracking.
 // Adding containers is necessary because PodWatcher
 // must know name of the placeholder image for each container.
-func (pw *PodWatcher) AddContainer(id string, placeholder string) error {
+func (pw *PodWatcher) AddContainer(id, placeholder, image string) error {
 	select {
-	case pw.containerRegCh <- containerInfo{
-		id:          id,
-		state:       stateWaiting,
-		stateInfo:   "",
-		image:       placeholder,
-		placeholder: placeholder,
-		exitCode:    0,
-	}:
+	case pw.containerRegCh <- containerRegInfo{containerId: id, placeholder: placeholder, image: image}:
 		return nil
 	case <-pw.stop:
 		return PodTerminatedError{}

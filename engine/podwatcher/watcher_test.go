@@ -8,6 +8,7 @@ import (
 	"context"
 	"os"
 	"reflect"
+	"strconv"
 	"sync"
 	"testing"
 	"time"
@@ -35,12 +36,10 @@ func makeContainerWatcher(containers []string) *testContainerWatcher {
 	// init state: each step has a placeholder container
 	for i, containerId := range containers {
 		cw.containers[i] = containerInfo{
-			id:          containerId,
-			state:       stateWaiting,
-			stateInfo:   "",
-			placeholder: placeholder,
-			image:       placeholder,
-			exitCode:    0,
+			id:       containerId,
+			state:    stateWaiting,
+			image:    placeholder,
+			exitCode: 0,
 		}
 	}
 
@@ -285,26 +284,22 @@ func TestPodWatcher(t *testing.T) {
 
 				switch s.op {
 				case opContAdd:
-					pw.AddContainer(s.containerId, placeholder)
+					_ = pw.AddContainer(s.containerId, placeholder, "step-"+strconv.Itoa(stepIdx))
 
 				case opContSetStatePlaceholder:
 					cw.event <- containerInfo{
-						id:          s.containerId,
-						state:       s.state,
-						stateInfo:   "",
-						placeholder: placeholder,
-						image:       placeholder,
-						exitCode:    int32(s.exitCode),
+						id:       s.containerId,
+						state:    s.state,
+						image:    placeholder,
+						exitCode: int32(s.exitCode),
 					}
 
 				case opContSetState:
 					cw.event <- containerInfo{
-						id:          s.containerId,
-						state:       s.state,
-						stateInfo:   "",
-						placeholder: placeholder,
-						image:       s.containerId,
-						exitCode:    int32(s.exitCode),
+						id:       s.containerId,
+						state:    s.state,
+						image:    s.containerId,
+						exitCode: int32(s.exitCode),
 					}
 
 				case opWaitContainer:

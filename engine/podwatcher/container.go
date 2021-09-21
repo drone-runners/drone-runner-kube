@@ -81,7 +81,8 @@ type containerWatchInfo struct {
 	exitCode int32
 	reason   string
 
-	addedAt time.Time
+	addedAt  time.Time
+	failedAt time.Time
 }
 
 type containerState int

@@ -188,7 +188,41 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 		// Often container the current image will revert back to the placeholder image.
 		// Kubernetes is probably downloading an image for the container in the background.
 		if cs.state == stateTerminated && cs.exitCode == 2 && cs.reason == "Error" {
+			if cs.restartCount == 0 {
+				continue
+			}
+
+			if c.failedAt.IsZero() {
+				logrus.
+					WithField("pod", pw.podName).
+					WithField("container", c.id).
+					WithFields(cs.stateToMap()).
+					Trace("PodWatcher: Container failed. Trying recovery...")
+				c.failedAt = time.Now()
+			} else if time.Since(c.failedAt) < time.Minute {
+				logrus.
+					WithField("pod", pw.podName).
+					WithField("container", c.id).
+					WithFields(cs.stateToMap()).
+					Trace("PodWatcher: Container failed. Waiting to recover...")
+			} else {
+				logrus.
+					WithField("pod", pw.podName).
+					WithField("container", c.id).
+					WithFields(cs.stateToMap()).
+					Debug("PodWatcher: Container failed.")
+
+				c.stepState = stepStateFailed
+				c.exitCode = cs.exitCode
+				c.reason = cs.reason
+
+				pw.notifyClients(c)
+			}
+
 			continue
+
+		} else {
+			c.failedAt = time.Time{}
 		}
 
 		switch cs.state {
@@ -200,7 +234,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 					WithField("pod", pw.podName).
 					WithField("container", c.id).
 					WithFields(cs.stateToMap()).
-					Debug("PodWatcher: Container failed.")
+					Debug("PodWatcher: Container placeholder terminated.")
 			} else {
 				c.stepState = stepStateFinished
 

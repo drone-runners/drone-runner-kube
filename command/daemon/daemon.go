@@ -89,7 +89,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		// the kubernetes client from the configuration file.
 		// This is used primarily for local out-of-cluster
 		// testing.
-		kubeClient, err = kube.NewFromConfig(path)
+		kubeClient, err = kube.NewFromConfig((*kube.ClientConfig)(&config.KubernetesClient), path)
 		if err != nil {
 			logrus.WithError(err).
 				Fatalln("cannot load the kubernetes client from config")
@@ -98,7 +98,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		// else, if no configuration is specified, we create
 		// the kubernetes client using the in-cluster
 		// configuration file.
-		kubeClient, err = kube.NewInCluster()
+		kubeClient, err = kube.NewInCluster((*kube.ClientConfig)(&config.KubernetesClient))
 		if err != nil {
 			logrus.WithError(err).
 				Fatalln("cannot load the in-cluster kubernetes client")

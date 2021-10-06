@@ -148,6 +148,11 @@ type Config struct {
 	Engine struct {
 		ContainerStartTimeout int `envconfig:"DRONE_ENGINE_CONTAINER_START_TIMEOUT" default:"480"`
 	}
+
+	KubernetesClient struct {
+		QPS   float32 `envconfig:"DRONE_KUBE_CLIENT_QPS"`
+		Burst int     `envconfig:"DRONE_KUBE_CLIENT_BURST"`
+	}
 }
 
 // legacy environment variables. the key is the legacy

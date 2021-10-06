@@ -42,9 +42,12 @@ import (
 type execCommand struct {
 	*internal.Flags
 
-	Source        *os.File
-	Include       []string
-	Exclude       []string
+	Source     *os.File
+	KubeConfig string
+
+	Include []string
+	Exclude []string
+
 	Privileged    []string
 	Volumes       map[string]string
 	Environ       map[string]string
@@ -53,17 +56,26 @@ type execCommand struct {
 	Resource      compiler.Resources
 	StageRequests compiler.ResourceObject
 	Namespace     string
-	Config        string
-	Policy        string
-	Tmate         compiler.Tmate
-	Clone         bool
-	Pretty        bool
-	Procs         int64
-	Debug         bool
-	Trace         bool
-	Dump          bool
 
-	ContainerStartTimeout int
+	Policy string
+
+	Tmate compiler.Tmate
+
+	Clone  bool
+	Pretty bool
+	Procs  int64
+
+	Log struct {
+		Debug bool
+		Trace bool
+		Dump  bool
+	}
+
+	Engine struct {
+		ContainerStartTimeout int
+	}
+
+	KubeClient kube.ClientConfig
 }
 
 func (c *execCommand) run(*kingpin.ParseContext) error {
@@ -77,7 +89,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		return err
 	}
 
-	kubeconfig := c.Config
+	kubeconfig := c.KubeConfig
 	if kubeconfig == "" {
 		dir, _ := os.UserHomeDir()
 		kubeconfig = filepath.Join(dir, ".kube", "config")
@@ -242,10 +254,10 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 
 	// enable debug logging
 	logrus.SetLevel(logrus.WarnLevel)
-	if c.Debug {
+	if c.Log.Debug {
 		logrus.SetLevel(logrus.DebugLevel)
 	}
-	if c.Trace {
+	if c.Log.Trace {
 		logrus.SetLevel(logrus.TraceLevel)
 	}
 	logger.Default = logger.Logrus(
@@ -255,13 +267,13 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 	)
 
 	// change to out-of-cluster for local testing
-	kubeClient, err := kube.NewFromConfig(kubeconfig)
+	kubeClient, err := kube.NewFromConfig(&c.KubeClient, kubeconfig)
 	if err != nil {
 		return err
 	}
 
 	engine := engine.New(kubeClient,
-		time.Duration(c.ContainerStartTimeout)*time.Second)
+		time.Duration(c.Engine.ContainerStartTimeout)*time.Second)
 
 	err = runtime.NewExecer(
 		pipeline.NopReporter(),
@@ -270,7 +282,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 		c.Procs,
 	).Exec(ctx, spec, state)
 
-	if c.Dump {
+	if c.Log.Dump {
 		dump(state)
 	}
 	if err != nil {
@@ -334,7 +346,7 @@ func registerExec(app *kingpin.Application) {
 		StringsVar(&c.Privileged)
 
 	cmd.Flag("kubeconfig", "path to the kubernetes config file").
-		StringVar(&c.Config)
+		StringVar(&c.KubeConfig)
 
 	cmd.Flag("limit-memory", "memory limit in MiB for containers").
 		Int64Var(&c.Resource.Limits.Memory)
@@ -366,13 +378,13 @@ func registerExec(app *kingpin.Application) {
 		StringVar(&c.Namespace)
 
 	cmd.Flag("debug", "enable debug logging").
-		BoolVar(&c.Debug)
+		BoolVar(&c.Log.Debug)
 
 	cmd.Flag("trace", "enable trace logging").
-		BoolVar(&c.Trace)
+		BoolVar(&c.Log.Trace)
 
 	cmd.Flag("dump", "dump the pipeline state to stdout").
-		BoolVar(&c.Dump)
+		BoolVar(&c.Log.Dump)
 
 	cmd.Flag("pretty", "pretty print the output").
 		Default(
@@ -404,7 +416,13 @@ func registerExec(app *kingpin.Application) {
 
 	cmd.Flag("engine-container-start-timeout", "number of seconds to wait for a container to start").
 		Default("480").
-		IntVar(&c.ContainerStartTimeout)
+		IntVar(&c.Engine.ContainerStartTimeout)
+
+	cmd.Flag("kube-client-qps", "k8s client throttle control: maximum queries per second").
+		Float32Var(&c.KubeClient.QPS)
+
+	cmd.Flag("kube-client-burst", "k8s client throttle control: maximum burst").
+		IntVar(&c.KubeClient.Burst)
 
 	// shared pipeline flags
 	c.Flags = internal.ParseFlags(cmd)

@@ -187,10 +187,12 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 		// Terminated.ExitCode=2 and Terminated.Reason="Error".
 		// Often container the current image will revert back to the placeholder image.
 		// Kubernetes is probably downloading an image for the container in the background.
-		if cs.state == stateTerminated && cs.exitCode == 2 && cs.reason == "Error" {
+		if cs.exitCode == 2 && cs.reason == "Error" {
 			if cs.restartCount == 0 {
 				continue
 			}
+
+			recoveryDuration := time.Minute
 
 			if c.failedAt.IsZero() {
 				logrus.
@@ -199,7 +201,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 					WithFields(cs.stateToMap()).
 					Trace("PodWatcher: Container failed. Trying recovery...")
 				c.failedAt = time.Now()
-			} else if time.Since(c.failedAt) < time.Minute {
+			} else if time.Since(c.failedAt) < recoveryDuration {
 				logrus.
 					WithField("pod", pw.podName).
 					WithField("container", c.id).

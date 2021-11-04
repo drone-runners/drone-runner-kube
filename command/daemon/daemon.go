@@ -8,14 +8,13 @@ import (
 	"context"
 	"time"
 
-	"github.com/drone/runner-go/pipeline/uploader"
-
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/kube"
 	"github.com/drone-runners/drone-runner-kube/internal/match"
+	"github.com/drone/runner-go/pipeline/uploader"
 
 	"github.com/drone/runner-go/client"
 	"github.com/drone/runner-go/environ/provider"

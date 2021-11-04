@@ -8,6 +8,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/drone/runner-go/pipeline/uploader"
+
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
@@ -111,6 +113,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 	remote := remote.New(cli)
 	tracer := history.New(remote)
 	hook := loghistory.New()
+	upload := uploader.New(cli)
 	logrus.AddHook(hook)
 
 	runner := &runtime.Runner{
@@ -191,6 +194,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Exec: runtime.NewExecer(
 			tracer,
 			remote,
+			upload,
 			kubeEngine,
 			config.Runner.Procs,
 		).Exec,

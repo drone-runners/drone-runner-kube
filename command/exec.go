@@ -278,6 +278,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 	err = runtime.NewExecer(
 		pipeline.NopReporter(),
 		console.New(c.Pretty),
+		pipeline.NopUploader(),
 		engine,
 		c.Procs,
 	).Exec(ctx, spec, state)

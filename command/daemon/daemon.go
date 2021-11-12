@@ -23,6 +23,7 @@ import (
 	"github.com/drone/runner-go/pipeline/reporter/history"
 	"github.com/drone/runner-go/pipeline/reporter/remote"
 	"github.com/drone/runner-go/pipeline/runtime"
+	"github.com/drone/runner-go/pipeline/uploader"
 	"github.com/drone/runner-go/poller"
 	"github.com/drone/runner-go/registry"
 	"github.com/drone/runner-go/secret"
@@ -111,6 +112,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 	remote := remote.New(cli)
 	tracer := history.New(remote)
 	hook := loghistory.New()
+	upload := uploader.New(cli)
 	logrus.AddHook(hook)
 
 	runner := &runtime.Runner{
@@ -191,6 +193,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Exec: runtime.NewExecer(
 			tracer,
 			remote,
+			upload,
 			kubeEngine,
 			config.Runner.Procs,
 		).Exec,

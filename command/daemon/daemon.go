@@ -12,6 +12,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine/compiler"
 	"github.com/drone-runners/drone-runner-kube/engine/linter"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
+	"github.com/drone-runners/drone-runner-kube/internal/kube"
 	"github.com/drone-runners/drone-runner-kube/internal/match"
 
 	"github.com/drone/runner-go/client"
@@ -22,6 +23,7 @@ import (
 	"github.com/drone/runner-go/pipeline/reporter/history"
 	"github.com/drone/runner-go/pipeline/reporter/remote"
 	"github.com/drone/runner-go/pipeline/runtime"
+	"github.com/drone/runner-go/pipeline/uploader"
 	"github.com/drone/runner-go/poller"
 	"github.com/drone/runner-go/registry"
 	"github.com/drone/runner-go/secret"
@@ -32,6 +34,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/alecthomas/kingpin.v2"
+	"k8s.io/client-go/kubernetes"
 )
 
 // empty context.
@@ -80,31 +83,36 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		),
 	)
 
-	var kube *engine.Kubernetes
+	var kubeClient kubernetes.Interface
+
 	if path := config.Runner.Config; path != "" {
 		// if the configuration path is specified, we create
 		// the kubernetes client from the configuration file.
 		// This is used primarily for local out-of-cluster
 		// testing.
-		kube, err = engine.NewFromConfig(path)
+		kubeClient, err = kube.NewFromConfig((*kube.ClientConfig)(&config.KubernetesClient), path)
 		if err != nil {
 			logrus.WithError(err).
-				Fatalln("cannot load the kubernetes engine from config")
+				Fatalln("cannot load the kubernetes client from config")
 		}
 	} else {
 		// else, if no configuration is specified, we create
 		// the kubernetes client using the in-cluster
 		// configuration file.
-		kube, err = engine.NewInCluster()
+		kubeClient, err = kube.NewInCluster((*kube.ClientConfig)(&config.KubernetesClient))
 		if err != nil {
 			logrus.WithError(err).
-				Fatalln("cannot load the in-cluster kubernetes engine")
+				Fatalln("cannot load the in-cluster kubernetes client")
 		}
 	}
+
+	kubeEngine := engine.New(kubeClient,
+		time.Duration(config.Engine.ContainerStartTimeout)*time.Second)
 
 	remote := remote.New(cli)
 	tracer := history.New(remote)
 	hook := loghistory.New()
+	upload := uploader.New(cli)
 	logrus.AddHook(hook)
 
 	runner := &runtime.Runner{
@@ -122,6 +130,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Compiler: &compiler.Compiler{
 			Cloner:         config.Images.Clone,
 			Placeholder:    config.Images.Placeholder,
+			NetrcCloneOnly: config.Netrc.CloneOnly,
 			Volumes:        config.Runner.Volumes,
 			Namespace:      config.Namespace.Default,
 			Labels:         config.Labels.Default,
@@ -184,7 +193,8 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 		Exec: runtime.NewExecer(
 			tracer,
 			remote,
-			kube,
+			upload,
+			kubeEngine,
 			config.Runner.Procs,
 		).Exec,
 	}

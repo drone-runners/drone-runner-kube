@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"strings"
 
-	"k8s.io/apimachinery/pkg/util/validation"
-
 	"github.com/drone-runners/drone-runner-kube/engine"
 	"github.com/drone-runners/drone-runner-kube/engine/policy"
 	"github.com/drone-runners/drone-runner-kube/engine/resource"
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 
+	"github.com/drone/drone-go/drone"
 	"github.com/drone/runner-go/clone"
+	"github.com/drone/runner-go/container"
 	"github.com/drone/runner-go/environ"
 	"github.com/drone/runner-go/environ/provider"
 	"github.com/drone/runner-go/labels"
@@ -28,6 +28,7 @@ import (
 
 	"github.com/dchest/uniuri"
 	"github.com/gosimple/slug"
+	"k8s.io/apimachinery/pkg/util/validation"
 )
 
 // random generator function
@@ -87,6 +88,10 @@ type (
 		// Privileged provides a list of docker images that
 		// are always privileged.
 		Privileged []string
+
+		// NetrcCloneOnly instrucs the compiler to only inject
+		// the netrc file into the clone setp.
+		NetrcCloneOnly bool
 
 		// Volumes provides a set of volumes that should be
 		// mounted to each pipeline container.
@@ -149,7 +154,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// reset the workspace path if attempting to mount
 	// volumes that are internal use only.
-	if isRestrictedVolume(workspace) {
+	if container.IsRestrictedVolume(workspace) {
 		workspace = "/drone/src"
 	}
 
@@ -315,19 +320,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		envs["DRONE_DOCKER_VOLUME_PATH"] = workVolume.HostPath.Path
 	}
 
-	// create the netrc environment variables
-	if args.Netrc != nil && args.Netrc.Machine != "" {
-		envs["DRONE_NETRC_MACHINE"] = args.Netrc.Machine
-		envs["DRONE_NETRC_USERNAME"] = args.Netrc.Login
-		envs["DRONE_NETRC_PASSWORD"] = args.Netrc.Password
-		envs["DRONE_NETRC_FILE"] = fmt.Sprintf(
-			"machine %s login %s password %s",
-			args.Netrc.Machine,
-			args.Netrc.Login,
-			args.Netrc.Password,
-		)
-	}
-
 	// create tmate variables
 	if c.Tmate.Server != "" {
 		envs["DRONE_TMATE_HOST"] = c.Tmate.Server
@@ -412,22 +404,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 	}
 
-	if len(hostnames) > 0 {
-		spec.PodSpec.HostAliases = []engine.HostAlias{
-			{
-				IP:        "127.0.0.1",
-				Hostnames: hostnames,
-			},
-		}
-	}
-
-	for _, ahost := range pipeline.HostAliases {
-		spec.PodSpec.HostAliases = append(spec.PodSpec.HostAliases, engine.HostAlias{
-			IP:        ahost.IP,
-			Hostnames: ahost.Hostnames,
-		})
-	}
-
 	// create steps
 	for _, src := range pipeline.Steps {
 		dst := createStep(pipeline, src)
@@ -448,12 +424,32 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			dst.Placeholder = c.Placeholder
 		}
 
+		if dst.Detach && len(validation.IsDNS1123Subdomain(src.Name)) == 0 {
+			hostnames = append(hostnames, src.Name)
+		}
+
 		// if the pipeline step has an approved image, it is
 		// automatically defaulted to run with escalalated
 		// privileges.
 		if c.isPrivileged(src) {
 			dst.Privileged = true
 		}
+	}
+
+	if len(hostnames) > 0 {
+		spec.PodSpec.HostAliases = []engine.HostAlias{
+			{
+				IP:        "127.0.0.1",
+				Hostnames: hostnames,
+			},
+		}
+	}
+
+	for _, exhost := range pipeline.HostAliases {
+		spec.PodSpec.HostAliases = append(spec.PodSpec.HostAliases, engine.HostAlias{
+			IP:        exhost.IP,
+			Hostnames: exhost.Hostnames,
+		})
 	}
 
 	// create internal steps if build running in debug mode
@@ -493,7 +489,13 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		removeCloneDeps(spec)
 	}
 
-	for _, step := range append(spec.Steps, spec.Internal...) {
+	hasNetrc := packNetrcSecrets(spec, args.Netrc)
+
+	for stepIdx, step := range append(spec.Steps, spec.Internal...) {
+		if hasNetrc && (stepIdx == 0 && c.NetrcCloneOnly || !c.NetrcCloneOnly) {
+			setNetrcSecretsToStep(step, spec)
+		}
+
 		for _, s := range step.Secrets {
 			// if the secret was already fetched and stored in the
 			// secret map it can be skipped.
@@ -506,6 +508,14 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 					Name: s.Name,
 					Data: secret,
 					Mask: true,
+				}
+				spec.Secrets[s.Name] = s
+				step.SpecSecrets = append(step.SpecSecrets, s)
+			} else {
+				s := &engine.Secret{
+					Name: s.Name,
+					Data: "",
+					Mask: false,
 				}
 				spec.Secrets[s.Name] = s
 				step.SpecSecrets = append(step.SpecSecrets, s)
@@ -596,52 +606,83 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		spec.Volumes = append(spec.Volumes, src)
 	}
 
-	// apply default resources limits
-	for _, v := range spec.Steps {
-		if v.Resources.Limits.CPU == 0 {
-			v.Resources.Limits.CPU = c.Resources.Limits.CPU
-		}
-		if v.Resources.Limits.Memory == 0 {
-			v.Resources.Limits.Memory = c.Resources.Limits.Memory
-		}
-	}
+	// apply policy - policies overrides pipeline configuration
 
-	numSteps := int64(len(spec.Steps))
-	lowerRequestVal := c.Resources.MinRequests
-	upperRequestVal := getStepUpperRequestVal(pipeline.Resources, c.StageRequests)
-
-	// Transform step resources to match the stage level requests.
-	//
-	// First step container is assigned cpu & memory request equal to stage level resource
-	// requests. If default minimum request value is provided for steps, then those are
-	// deducted from stage level requests so that pod uses provided stage level requests.
-	//
-	// Rest of containers are assigned memory & cpu requests equal to 0. If default minimun
-	// request values are provided via environment variables, then those are used instead.
-	for i, v := range spec.Steps {
-		if i == 0 {
-			cpu := max(upperRequestVal.CPU-(numSteps-1)*lowerRequestVal.CPU,
-				lowerRequestVal.CPU)
-			mem := max(upperRequestVal.Memory-(numSteps-1)*lowerRequestVal.Memory,
-				lowerRequestVal.Memory)
-
-			v.Resources.Requests.CPU = cpu
-			v.Resources.Requests.Memory = mem
-		} else {
-			v.Resources.Requests.CPU = lowerRequestVal.CPU
-			v.Resources.Requests.Memory = lowerRequestVal.Memory
-		}
-		if v.Resources.Limits.CPU != 0 {
-			v.Resources.Limits.CPU = max(v.Resources.Requests.CPU, v.Resources.Limits.CPU)
-		}
-		if v.Resources.Limits.Memory != 0 {
-			v.Resources.Limits.Memory = max(v.Resources.Requests.Memory, v.Resources.Limits.Memory)
-		}
-	}
-
-	// apply default policy
 	if m := policy.Match(match, c.Policies); m != nil {
 		m.Apply(spec)
+	}
+
+	// Find values for pod-level resources request and resources limits.
+	// The highest precedence have values set by a policy, next are values from yaml/parameters
+	// and finally the last are environment variables.
+
+	spec.Resources.Requests.Memory = firstNonZero(
+		spec.Resources.Requests.Memory,            // from a policy: resources.request.memory
+		int64(pipeline.Resources.Requests.Memory), // from yaml: resources.requests.memory
+		c.StageRequests.Memory)                    // from DRONE_RESOURCE_REQUEST_MEMORY environment variable
+
+	spec.Resources.Requests.CPU = firstNonZero(
+		spec.Resources.Requests.CPU,     // from a policy: resources.request.cpu
+		pipeline.Resources.Requests.CPU, // from yaml: resources.requests.cpu
+		c.StageRequests.CPU)             // from DRONE_RESOURCE_REQUEST_CPU environment variable
+
+	spec.Resources.Limits.Memory = firstNonZero(
+		spec.Resources.Limits.Memory, // from a policy: resources.limit.memory
+		//int64(pipeline.Resources.Limits.Memory), // from yaml: resources.limits.memory (forbidden: limits are set per step)
+		c.Resources.Limits.Memory) // from DRONE_RESOURCE_LIMIT_MEMORY environment variable
+
+	spec.Resources.Limits.CPU = firstNonZero(
+		spec.Resources.Limits.CPU, // from a policy: resources.limit.cpu
+		//pipeline.Resources.Limits.CPU, // from yaml: resources.limits.cpu (forbidden: limits are set per step)
+		c.Resources.Limits.CPU) // from DRONE_RESOURCE_LIMIT_CPU environment variable
+
+	// Distribute resources across all containers (steps):
+	// The amounts specified as "spec.Resources.Requests" refer to a pod as a whole.
+	// This helps Kubernetes to pick a node on which to run the pod. The amount is equally split among all steps/containers.
+
+	numSteps := len(spec.Steps)
+
+	valuesMin := c.Resources.MinRequests
+
+	partsMem := divideIntEqually(spec.Resources.Requests.Memory, numSteps, 4*1024*1024) // memory is split in 4Mi chunks
+	partsCPU := divideIntEqually(spec.Resources.Requests.CPU, numSteps, 1)
+
+	for i, v := range spec.Steps {
+		// Set limit to each container of a pod.
+		// Rules are:
+		// * in yaml, per step: 0   0   X   X
+		// * policy or env var: 0   X   0   Y
+		// -----------------------------------------
+		// final value -------> 0   X   X   min(X, Y)
+
+		if spec.Resources.Limits.Memory > 0 && v.Resources.Limits.Memory > 0 {
+			v.Resources.Limits.Memory = min(v.Resources.Limits.Memory, spec.Resources.Limits.Memory)
+		} else {
+			v.Resources.Limits.Memory = max(v.Resources.Limits.Memory, spec.Resources.Limits.Memory)
+		}
+
+		if spec.Resources.Limits.CPU > 0 && v.Resources.Limits.CPU > 0 {
+			v.Resources.Limits.CPU = min(v.Resources.Limits.CPU, spec.Resources.Limits.CPU)
+		} else {
+			v.Resources.Limits.CPU = max(v.Resources.Limits.CPU, spec.Resources.Limits.CPU)
+		}
+
+		// Set request values from each container of a pod.
+		// Ignore the value that was in v.Resources.Requests
+		// (it is forbidden to set request per step, only per pipeline is allowed).
+
+		mem := max(partsMem[i], valuesMin.Memory)
+		if v.Resources.Limits.Memory > 0 {
+			mem = min(mem, v.Resources.Limits.Memory)
+		}
+
+		cpu := max(partsCPU[i], valuesMin.CPU)
+		if v.Resources.Limits.CPU > 0 {
+			cpu = min(cpu, v.Resources.Limits.CPU)
+		}
+
+		v.Resources.Requests.Memory = mem
+		v.Resources.Requests.CPU = cpu
 	}
 
 	return spec
@@ -671,7 +712,7 @@ func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	// privileged-by-default mode is disabled if the
 	// pipeline step mounts a restricted volume.
 	for _, mount := range step.Volumes {
-		if isRestrictedVolume(mount.MountPath) {
+		if container.IsRestrictedVolume(mount.MountPath) {
 			return false
 		}
 	}
@@ -713,4 +754,67 @@ func (c *Compiler) findSecret(ctx context.Context, args runtime.CompilerArgs, na
 		return
 	}
 	return found.Data, true
+}
+
+const (
+	envNetrcMachine  = "DRONE_NETRC_MACHINE"
+	envNetrcUsername = "DRONE_NETRC_USERNAME"
+	envNetrcPassword = "DRONE_NETRC_PASSWORD"
+	envNetrcFile     = "DRONE_NETRC_FILE"
+)
+
+// packNetrcSecrets is helper function that packs kubernetes secrets required for netrc to engine.Spec.
+// The function returns true if netrc secrets are set and false if netrc is empty.
+func packNetrcSecrets(spec *engine.Spec, netrc *drone.Netrc) bool {
+	if netrc == nil || netrc.Machine == "" {
+		return false
+	}
+
+	fileData := fmt.Sprintf(
+		"machine %s login %s password %s",
+		netrc.Machine,
+		netrc.Login,
+		netrc.Password)
+
+	spec.Secrets[envNetrcMachine] = &engine.Secret{Name: envNetrcMachine, Data: netrc.Machine}
+	spec.Secrets[envNetrcUsername] = &engine.Secret{Name: envNetrcUsername, Data: netrc.Login, Mask: true}
+	spec.Secrets[envNetrcPassword] = &engine.Secret{Name: envNetrcPassword, Data: netrc.Password, Mask: true}
+	spec.Secrets[envNetrcFile] = &engine.Secret{Name: envNetrcFile, Data: fileData}
+
+	return true
+}
+
+// setNetrcSecretsToStep is a helper function that sets netrc secrets to a engine.Step
+func setNetrcSecretsToStep(step *engine.Step, spec *engine.Spec) {
+	envVars := []string{envNetrcMachine, envNetrcUsername, envNetrcPassword, envNetrcFile}
+	for _, envVar := range envVars {
+		if v, ok := spec.Secrets[envVar]; ok {
+			step.Secrets = append(step.Secrets, &engine.SecretVar{Name: v.Name, Env: v.Name})
+			step.SpecSecrets = append(step.SpecSecrets, v)
+		}
+	}
+}
+
+func divideIntEqually(amount int64, count int, units int64) []int64 {
+	if count <= 0 {
+		return nil
+	}
+
+	parts := make([]int64, count)
+
+	div := amount / (int64(count) * units)
+	rem := amount % (int64(count) * units)
+
+	for i := 0; i < count; i++ {
+		parts[i] = div * units
+	}
+
+	i := 0
+	for rem > 0 {
+		parts[i] += units
+		rem -= units
+		i++
+	}
+
+	return parts
 }

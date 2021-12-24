@@ -23,6 +23,12 @@ type (
 		Volumes    []*Volume          `json:"volumes,omitempty"`
 		Secrets    map[string]*Secret `json:"secrets,omitempty"`
 		PullSecret *Secret            `json:"pull_secrets,omitempty"`
+
+		// Resources hold resource limit for each container and
+		// resource request amount for the whole pod.
+		// This must be present here so that a policy can override the values.
+		Resources Resources
+
 		// Runtime field to gate updating of the pod that this pipeline
 		// is running on. Helps to avoid self-inflicted 409 Conflict
 		// responses from the kubernetes api server.
@@ -230,4 +236,8 @@ func (s *Step) Clone() runtime.Step {
 	*dst = *s
 	dst.Envs = environ.Combine(s.Envs)
 	return dst
+}
+
+func (s *Step) GetImage() string {
+	return s.Image
 }

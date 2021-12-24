@@ -12,6 +12,7 @@ import (
 	"github.com/drone-runners/drone-runner-kube/internal/docker/image"
 	"github.com/drone-runners/drone-runner-kube/internal/encoder"
 
+	"github.com/drone/runner-go/environ"
 	"github.com/drone/runner-go/pipeline/runtime"
 )
 
@@ -27,7 +28,7 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		Entrypoint:   src.Entrypoint,
 		Detach:       src.Detach,
 		DependsOn:    src.DependsOn,
-		Envs:         convertStaticEnv(src.Environment),
+		Envs:         environ.Combine(convertStaticEnv(src.Environment), environ.StepName(src.Name)),
 		IgnoreStderr: false,
 		IgnoreStdout: false,
 		Privileged:   src.Privileged,

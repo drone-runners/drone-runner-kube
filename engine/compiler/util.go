@@ -5,7 +5,6 @@
 package compiler
 
 import (
-	"path/filepath"
 	"strings"
 
 	"github.com/drone-runners/drone-runner-kube/engine"
@@ -148,33 +147,6 @@ func convertPullPolicy(s string) engine.PullPolicy {
 	}
 }
 
-// helper function returns true if mounting the volume
-// is restricted for un-trusted containers.
-func isRestrictedVolume(path string) bool {
-	path, _ = filepath.Abs(path)
-	path = strings.ToLower(path)
-	switch {
-	case path == "/":
-	case path == "/var":
-	case path == "/etc":
-	case strings.Contains(path, "/var/run"):
-	case strings.Contains(path, "/proc"):
-	case strings.Contains(path, "/mount"):
-	case strings.Contains(path, "/bin"):
-	case strings.Contains(path, "/usr/local/bin"):
-	case strings.Contains(path, "/usr/local/sbin"):
-	case strings.Contains(path, "/usr/bin"):
-	case strings.Contains(path, "/mnt"):
-	case strings.Contains(path, "/media"):
-	case strings.Contains(path, "/sys"):
-	case strings.Contains(path, "/dev"):
-	case strings.Contains(path, "/etc/docker"):
-	default:
-		return false
-	}
-	return true
-}
-
 // helper function returns true if the environment variable
 // is restricted for internal-use only.
 func isRestrictedVariable(env map[string]*manifest.Variable) bool {
@@ -184,24 +156,6 @@ func isRestrictedVariable(env map[string]*manifest.Variable) bool {
 		}
 	}
 	return false
-}
-
-// Upper value for cpu and memory requests for step containers.
-// It is same as stage resource request if set in pipeline. Otherwise, it defaults to
-// runner environment variable values.
-func getStepUpperRequestVal(stageResources resource.Resources,
-	defaultRequests ResourceObject) ResourceObject {
-	r := ResourceObject{
-		CPU:    stageResources.Requests.CPU,
-		Memory: int64(stageResources.Requests.Memory),
-	}
-	if r.CPU == 0 {
-		r.CPU = defaultRequests.CPU
-	}
-	if r.Memory == 0 {
-		r.Memory = defaultRequests.Memory
-	}
-	return r
 }
 
 func max(a, b int64) int64 {
@@ -216,6 +170,15 @@ func min(a, b int64) int64 {
 		return a
 	}
 	return b
+}
+
+func firstNonZero(values ...int64) int64 {
+	for _, value := range values {
+		if value > 0 {
+			return value
+		}
+	}
+	return 0
 }
 
 // list of restricted variables

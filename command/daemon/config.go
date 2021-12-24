@@ -88,6 +88,10 @@ type Config struct {
 		SkipVerify bool   `envconfig:"DRONE_SECRET_PLUGIN_SKIP_VERIFY"`
 	}
 
+	Netrc struct {
+		CloneOnly bool `envconfig:"DRONE_NETRC_CLONE_ONLY"`
+	}
+
 	Registry struct {
 		Endpoint   string `envconfig:"DRONE_REGISTRY_PLUGIN_ENDPOINT"`
 		Token      string `envconfig:"DRONE_REGISTRY_PLUGIN_TOKEN"`
@@ -139,6 +143,15 @@ type Config struct {
 		Port    string `envconfig:"DRONE_TMATE_PORT"`
 		RSA     string `envconfig:"DRONE_TMATE_FINGERPRINT_RSA"`
 		ED25519 string `envconfig:"DRONE_TMATE_FINGERPRINT_ED25519"`
+	}
+
+	Engine struct {
+		ContainerStartTimeout int `envconfig:"DRONE_ENGINE_CONTAINER_START_TIMEOUT" default:"480"`
+	}
+
+	KubernetesClient struct {
+		QPS   float32 `envconfig:"DRONE_KUBE_CLIENT_QPS"`
+		Burst int     `envconfig:"DRONE_KUBE_CLIENT_BURST"`
 	}
 }
 

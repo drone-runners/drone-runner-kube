@@ -5,3 +5,6 @@ release/*
 .docker
 TODO.md
 NOTES.md
+.idea
+kube.config
+.vscode/

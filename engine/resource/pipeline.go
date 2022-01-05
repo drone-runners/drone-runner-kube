@@ -143,10 +143,11 @@ type (
 
 	// Volume that can be mounted by containers.
 	Volume struct {
-		Name     string          `json:"name,omitempty"`
-		EmptyDir *VolumeEmptyDir `json:"temp,omitempty" yaml:"temp"`
-		HostPath *VolumeHostPath `json:"host,omitempty" yaml:"host"`
-		Claim    *VolumeClaim    `json:"claim,omitempty" yaml:"claim"`
+		Name      string           `json:"name,omitempty"`
+		EmptyDir  *VolumeEmptyDir  `json:"temp,omitempty" yaml:"temp"`
+		HostPath  *VolumeHostPath  `json:"host,omitempty" yaml:"host"`
+		Claim     *VolumeClaim     `json:"claim,omitempty" yaml:"claim"`
+		ConfigMap *VolumeConfigMap `json:"config_map,omitempty" yaml:"config_map"`
 	}
 
 	// VolumeMount describes a mounting of a Volume
@@ -176,6 +177,14 @@ type (
 	VolumeClaim struct {
 		ClaimName string `json:"name,omitempty" yaml:"name"`
 		ReadOnly  bool   `json:"read_only,omitempty" yaml:"read_only"`
+	}
+
+	// VolumeConfigMap mounts a Kubernetes configmap into the container.
+	// persistentVolumeClaim.
+	VolumeConfigMap struct {
+		ConfigMapName string `json:"name,omitempty" yaml:"name"`
+		DefaultMode   int32  `json:"default_mode,omitempty" yaml:"default_mode"`
+		Optional      bool   `json:"optional,omitempty" yaml:"optional"`
 	}
 
 	// Workspace represents the pipeline workspace configuration.

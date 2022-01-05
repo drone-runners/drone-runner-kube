@@ -593,6 +593,15 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				ClaimName: v.Claim.ClaimName,
 				ReadOnly:  v.Claim.ReadOnly,
 			}
+		} else if v.ConfigMap != nil {
+			src.ConfigMap = &engine.VolumeConfigMap{
+				ID:            id,
+				Name:          v.Name,
+				ConfigMapName: v.ConfigMap.ConfigMapName,
+				Optional:      v.ConfigMap.Optional,
+				DefaultMode:   v.ConfigMap.DefaultMode,
+			}
+
 		} else {
 			continue
 		}

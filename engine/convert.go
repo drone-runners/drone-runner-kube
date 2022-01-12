@@ -131,6 +131,22 @@ func toVolumes(spec *Spec) []v1.Volume {
 			volumes = append(volumes, volume)
 		}
 
+		if v.ConfigMap != nil {
+			volume := v1.Volume{
+				Name: v.ConfigMap.ID,
+				VolumeSource: v1.VolumeSource{
+					ConfigMap: &v1.ConfigMapVolumeSource{
+						LocalObjectReference: v1.LocalObjectReference{
+							Name: v.ConfigMap.ConfigMapName,
+						},
+						Optional:    &v.ConfigMap.Optional,
+						DefaultMode: &v.ConfigMap.DefaultMode,
+					},
+				},
+			}
+			volumes = append(volumes, volume)
+		}
+
 		if v.DownwardAPI != nil {
 			var items []v1.DownwardAPIVolumeFile
 
@@ -356,6 +372,10 @@ func lookupVolumeID(spec *Spec, name string) (string, bool) {
 
 		if v.Claim != nil && v.Claim.Name == name {
 			return v.Claim.ID, true
+		}
+
+		if v.ConfigMap != nil && v.ConfigMap.Name == name {
+			return v.ConfigMap.ID, true
 		}
 
 		if v.DownwardAPI != nil && v.DownwardAPI.Name == name {

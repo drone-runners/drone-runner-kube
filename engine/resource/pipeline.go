@@ -148,6 +148,7 @@ type (
 		HostPath  *VolumeHostPath  `json:"host,omitempty" yaml:"host"`
 		Claim     *VolumeClaim     `json:"claim,omitempty" yaml:"claim"`
 		ConfigMap *VolumeConfigMap `json:"config_map,omitempty" yaml:"config_map"`
+		Secret    *VolumeSecret    `json:"secret,omitempty" yaml:"secret"`
 	}
 
 	// VolumeMount describes a mounting of a Volume
@@ -180,11 +181,17 @@ type (
 	}
 
 	// VolumeConfigMap mounts a Kubernetes configmap into the container.
-	// persistentVolumeClaim.
 	VolumeConfigMap struct {
 		ConfigMapName string `json:"name,omitempty" yaml:"name"`
 		DefaultMode   int32  `json:"default_mode,omitempty" yaml:"default_mode"`
 		Optional      bool   `json:"optional,omitempty" yaml:"optional"`
+	}
+
+	// VolumeSecret mounts a Kubernetes configmap into the container.
+	VolumeSecret struct {
+		SecretName  string `json:"name,omitempty" yaml:"name"`
+		DefaultMode int32  `json:"default_mode,omitempty" yaml:"default_mode"`
+		Optional    bool   `json:"optional,omitempty" yaml:"optional"`
 	}
 
 	// Workspace represents the pipeline workspace configuration.

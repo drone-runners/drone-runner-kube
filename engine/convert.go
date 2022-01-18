@@ -147,6 +147,20 @@ func toVolumes(spec *Spec) []v1.Volume {
 			volumes = append(volumes, volume)
 		}
 
+		if v.Secret != nil {
+			volume := v1.Volume{
+				Name: v.Secret.ID,
+				VolumeSource: v1.VolumeSource{
+					Secret: &v1.SecretVolumeSource{
+						SecretName:  v.Secret.SecretName,
+						Optional:    &v.Secret.Optional,
+						DefaultMode: &v.Secret.DefaultMode,
+					},
+				},
+			}
+			volumes = append(volumes, volume)
+		}
+
 		if v.DownwardAPI != nil {
 			var items []v1.DownwardAPIVolumeFile
 
@@ -376,6 +390,10 @@ func lookupVolumeID(spec *Spec, name string) (string, bool) {
 
 		if v.ConfigMap != nil && v.ConfigMap.Name == name {
 			return v.ConfigMap.ID, true
+		}
+
+		if v.Secret != nil && v.Secret.Name == name {
+			return v.Secret.ID, true
 		}
 
 		if v.DownwardAPI != nil && v.DownwardAPI.Name == name {

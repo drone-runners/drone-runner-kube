@@ -153,6 +153,12 @@ func checkVolumes(pipeline *resource.Pipeline, trusted bool) error {
 				return err
 			}
 		}
+		if volume.Secret != nil {
+			err := checkSecretVolume(volume.Secret, trusted)
+			if err != nil {
+				return err
+			}
+		}
 		switch volume.Name {
 		case "":
 			return fmt.Errorf("linter: missing volume name")
@@ -180,6 +186,13 @@ func checkClaimVolume(volume *resource.VolumeClaim, trusted bool) error {
 func checkConfigMapVolume(volume *resource.VolumeConfigMap, trusted bool) error {
 	if trusted == false {
 		return errors.New("linter: untrusted repositories cannot mount configMap volumes")
+	}
+	return nil
+}
+
+func checkSecretVolume(volume *resource.VolumeSecret, trusted bool) error {
+	if trusted == false {
+		return errors.New("linter: untrusted repositories cannot mount secret volumes")
 	}
 	return nil
 }

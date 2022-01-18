@@ -601,7 +601,14 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				Optional:      v.ConfigMap.Optional,
 				DefaultMode:   v.ConfigMap.DefaultMode,
 			}
-
+		} else if v.Secret != nil {
+			src.Secret = &engine.VolumeSecret{
+				ID:          id,
+				Name:        v.Name,
+				SecretName:  v.Secret.SecretName,
+				Optional:    v.Secret.Optional,
+				DefaultMode: v.Secret.DefaultMode,
+			}
 		} else {
 			continue
 		}

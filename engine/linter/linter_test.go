@@ -77,6 +77,19 @@ func TestLint(t *testing.T) {
 			trusted: true,
 			invalid: false,
 		},
+		// user should not be able to mount secret
+		// volumes unless the repository is trusted.
+		{
+			path:    "testdata/volume_secret.yml",
+			trusted: false,
+			invalid: true,
+			message: "linter: untrusted repositories cannot mount secret volumes",
+		},
+		{
+			path:    "testdata/volume_secret.yml",
+			trusted: true,
+			invalid: false,
+		},
 		// user should not be able to mount persistent volume claims
 		// volumes unless the repository is trusted.
 		{

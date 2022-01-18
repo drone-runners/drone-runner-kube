@@ -103,6 +103,7 @@ type (
 		DownwardAPI *VolumeDownwardAPI `json:"downward_api,omitempty"`
 		Claim       *VolumeClaim       `json:"claim,omitempty"`
 		ConfigMap   *VolumeConfigMap   `json:"config_map,omitempty"`
+		Secret      *VolumeSecret      `json:"secret,omitempty"`
 	}
 
 	// VolumeMount describes a mounting of a Volume
@@ -158,6 +159,15 @@ type (
 		ConfigMapName string `json:"config_map_name,omitempty"`
 		DefaultMode   int32  `json:"default_mode,omitempty"`
 		Optional      bool   `json:"optional,omitempty"`
+	}
+
+	// VolumeSecret ...
+	VolumeSecret struct {
+		ID          string `json:"id,omitempty"`
+		Name        string `json:"name,omitempty"`
+		SecretName  string `json:"secret_name,omitempty"`
+		DefaultMode int32  `json:"default_mode,omitempty"`
+		Optional    bool   `json:"optional,omitempty"`
 	}
 
 	// Resources describes the compute resource requirements.

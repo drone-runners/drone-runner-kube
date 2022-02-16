@@ -445,6 +445,13 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 	}
 
+	for _, exhost := range pipeline.HostAliases {
+		spec.PodSpec.HostAliases = append(spec.PodSpec.HostAliases, engine.HostAlias{
+			IP:        exhost.IP,
+			Hostnames: exhost.Hostnames,
+		})
+	}
+
 	// create internal steps if build running in debug mode
 	if c.Tmate.Enabled && args.Build.Debug && pipeline.Platform.OS != "windows" {
 		// first we need to add an internal setup step to the pipeline

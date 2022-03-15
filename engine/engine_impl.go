@@ -6,6 +6,7 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"io"
 	"sync"
 	"time"
@@ -30,6 +31,8 @@ type Kubernetes struct {
 
 	containerStartTimeout time.Duration
 }
+
+var errPodStopped = errors.New("pod has been stopped")
 
 // New returns a new engine with the provided kubernetes client
 func New(client kubernetes.Interface, containerStartTimeout time.Duration) runtime.Engine {
@@ -89,6 +92,8 @@ func (k *Kubernetes) Setup(ctx context.Context, specv runtime.Spec) (err error) 
 	}
 	log.Trace("created pod")
 
+	spec.stop = make(chan struct{})
+
 	return nil
 }
 
@@ -117,6 +122,8 @@ func (k *Kubernetes) Destroy(ctx context.Context, specv runtime.Spec) error {
 	} else {
 		log.Trace("deleted secret")
 	}
+
+	close(spec.stop)
 
 	var isPodDeleted bool
 
@@ -209,6 +216,8 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	case <-time.After(k.containerStartTimeout):
 		err = podwatcher.StartTimeoutContainerError{Container: containerId, Image: containerImage}
 		log.WithError(err).Error("Engine: Container start timeout")
+	case <-spec.stop:
+		return nil, errPodStopped
 	}
 	if err != nil {
 		return
@@ -219,15 +228,31 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return
 	}
 
-	code, err := watcher.WaitContainerTerminated(containerId)
-	if err != nil {
-		return
+	type containerResult struct {
+		code int
+		err  error
 	}
 
-	state = &runtime.State{
-		ExitCode:  code,
-		Exited:    true,
-		OOMKilled: false,
+	chErrStop := make(chan containerResult)
+	go func() {
+		code, err := watcher.WaitContainerTerminated(containerId)
+		chErrStop <- containerResult{code: code, err: err}
+	}()
+
+	select {
+	case result := <-chErrStop:
+		err = result.err
+		if err != nil {
+			return
+		}
+
+		state = &runtime.State{
+			ExitCode:  result.code,
+			Exited:    true,
+			OOMKilled: false,
+		}
+	case <-spec.stop:
+		return nil, errPodStopped
 	}
 
 	return

@@ -39,6 +39,10 @@ type (
 		// the pipeline completes. WARNING this field should only
 		// be set if you want custom per-pipeline namespaces.
 		Namespace string `json:"namespace,omitempty"`
+
+		// stop channel is created by the engine's Setup method, and closed by the Destroy method.
+		// It's used to quickly bail out from the Run method if the pipeline is terminated or canceled.
+		stop chan struct{}
 	}
 
 	// Step defines a pipeline step.

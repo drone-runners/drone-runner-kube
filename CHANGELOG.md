@@ -1,5 +1,37 @@
 # Changelog
 
+## [v1.0.0-rc.3](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-rc.3) (2022-03-15)
+
+[Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-rc.2...v1.0.0-rc.3)
+
+**Fixed bugs:**
+
+- \(fix\) keep up to date with kube fixes 0.21.8 [\#83](https://github.com/drone-runners/drone-runner-kube/pull/83) ([tphoney](https://github.com/tphoney))
+
+**Merged pull requests:**
+
+- bail out from engine's Run method when pipeline is cancelled [\#86](https://github.com/drone-runners/drone-runner-kube/pull/86) ([marko-gacesa](https://github.com/marko-gacesa))
+- feat: Add support for secret volumes [\#84](https://github.com/drone-runners/drone-runner-kube/pull/84) ([joekhoobyar](https://github.com/joekhoobyar))
+- feat: Add support for config\_map volumes [\#82](https://github.com/drone-runners/drone-runner-kube/pull/82) ([joekhoobyar](https://github.com/joekhoobyar))
+- add support for cards [\#81](https://github.com/drone-runners/drone-runner-kube/pull/81) ([eoinmcafee00](https://github.com/eoinmcafee00))
+- feat: support host\_aliases [\#47](https://github.com/drone-runners/drone-runner-kube/pull/47) ([ysicing](https://github.com/ysicing))
+
+## [v1.0.0-rc.2](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-rc.2) (2021-10-20)
+
+[Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-rc.1...v1.0.0-rc.2)
+
+**Implemented enhancements:**
+
+- kube api throttle config [\#80](https://github.com/drone-runners/drone-runner-kube/pull/80) ([marko-gacesa](https://github.com/marko-gacesa))
+
+## [v1.0.0-rc.1](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-rc.1) (2021-09-21)
+
+[Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-beta.12...v1.0.0-rc.1)
+
+**Merged pull requests:**
+
+- fail on error and exit code 2 [\#79](https://github.com/drone-runners/drone-runner-kube/pull/79) ([marko-gacesa](https://github.com/marko-gacesa))
+
 ## [v1.0.0-beta.12](https://github.com/drone-runners/drone-runner-kube/tree/v1.0.0-beta.12) (2021-09-14)
 
 [Full Changelog](https://github.com/drone-runners/drone-runner-kube/compare/v1.0.0-beta.11...v1.0.0-beta.12)

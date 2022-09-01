@@ -12,13 +12,16 @@ import "github.com/drone/runner-go/manifest"
 func Match(match manifest.Match, policy []*Policy) *Policy {
 	for _, p := range policy {
 		if p.Conditions.Match(match) {
+			println("MATCHED POLICY " + p.Name)
 			return p
 		}
 	}
 	for _, p := range policy {
-		if p.Name == "default" {
+		if p.Name == "default" && !p.Exclude.Match(match) {
+			println("MATCHED DEFAULT POLICY!!")
 			return p
 		}
 	}
+	println("!!! NO POLICY WAS MATCHED !!!")
 	return nil
 }

@@ -14,6 +14,7 @@ type (
 	// Policy defines pipeline defaults.
 	Policy struct {
 		Conditions     manifest.Conditions `yaml:"match"`
+		Exclude        manifest.Conditions `yaml:"ignore"`
 		Name           string
 		Metadata       Metadata
 		Resources      Resources

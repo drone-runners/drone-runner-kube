@@ -8,7 +8,7 @@ platform:
 
 steps:
 - name: test
-  image: golang:1.16
+  image: golang:1.19
   commands:
   - go test -cover ./...
   - sh scripts/build.sh

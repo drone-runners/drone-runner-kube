@@ -1,6 +1,6 @@
 kind: pipeline
 type: vm
-name: linux
+name: testing
 
 platform:
   os: linux
@@ -14,8 +14,24 @@ steps:
     image: golang:1.16
     commands:
       - go test -cover ./...
-      - sh scripts/build.sh
 
+---
+kind: pipeline
+type: vm
+name: linux-amd64
+
+platform:
+  os: linux
+  arch: amd64
+
+pool:
+  use: ubuntu
+
+steps:
+  - name: build
+    image: golang:1.16
+    commands:
+      - sh scripts/build.sh
   - name: publish
     image: plugins/docker
     pull: if-not-exists
@@ -33,6 +49,32 @@ steps:
         - refs/heads/master
         - refs/tags/*
 
+depends_on:
+  - testing
+  
+trigger:
+  ref:
+    - refs/heads/master
+    - refs/tags/**
+    - refs/pull/**
+
+---
+kind: pipeline
+type: vm
+name: linux-arm64
+
+platform:
+  os: linux
+  arch: arm64
+
+pool:
+  use: ubuntu_arm64
+
+steps:
+  - name: build
+    image: golang:1.16
+    commands:
+      - sh scripts/build.sh
   - name: publish_arm64
     image: plugins/docker
     pull: if-not-exists
@@ -50,6 +92,28 @@ steps:
         - refs/heads/master
         - refs/tags/*
 
+depends_on:
+  - testing
+
+trigger:
+  ref:
+    - refs/heads/master
+    - refs/tags/**
+    - refs/pull/**
+
+---
+kind: pipeline
+type: vm
+name: manifest
+
+platform:
+  os: linux
+  arch: amd64
+
+pool:
+  use: ubuntu
+  
+steps:
   - name: manifest
     image: plugins/manifest
     settings:
@@ -60,7 +124,12 @@ steps:
         from_secret: docker_password
       username:
         from_secret: docker_username
-    when:
-      ref:
-        - refs/heads/master
-        - refs/tags/*
+
+depends_on:
+  - linux-amd64
+  - linux-arm64
+
+trigger:
+  ref:
+    - refs/heads/master
+    - refs/tags/**

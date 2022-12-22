@@ -17,33 +17,3 @@ manifests:
       variant: v8
       architecture: arm64
       os: linux
-  -
-    image: drone/drone-runner-kube:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-arm
-    platform:
-      variant: v7
-      architecture: arm
-      os: linux
-  -
-    image: drone/drone-runner-kube:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}linux-arm
-    platform:
-      variant: v6
-      architecture: arm
-      os: linux
-  -
-    image: drone/drone-runner-kube:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}windows-1803-amd64
-    platform:
-      architecture: amd64
-      os: windows
-      version: 1803
-  -
-    image: drone/drone-runner-kube:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}windows-1809-amd64
-    platform:
-      architecture: amd64
-      os: windows
-      version: 1809
-  -
-    image: drone/drone-runner-kube:{{#if build.tag}}{{trimPrefix "v" build.tag}}-{{/if}}windows-1903-amd64
-    platform:
-      architecture: amd64
-      os: windows
-      version: 1903

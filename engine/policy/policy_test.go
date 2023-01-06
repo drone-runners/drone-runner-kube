@@ -15,14 +15,14 @@ func TestPodSpec(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		desc string
-		p    *Policy
-		spec engine.PodSpec
-		want engine.PodSpec
+		description string
+		policy      *Policy
+		spec        engine.PodSpec
+		want        engine.PodSpec
 	}{
 		{
-			desc: "test override tolerations",
-			p: &Policy{
+			description: "test override tolerations",
+			policy: &Policy{
 				Tolerations: []Toleration{{Key: "drone"}},
 			},
 			spec: engine.PodSpec{
@@ -33,8 +33,8 @@ func TestPodSpec(t *testing.T) {
 			},
 		},
 		{
-			desc: "test append tolerations",
-			p: &Policy{
+			description: "test append tolerations",
+			policy: &Policy{
 				AppendTolerations: true,
 				Tolerations:       []Toleration{{Key: "drone"}},
 			},
@@ -49,8 +49,8 @@ func TestPodSpec(t *testing.T) {
 			},
 		},
 		{
-			desc: "test override node_selector",
-			p: &Policy{
+			description: "test override node_selector",
+			policy: &Policy{
 				NodeSelector: map[string]string{"instancegroup": "drone"},
 			},
 			spec: engine.PodSpec{
@@ -61,8 +61,8 @@ func TestPodSpec(t *testing.T) {
 			},
 		},
 		{
-			desc: "test merge node_selector",
-			p: &Policy{
+			description: "test merge node_selector",
+			policy: &Policy{
 				MergeNodeSelector: true,
 				NodeSelector:      map[string]string{"instancegroup": "drone"},
 			},
@@ -80,10 +80,10 @@ func TestPodSpec(t *testing.T) {
 
 	for _, test := range tests {
 		got := &engine.Spec{PodSpec: test.spec}
-		test.p.Apply(got)
+		test.policy.Apply(got)
 
 		if !reflect.DeepEqual(test.want, got.PodSpec) {
-			t.Errorf("desc: %s\nexpected: %#v\ngot: %#v", test.desc, test.want, got.PodSpec)
+			t.Errorf("description: %s\nexpected: %#v\ngot: %#v", test.description, test.want, got.PodSpec)
 		}
 	}
 }

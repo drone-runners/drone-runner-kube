@@ -13,13 +13,15 @@ import (
 type (
 	// Policy defines pipeline defaults.
 	Policy struct {
-		Conditions     manifest.Conditions `yaml:"match"`
-		Name           string
-		Metadata       Metadata
-		Resources      Resources
-		NodeSelector   map[string]string `yaml:"node_selector"`
-		ServiceAccount string            `yaml:"service_account"`
-		Tolerations    []Toleration
+		Conditions        manifest.Conditions `yaml:"match"`
+		Name              string
+		Metadata          Metadata
+		Resources         Resources
+		MergeNodeSelector bool              `yaml:"merge_node_selector"`
+		NodeSelector      map[string]string `yaml:"node_selector"`
+		ServiceAccount    string            `yaml:"service_account"`
+		AppendTolerations bool              `yaml:"append_tolerations"`
+		Tolerations       []Toleration
 	}
 
 	// Metadata defines resource metadata.
@@ -97,8 +99,14 @@ func (p *Policy) Apply(spec *engine.Spec) {
 	}
 
 	// apply the default nodeselector.
-	if v := p.NodeSelector; v != nil {
-		spec.PodSpec.NodeSelector = v
+	if ns := p.NodeSelector; ns != nil {
+		if p.MergeNodeSelector {
+			for k, v := range p.NodeSelector {
+				spec.PodSpec.NodeSelector[k] = v
+			}
+		} else {
+			spec.PodSpec.NodeSelector = ns
+		}
 	}
 
 	// apply the default service account.
@@ -109,6 +117,11 @@ func (p *Policy) Apply(spec *engine.Spec) {
 	// apply (and override) the default tolerations.
 	if v := p.Tolerations; len(v) != 0 {
 		var dst []engine.Toleration
+
+		if p.AppendTolerations {
+			dst = spec.PodSpec.Tolerations
+		}
+
 		for _, src := range v {
 			dst = append(dst, engine.Toleration{
 				Effect:            src.Effect,

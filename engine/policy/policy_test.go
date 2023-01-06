@@ -22,21 +22,21 @@ func TestTolerations(t *testing.T) {
 		{
 			desc: "test override tolerations",
 			p: &Policy{
-				Tolerations: []Toleration{{Key: "policy"}},
+				Tolerations: []Toleration{{Key: "drone-nodes"}},
 			},
 			want: []engine.Toleration{
-				{Key: "policy"},
+				{Key: "drone-nodes"},
 			},
 		},
 		{
 			desc: "test append tolerations",
 			p: &Policy{
 				AppendTolerations: true,
-				Tolerations:       []Toleration{{Key: "policy"}},
+				Tolerations:       []Toleration{{Key: "drone-nodes"}},
 			},
 			want: []engine.Toleration{
-				{Key: "spec"},
-				{Key: "policy"},
+				{Key: "memory-optimized"},
+				{Key: "drone-nodes"},
 			},
 		},
 	}
@@ -44,7 +44,7 @@ func TestTolerations(t *testing.T) {
 	for _, test := range tests {
 		spec := &engine.Spec{
 			PodSpec: engine.PodSpec{
-				Tolerations: []engine.Toleration{{Key: "spec"}},
+				Tolerations: []engine.Toleration{{Key: "memory-optimized"}},
 			},
 		}
 
@@ -67,19 +67,19 @@ func TestNodeSelectors(t *testing.T) {
 		{
 			desc: "test override node_selector",
 			p: &Policy{
-				NodeSelector: map[string]string{"policy": ""},
+				NodeSelector: map[string]string{"drone-nodes": ""},
 			},
-			want: map[string]string{"policy": ""},
+			want: map[string]string{"drone-nodes": ""},
 		},
 		{
 			desc: "test merge node_selector",
 			p: &Policy{
 				MergeNodeSelector: true,
-				NodeSelector:      map[string]string{"policy": ""},
+				NodeSelector:      map[string]string{"drone-nodes": ""},
 			},
 			want: map[string]string{
-				"policy": "",
-				"spec":   "",
+				"drone-nodes":      "",
+				"memory-optimized": "",
 			},
 		},
 	}
@@ -87,7 +87,7 @@ func TestNodeSelectors(t *testing.T) {
 	for _, test := range tests {
 		spec := &engine.Spec{
 			PodSpec: engine.PodSpec{
-				NodeSelector: map[string]string{"spec": ""},
+				NodeSelector: map[string]string{"memory-optimized": ""},
 			},
 		}
 

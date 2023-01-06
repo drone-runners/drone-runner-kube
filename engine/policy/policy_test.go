@@ -11,21 +11,25 @@ import (
 	"github.com/drone-runners/drone-runner-kube/engine"
 )
 
-func TestTolerations(t *testing.T) {
+func TestPodSpec(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
 		desc string
 		p    *Policy
-		want []engine.Toleration
+		spec engine.PodSpec
+		want engine.PodSpec
 	}{
 		{
 			desc: "test override tolerations",
 			p: &Policy{
 				Tolerations: []Toleration{{Key: "drone"}},
 			},
-			want: []engine.Toleration{
-				{Key: "drone"},
+			spec: engine.PodSpec{
+				Tolerations: []engine.Toleration{{Key: "memory-optimized"}},
+			},
+			want: engine.PodSpec{
+				Tolerations: []engine.Toleration{{Key: "drone"}},
 			},
 		},
 		{
@@ -34,42 +38,27 @@ func TestTolerations(t *testing.T) {
 				AppendTolerations: true,
 				Tolerations:       []Toleration{{Key: "drone"}},
 			},
-			want: []engine.Toleration{
-				{Key: "memory-optimized"},
-				{Key: "drone"},
-			},
-		},
-	}
-
-	for _, test := range tests {
-		spec := &engine.Spec{
-			PodSpec: engine.PodSpec{
+			spec: engine.PodSpec{
 				Tolerations: []engine.Toleration{{Key: "memory-optimized"}},
 			},
-		}
-
-		test.p.Apply(spec)
-
-		if !reflect.DeepEqual(test.want, spec.PodSpec.Tolerations) {
-			t.Errorf("tolerations are incorrect\ndesc: %s\nexpected: %#v\ngot: %#v", test.desc, test.want, spec.PodSpec.Tolerations)
-		}
-	}
-}
-
-func TestNodeSelectors(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		desc string
-		p    *Policy
-		want map[string]string
-	}{
+			want: engine.PodSpec{
+				Tolerations: []engine.Toleration{
+					{Key: "memory-optimized"},
+					{Key: "drone"},
+				},
+			},
+		},
 		{
 			desc: "test override node_selector",
 			p: &Policy{
 				NodeSelector: map[string]string{"instancegroup": "drone"},
 			},
-			want: map[string]string{"instancegroup": "drone"},
+			spec: engine.PodSpec{
+				NodeSelector: map[string]string{"instanceclass": "memory-optimized"},
+			},
+			want: engine.PodSpec{
+				NodeSelector: map[string]string{"instancegroup": "drone"},
+			},
 		},
 		{
 			desc: "test merge node_selector",
@@ -77,24 +66,24 @@ func TestNodeSelectors(t *testing.T) {
 				MergeNodeSelector: true,
 				NodeSelector:      map[string]string{"instancegroup": "drone"},
 			},
-			want: map[string]string{
-				"instancegroup": "drone",
-				"instanceclass": "memory-optimized",
+			spec: engine.PodSpec{
+				NodeSelector: map[string]string{"instanceclass": "memory-optimized"},
+			},
+			want: engine.PodSpec{
+				NodeSelector: map[string]string{
+					"instancegroup": "drone",
+					"instanceclass": "memory-optimized",
+				},
 			},
 		},
 	}
 
 	for _, test := range tests {
-		spec := &engine.Spec{
-			PodSpec: engine.PodSpec{
-				NodeSelector: map[string]string{"instanceclass": "memory-optimized"},
-			},
-		}
+		got := &engine.Spec{PodSpec: test.spec}
+		test.p.Apply(got)
 
-		test.p.Apply(spec)
-
-		if !reflect.DeepEqual(test.want, spec.PodSpec.NodeSelector) {
-			t.Errorf("node_selector is incorrect\ndesc: %s\nexpected: %#v\ngot: %#v", test.desc, test.want, spec.PodSpec.NodeSelector)
+		if !reflect.DeepEqual(test.want, got.PodSpec) {
+			t.Errorf("desc: %s\nexpected: %#v\ngot: %#v", test.desc, test.want, got.PodSpec)
 		}
 	}
 }

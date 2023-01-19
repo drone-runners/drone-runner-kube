@@ -44,13 +44,14 @@ type Pipeline struct {
 	PullSecrets []string          `json:"image_pull_secrets,omitempty" yaml:"image_pull_secrets"`
 	Workspace   Workspace         `json:"workspace,omitempty"`
 
-	Metadata           Metadata          `json:"metadata,omitempty"`
-	NodeName           string            `json:"node_name,omitempty" yaml:"node_name"`
-	NodeSelector       map[string]string `json:"node_selector,omitempty"        yaml:"node_selector"`
-	ServiceAccountName string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
-	Tolerations        []Toleration      `json:"tolerations,omitempty"`
-	DnsConfig          DnsConfig         `json:"dns_config,omitempty" yaml:"dns_config"`
-	HostAliases        []HostAlias       `json:"host_aliases,omitempty" yaml:"host_aliases"`
+	Metadata              Metadata          `json:"metadata,omitempty"`
+	NodeName              string            `json:"node_name,omitempty" yaml:"node_name"`
+	NodeSelector          map[string]string `json:"node_selector,omitempty"        yaml:"node_selector"`
+	ServiceAccountName    string            `json:"service_account_name,omitempty" yaml:"service_account_name"`
+	Tolerations           []Toleration      `json:"tolerations,omitempty"`
+	DnsConfig             DnsConfig         `json:"dns_config,omitempty" yaml:"dns_config"`
+	HostAliases           []HostAlias       `json:"host_aliases,omitempty" yaml:"host_aliases"`
+	ShareProcessNamespace bool              `json:"share_process_namespace,omitempty" yaml:"share_process_namespace"`
 }
 
 // GetVersion returns the resource version.

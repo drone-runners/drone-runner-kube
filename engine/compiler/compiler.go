@@ -211,13 +211,14 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	spec := &engine.Spec{
 		PodSpec: engine.PodSpec{
-			Name:               random(),
-			Namespace:          pipeline.Metadata.Namespace,
-			Labels:             podLabels,
-			Annotations:        podAnnotations,
-			NodeName:           pipeline.NodeName,
-			NodeSelector:       pipeline.NodeSelector,
-			ServiceAccountName: pipeline.ServiceAccountName,
+			Name:                  random(),
+			Namespace:             pipeline.Metadata.Namespace,
+			Labels:                podLabels,
+			Annotations:           podAnnotations,
+			NodeName:              pipeline.NodeName,
+			NodeSelector:          pipeline.NodeSelector,
+			ServiceAccountName:    pipeline.ServiceAccountName,
+			ShareProcessNamespace: pipeline.ShareProcessNamespace,
 		},
 		Platform: engine.Platform{
 			OS:      pipeline.Platform.OS,

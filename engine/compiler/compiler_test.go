@@ -74,6 +74,10 @@ func TestCompile_CloneDisabled_Graph(t *testing.T) {
 	testCompile(t, "testdata/noclone_graph.yml", "testdata/noclone_graph.json")
 }
 
+func TestCompile_ShareProcessNamespace(t *testing.T) {
+	testCompile(t, "testdata/share_process_namespace.yml", "testdata/share_process_namespace.json")
+}
+
 // This test verifies that steps are disabled if conditions
 // defined in the when block are not satisfied.
 func TestCompile_Match(t *testing.T) {

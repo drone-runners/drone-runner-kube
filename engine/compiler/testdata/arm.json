@@ -7,7 +7,7 @@
     "labels": {},
     "annotations": {},
     "node_selector": {
-      "kubernetes.io/arch": "arm64"
+      "kubernetes.io/arch": "arm"
     }
   },
   "steps": [

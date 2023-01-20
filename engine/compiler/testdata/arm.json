@@ -1,0 +1,115 @@
+{
+  "platform": {
+    "arch": "arm"
+  },
+  "pod_spec": {
+    "name": "random",
+    "labels": {},
+    "annotations": {},
+    "node_selector": {
+      "kubernetes.io/arch": "arm64"
+    }
+  },
+  "steps": [
+    {
+      "id": "random",
+      "environment": {},
+      "image": "drone/git:latest",
+      "placeholder": "drone/placeholder:1",
+      "labels": {},
+      "name": "clone",
+      "run_policy": "always",
+      "volumes": [
+        {
+          "name": "_workspace",
+          "path": "/drone/src"
+        },
+        {
+          "name": "_status",
+          "path": "/run/drone"
+        }
+      ],
+      "working_dir": "/drone/src"
+    },
+    {
+      "id": "random",
+      "args": [
+        "echo \"$DRONE_SCRIPT\" | /bin/sh"
+      ],
+      "depends_on": [
+        "clone"
+      ],
+      "entrypoint": [
+        "/bin/sh",
+        "-c"
+      ],
+      "environment": {},
+      "labels": {},
+      "name": "build",
+      "image": "docker.io/library/golang:latest",
+      "placeholder": "drone/placeholder:1",
+      "volumes": [
+        {
+          "name": "_workspace",
+          "path": "/drone/src"
+        },
+        {
+          "name": "_status",
+          "path": "/run/drone"
+        }
+      ],
+      "working_dir": "/drone/src"
+    },
+    {
+      "id": "random",
+      "args": [
+        "echo \"$DRONE_SCRIPT\" | /bin/sh"
+      ],
+      "depends_on": [
+        "build"
+      ],
+      "entrypoint": [
+        "/bin/sh",
+        "-c"
+      ],
+      "environment": {},
+      "labels": {},
+      "name": "test",
+      "image": "docker.io/library/golang:latest",
+      "placeholder": "drone/placeholder:1",
+      "volumes": [
+        {
+          "name": "_workspace",
+          "path": "/drone/src"
+        },
+        {
+          "name": "_status",
+          "path": "/run/drone"
+        }
+      ],
+      "working_dir": "/drone/src"
+    }
+  ],
+  "volumes": [
+    {
+      "temp": {
+        "id": "random",
+        "name": "_workspace",
+        "labels": {}
+      }
+    },
+    {
+      "downward_api": {
+        "id": "random",
+        "name": "_status",
+        "items": [
+          {
+            "path": "env",
+            "field_path": "metadata.annotations"
+          }
+        ]
+      }
+    }
+  ],
+  "secrets": {}
+}

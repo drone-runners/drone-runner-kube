@@ -1,0 +1,17 @@
+kind: pipeline
+type: kubernetes
+name: default
+
+platform:
+  arch: arm
+
+steps:
+- name: build
+  image: golang
+  commands:
+  - go build
+
+- name: test
+  image: golang
+  commands:
+  - go test

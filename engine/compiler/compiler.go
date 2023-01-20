@@ -330,7 +330,11 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// set platform if needed
 	if arch == "arm" || arch == "arm64" {
-		spec.PodSpec.Labels["kubernetes.io/arch"] = arch
+		if spec.PodSpec.NodeSelector == nil {
+			spec.PodSpec.NodeSelector = map[string]string{}
+		}
+
+		spec.PodSpec.NodeSelector["kubernetes.io/arch"] = "arm64"
 	}
 
 	// set drone labels

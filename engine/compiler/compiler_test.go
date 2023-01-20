@@ -104,6 +104,10 @@ func TestCompile_RunFailure(t *testing.T) {
 	}
 }
 
+func TestPlatformNodeSelector(t *testing.T) {
+	testCompile(t, "testdata/arm.yml", "testdata/arm.json")
+}
+
 // This test verifies that secrets defined in the yaml are
 // requested and stored in the intermediate representation
 // at compile time.

@@ -334,7 +334,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			spec.PodSpec.NodeSelector = map[string]string{}
 		}
 
-		spec.PodSpec.NodeSelector["kubernetes.io/arch"] = "arm64"
+		spec.PodSpec.NodeSelector["kubernetes.io/arch"] = arch
 	}
 
 	// set drone labels

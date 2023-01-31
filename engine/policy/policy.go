@@ -99,14 +99,15 @@ func (p *Policy) Apply(spec *engine.Spec) {
 	}
 
 	// apply the default nodeselector.
-	if ns := p.NodeSelector; ns != nil {
-		if p.MergeNodeSelector {
-			for k, v := range p.NodeSelector {
+	switch ns := p.NodeSelector; ns != nil {
+	case p.MergeNodeSelector:
+		for k, v := range ns {
+			if spec.PodSpec.NodeSelector[k] == "" {
 				spec.PodSpec.NodeSelector[k] = v
 			}
-		} else {
-			spec.PodSpec.NodeSelector = ns
 		}
+	default:
+		spec.PodSpec.NodeSelector = ns
 	}
 
 	// apply the default service account.

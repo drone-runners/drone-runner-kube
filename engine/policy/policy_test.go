@@ -64,14 +64,21 @@ func TestPodSpec(t *testing.T) {
 			description: "test merge node_selector",
 			policy: &Policy{
 				MergeNodeSelector: true,
-				NodeSelector:      map[string]string{"instancegroup": "drone"},
+				NodeSelector: map[string]string{
+					"default":       "drone",
+					"instancegroup": "drone",
+				},
 			},
 			spec: engine.PodSpec{
-				NodeSelector: map[string]string{"instanceclass": "memory-optimized"},
+				NodeSelector: map[string]string{
+					"instancegroup": "batch",
+					"instanceclass": "memory-optimized",
+				},
 			},
 			want: engine.PodSpec{
 				NodeSelector: map[string]string{
-					"instancegroup": "drone",
+					"default":       "drone",
+					"instancegroup": "batch",
 					"instanceclass": "memory-optimized",
 				},
 			},

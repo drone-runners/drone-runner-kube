@@ -335,6 +335,15 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		}
 
 		spec.PodSpec.NodeSelector["kubernetes.io/arch"] = arch
+
+		armToleration := engine.Toleration{
+			Key:      "kubernetes.io/arch",
+			Operator: "Equal",
+			Value:    arch,
+			Effect:   "NoSchedule",
+		}
+
+		spec.PodSpec.Tolerations = append(spec.PodSpec.Tolerations, armToleration)
 	}
 
 	// set drone labels

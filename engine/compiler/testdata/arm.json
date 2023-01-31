@@ -8,7 +8,15 @@
     "annotations": {},
     "node_selector": {
       "kubernetes.io/arch": "arm"
-    }
+    },
+    "tolerations": [
+      {
+        "key": "kubernetes.io/arch",
+        "operator": "Equal",
+        "value": "arm",
+        "effect": "NoSchedule"
+      }
+    ]
   },
   "steps": [
     {

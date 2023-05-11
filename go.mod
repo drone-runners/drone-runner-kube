@@ -8,7 +8,7 @@ require (
 	github.com/bmatcuk/doublestar v1.1.1
 	github.com/buildkite/yaml v2.1.0+incompatible
 	github.com/dchest/uniuri v0.0.0-20160212164326-8902c56451e9
-	github.com/docker/distribution v2.8.0+incompatible
+	github.com/docker/distribution v2.8.2+incompatible
 	github.com/docker/go-units v0.4.0
 	github.com/drone/drone-go v1.7.1
 	github.com/drone/envsubst v1.0.3

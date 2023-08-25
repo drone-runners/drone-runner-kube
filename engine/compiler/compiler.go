@@ -283,6 +283,11 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		})
 	}
 
+	// add runtime_class_name
+	if pipeline.RuntimeClassName != nil {
+		spec.RuntimeClassName = pipeline.RuntimeClassName
+	}
+
 	// list the global environment variables
 	globals, _ := c.Environ.List(ctx, &provider.Request{
 		Build: args.Build,

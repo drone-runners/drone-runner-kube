@@ -51,6 +51,7 @@ type Pipeline struct {
 	Tolerations        []Toleration      `json:"tolerations,omitempty"`
 	DnsConfig          DnsConfig         `json:"dns_config,omitempty" yaml:"dns_config"`
 	HostAliases        []HostAlias       `json:"host_aliases,omitempty" yaml:"host_aliases"`
+	RuntimeClassName   *string           `json:"runtime_class_name,omitempty" yaml:"runtime_class_name"`
 }
 
 // GetVersion returns the resource version.

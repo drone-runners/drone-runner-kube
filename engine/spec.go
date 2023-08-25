@@ -24,6 +24,9 @@ type (
 		Secrets    map[string]*Secret `json:"secrets,omitempty"`
 		PullSecret *Secret            `json:"pull_secrets,omitempty"`
 
+		// RuntimeClassName is an optional value
+		RuntimeClassName *string `json:"runtime_class_name,omitempty"`
+
 		// Resources hold resource limit for each container and
 		// resource request amount for the whole pod.
 		// This must be present here so that a policy can override the values.

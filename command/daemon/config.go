@@ -146,7 +146,8 @@ type Config struct {
 	}
 
 	Engine struct {
-		ContainerStartTimeout int `envconfig:"DRONE_ENGINE_CONTAINER_START_TIMEOUT" default:"480"`
+		ContainerStartTimeout      int `envconfig:"DRONE_ENGINE_CONTAINER_START_TIMEOUT" default:"480"`
+		ContainerTimeToWaitForLogs int `envconfig:"DRONE_ENGINE_CONTAINER_TIME_TO_WAIT_FOR_LOGS" default:"0"` // 0 means no delay, this is a hack to ensure logs are streamed if there is an issue with the container startuo. This is in seconds.
 	}
 
 	KubernetesClient struct {

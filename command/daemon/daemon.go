@@ -107,7 +107,7 @@ func (c *daemonCommand) run(*kingpin.ParseContext) error {
 	}
 
 	kubeEngine := engine.New(kubeClient,
-		time.Duration(config.Engine.ContainerStartTimeout)*time.Second)
+		time.Duration(config.Engine.ContainerStartTimeout)*time.Second, time.Duration(config.Engine.ContainerTimeToWaitForLogs)*time.Second)
 
 	remote := remote.New(cli)
 	tracer := history.New(remote)

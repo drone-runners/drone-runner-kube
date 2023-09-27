@@ -273,7 +273,7 @@ func (c *execCommand) run(*kingpin.ParseContext) error {
 	}
 
 	engine := engine.New(kubeClient,
-		time.Duration(c.Engine.ContainerStartTimeout)*time.Second)
+		time.Duration(c.Engine.ContainerStartTimeout)*time.Second, time.Duration(0)*time.Second)
 
 	err = runtime.NewExecer(
 		pipeline.NopReporter(),

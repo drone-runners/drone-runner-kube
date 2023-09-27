@@ -29,13 +29,14 @@ type Kubernetes struct {
 	watchers  *sync.Map
 	launchers *sync.Map
 
-	containerStartTimeout time.Duration
+	containerStartTimeout      time.Duration
+	containerTimeToWaitForLogs time.Duration // HACK: this timeout delays fetching the logs to ensure there is enough time to stream the logs.
 }
 
 var errPodStopped = errors.New("pod has been stopped")
 
 // New returns a new engine with the provided kubernetes client
-func New(client kubernetes.Interface, containerStartTimeout time.Duration) runtime.Engine {
+func New(client kubernetes.Interface, containerStartTimeout, containerTimeToWaitForLogs time.Duration) runtime.Engine {
 	if containerStartTimeout < time.Second {
 		containerStartTimeout = time.Second
 	}
@@ -45,7 +46,8 @@ func New(client kubernetes.Interface, containerStartTimeout time.Duration) runti
 		watchers:  &sync.Map{},
 		launchers: &sync.Map{},
 
-		containerStartTimeout: containerStartTimeout,
+		containerStartTimeout:      containerStartTimeout,
+		containerTimeToWaitForLogs: containerTimeToWaitForLogs,
 	}
 }
 
@@ -259,6 +261,9 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 }
 
 func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
+	// HACK: this timeout delays fetching the logs to ensure there is enough time to stream the logs.
+	// it does not delay the build speed.
+	time.Sleep(k.containerTimeToWaitForLogs)
 	opts := &v1.PodLogOptions{
 		Follow:    true,
 		Container: step.ID,

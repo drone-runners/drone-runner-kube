@@ -285,12 +285,17 @@ func (pw *PodWatcher) notifyClients(c *containerWatchInfo) {
 	case stepStateRunning, stepStateFinished:
 		pw.notifyClientsContainerChange(c)
 	case stepStatePlaceholderFailed, stepStateFailed:
-		pw.notifyClientsError(c, FailedContainerError{
+		failedContainer := FailedContainerError{
 			container: c.id,
 			exitCode:  c.exitCode,
 			reason:    c.reason,
 			image:     c.image,
-		})
+		}
+		logrus.WithField("pod", pw.podName).
+			WithField("container", c.id).
+			WithField("stepState", c.stepState).
+			Error(failedContainer.Error())
+		pw.notifyClientsError(c, failedContainer)
 	}
 }
 

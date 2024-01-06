@@ -175,7 +175,7 @@ func (pw *PodWatcher) updateContainers(containers []containerInfo) {
 			continue
 		}
 
-		isPlaceholder := image.Match(cs.image, c.placeholder)
+		isPlaceholder := image.MatchTag(cs.image, c.placeholder)
 
 		// A running container with placeholder image (that we track, so present in pw.containerMap)
 		// usually means that Kubernetes is downloading the real step image in background.

@@ -5,6 +5,7 @@
 package engine
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"io"
@@ -225,9 +226,20 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return
 	}
 
-	err = k.fetchLogs(ctx, spec, step, output)
-	if err != nil {
-		return
+	var retries int
+	for retries < 5 {
+		bytesCopied, err := k.fetchLogs(ctx, spec, step, output)
+		if err == nil && bytesCopied != 0 {
+			break
+		}
+
+		retries++
+
+		if err != nil && retries >= 5 {
+			return nil, err
+		}
+
+		<-time.After(time.Second * 5)
 	}
 
 	type containerResult struct {
@@ -260,7 +272,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	return
 }
 
-func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
+func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, output io.Writer) (int, error) {
 	// HACK: this timeout delays fetching the logs to ensure there is enough time to stream the logs.
 	// it does not delay the build speed.
 	time.Sleep(k.containerTimeToWaitForLogs)
@@ -285,11 +297,11 @@ func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, outp
 			WithField("container", step.ID).
 			WithField("step", step.Name).
 			Error("failed to stream logs")
-		return err
+		return 0, err
 	}
 	defer readCloser.Close()
 
-	return cancellableCopy(ctx, output, readCloser)
+	return cancellableCopyNew(ctx, output, readCloser)
 }
 
 func (k *Kubernetes) startContainer(ctx context.Context, spec *Spec, step *Step) <-chan error {
@@ -310,4 +322,44 @@ func (k *Kubernetes) startContainer(ctx context.Context, spec *Spec, step *Step)
 	}
 
 	return l.Launch(containerName, containerImage, statusEnvs)
+}
+
+func Copy(dst io.Writer, src io.ReadCloser) (int, error) {
+	var bytesCopied int
+	r := bufio.NewReader(src)
+	for {
+		bytes, readError := r.ReadBytes('\n')
+		i, writeError := dst.Write(bytes)
+		bytesCopied += i
+		if writeError != nil {
+			return bytesCopied, writeError
+		}
+		if readError != nil {
+			if readError != io.EOF {
+				return bytesCopied, readError
+			}
+			return bytesCopied, nil
+		}
+	}
+}
+
+// cancellableCopy method copies from source to destination honoring the context.
+// If context.Cancel is called, it will return immediately with context cancelled error.
+func cancellableCopyNew(ctx context.Context, dst io.Writer, src io.ReadCloser) (int, error) {
+	var bytesCopied int
+	var err error
+	ch := make(chan error, 1)
+	go func() {
+		defer close(ch)
+		bytesCopied, err = Copy(dst, src)
+		ch <- err
+	}()
+
+	select {
+	case <-ctx.Done():
+		src.Close()
+		return bytesCopied, ctx.Err()
+	case err := <-ch:
+		return bytesCopied, err
+	}
 }

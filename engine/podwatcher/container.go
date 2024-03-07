@@ -78,8 +78,9 @@ type containerWatchInfo struct {
 
 	stepState stepState
 
-	exitCode int32
-	reason   string
+	exitCode     int32
+	reason       string
+	restartCount int
 
 	addedAt  time.Time
 	failedAt time.Time

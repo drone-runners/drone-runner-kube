@@ -5,7 +5,6 @@
 package engine
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"io"
@@ -191,7 +190,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 			PodNamespace: podNamespace,
 			PodName:      podId,
 			KubeClient:   k.client,
-			Period:       20 * time.Second,
+			Period:       5 * time.Second,
 		})
 
 		log.Trace("PodWatcher started")
@@ -201,6 +200,8 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	if err != nil {
 		return
 	}
+
+	// isPlaceholder := image.Match(watcher.GetContainerImage(step.ID), step.Placeholder)
 
 	log.Debug("Engine: Starting step")
 
@@ -226,21 +227,9 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return
 	}
 
-	var retries int
-	for retries < 5 {
-		bytesCopied, err := k.fetchLogs(ctx, spec, step, output)
-		if err == nil && bytesCopied != 0 {
-			break
-		}
+	watcher.WaitContainerReStart(containerId)
 
-		retries++
-
-		if err != nil && retries >= 5 {
-			break
-		}
-
-		<-time.After(time.Second * 5)
-	}
+	k.fetchLogs(ctx, spec, step, output)
 
 	type containerResult struct {
 		code int
@@ -272,7 +261,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 	return
 }
 
-func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, output io.Writer) (int, error) {
+func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, output io.Writer) error {
 	// HACK: this timeout delays fetching the logs to ensure there is enough time to stream the logs.
 	// it does not delay the build speed.
 	time.Sleep(k.containerTimeToWaitForLogs)
@@ -297,11 +286,11 @@ func (k *Kubernetes) fetchLogs(ctx context.Context, spec *Spec, step *Step, outp
 			WithField("container", step.ID).
 			WithField("step", step.Name).
 			Error("failed to stream logs")
-		return 0, err
+		return err
 	}
 	defer readCloser.Close()
 
-	return cancellableCopyNew(ctx, output, readCloser)
+	return cancellableCopy(ctx, output, readCloser)
 }
 
 func (k *Kubernetes) startContainer(ctx context.Context, spec *Spec, step *Step) <-chan error {
@@ -322,44 +311,4 @@ func (k *Kubernetes) startContainer(ctx context.Context, spec *Spec, step *Step)
 	}
 
 	return l.Launch(containerName, containerImage, statusEnvs)
-}
-
-func Copy(dst io.Writer, src io.ReadCloser) (int, error) {
-	var bytesCopied int
-	r := bufio.NewReader(src)
-	for {
-		bytes, readError := r.ReadBytes('\n')
-		i, writeError := dst.Write(bytes)
-		bytesCopied += i
-		if writeError != nil {
-			return bytesCopied, writeError
-		}
-		if readError != nil {
-			if readError != io.EOF {
-				return bytesCopied, readError
-			}
-			return bytesCopied, nil
-		}
-	}
-}
-
-// cancellableCopy method copies from source to destination honoring the context.
-// If context.Cancel is called, it will return immediately with context cancelled error.
-func cancellableCopyNew(ctx context.Context, dst io.Writer, src io.ReadCloser) (int, error) {
-	var bytesCopied int
-	var err error
-	ch := make(chan error, 1)
-	go func() {
-		defer close(ch)
-		bytesCopied, err = Copy(dst, src)
-		ch <- err
-	}()
-
-	select {
-	case <-ctx.Done():
-		src.Close()
-		return bytesCopied, ctx.Err()
-	case err := <-ch:
-		return bytesCopied, err
-	}
 }

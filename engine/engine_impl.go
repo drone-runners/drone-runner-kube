@@ -236,7 +236,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		retries++
 
 		if err != nil && retries >= 5 {
-			return nil, err
+			break
 		}
 
 		<-time.After(time.Second * 5)

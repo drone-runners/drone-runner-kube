@@ -447,15 +447,6 @@ func (pw *PodWatcher) WaitContainerReStart(containerId string) bool {
 	return false
 }
 
-// GetContainerImage returns an image of container
-func (pw *PodWatcher) GetContainerImage(containerId string) string {
-	logrus.
-		WithField("pod", pw.podName).
-		WithField("container", containerId).
-		Debug("PodWatcher: container image ", pw.containerMap[containerId].image)
-	return pw.containerMap[containerId].image
-}
-
 // WaitContainerTerminated waits until a container in the pod is terminated.
 func (pw *PodWatcher) WaitContainerTerminated(containerId string) (int, error) {
 	err := pw.waitForEvent(containerId, stepStateFinished)

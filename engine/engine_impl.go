@@ -201,8 +201,6 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return
 	}
 
-	// isPlaceholder := image.Match(watcher.GetContainerImage(step.ID), step.Placeholder)
-
 	log.Debug("Engine: Starting step")
 
 	err = <-k.startContainer(ctx, spec, step)

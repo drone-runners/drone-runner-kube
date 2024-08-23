@@ -352,11 +352,13 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 		Branch:   args.Build.Target,
 	}
 
+	var stepNumber int64 = 0
 	// create the clone step
-	if pipeline.Clone.Disable == false {
+	if !pipeline.Clone.Disable {
+		stepNumber++
 		step := createClone(pipeline)
 		step.ID = random()
-		step.Envs = environ.Combine(envs, step.Envs)
+		step.Envs = environ.Combine(envs, step.Envs, environ.StepArgs(step.Name, stepNumber))
 		step.WorkingDir = workspace
 		step.Volumes = append(step.Volumes, workMount, statusMount)
 		spec.Steps = append(spec.Steps, step)
@@ -376,7 +378,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// create steps
 	for _, src := range pipeline.Services {
-		dst := createStep(pipeline, src)
+		stepNumber++
+		dst := createStep(src, stepNumber)
 		dst.Detach = true
 		dst.Envs = environ.Combine(envs, dst.Envs)
 		dst.Volumes = append(dst.Volumes, workMount, statusMount)
@@ -406,7 +409,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	// create steps
 	for _, src := range pipeline.Steps {
-		dst := createStep(pipeline, src)
+		stepNumber++
+		dst := createStep(src, stepNumber)
 		dst.Envs = environ.Combine(envs, dst.Envs)
 		dst.Volumes = append(dst.Volumes, workMount, statusMount)
 		setupScript(src, dst, os)

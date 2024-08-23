@@ -18,7 +18,7 @@ import (
 
 const placeholderImage = "drone/placeholder:1"
 
-func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
+func createStep(src *resource.Step, num int64) *engine.Step {
 	dst := &engine.Step{
 		ID:           random(),
 		Name:         src.Name,
@@ -28,7 +28,7 @@ func createStep(spec *resource.Pipeline, src *resource.Step) *engine.Step {
 		Entrypoint:   src.Entrypoint,
 		Detach:       src.Detach,
 		DependsOn:    src.DependsOn,
-		Envs:         environ.Combine(convertStaticEnv(src.Environment), environ.StepName(src.Name)),
+		Envs:         environ.Combine(convertStaticEnv(src.Environment), environ.StepArgs(src.Name, num)),
 		IgnoreStderr: false,
 		IgnoreStdout: false,
 		Privileged:   src.Privileged,

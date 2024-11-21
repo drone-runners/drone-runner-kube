@@ -500,6 +500,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			// if the secret was already fetched and stored in the
 			// secret map it can be skipped.
 			if _, ok := spec.Secrets[s.Name]; ok {
+				step.SpecSecrets = append(step.SpecSecrets, spec.Secrets[s.Name])
 				continue
 			}
 			secret, ok := c.findSecret(ctx, args, s.Name)

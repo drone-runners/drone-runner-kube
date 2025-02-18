@@ -500,7 +500,9 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			// if the secret was already fetched and stored in the
 			// secret map it can be skipped.
 			if _, ok := spec.Secrets[s.Name]; ok {
-				step.SpecSecrets = append(step.SpecSecrets, spec.Secrets[s.Name])
+				if !isSecretPresent(step.SpecSecrets, spec.Secrets[s.Name]) {
+					step.SpecSecrets = append(step.SpecSecrets, spec.Secrets[s.Name])
+				}
 				continue
 			}
 			secret, ok := c.findSecret(ctx, args, s.Name)
@@ -705,6 +707,18 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	return spec
 }
 
+func isSecretEqual(a, b *engine.Secret) bool {
+	return a.Name == b.Name && a.Data == b.Data && a.Mask == b.Mask
+}
+
+func isSecretPresent(secrets []*engine.Secret, s *engine.Secret) bool {
+	for _, secret := range secrets {
+		if isSecretEqual(secret, s) {
+			return true
+		}
+	}
+	return false
+}
 func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	// privileged-by-default containers are only
 	// enabled for plugins steps that do not define

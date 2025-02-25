@@ -490,18 +490,19 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	}
 
 	hasNetrc := packNetrcSecrets(spec, args.Netrc)
-
 	for stepIdx, step := range append(spec.Steps, spec.Internal...) {
+		secretMap := make(map[string]*engine.Secret)
 		if hasNetrc && (stepIdx == 0 && c.NetrcCloneOnly || !c.NetrcCloneOnly) {
-			setNetrcSecretsToStep(step, spec)
+			setNetrcSecretsToStep(step, spec, secretMap)
 		}
 
 		for _, s := range step.Secrets {
 			// if the secret was already fetched and stored in the
 			// secret map it can be skipped.
 			if _, ok := spec.Secrets[s.Name]; ok {
-				if !isSecretPresent(step.SpecSecrets, spec.Secrets[s.Name]) {
+				if _, ok := secretMap[s.Name]; !ok {
 					step.SpecSecrets = append(step.SpecSecrets, spec.Secrets[s.Name])
+					secretMap[s.Name] = spec.Secrets[s.Name]
 				}
 				continue
 			}
@@ -514,6 +515,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				}
 				spec.Secrets[s.Name] = s
 				step.SpecSecrets = append(step.SpecSecrets, s)
+				secretMap[s.Name] = s
 			} else {
 				s := &engine.Secret{
 					Name: s.Name,
@@ -522,6 +524,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				}
 				spec.Secrets[s.Name] = s
 				step.SpecSecrets = append(step.SpecSecrets, s)
+				secretMap[s.Name] = s
 			}
 		}
 	}
@@ -707,18 +710,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	return spec
 }
 
-func isSecretEqual(a, b *engine.Secret) bool {
-	return a.Name == b.Name && a.Data == b.Data && a.Mask == b.Mask
-}
-
-func isSecretPresent(secrets []*engine.Secret, s *engine.Secret) bool {
-	for _, secret := range secrets {
-		if isSecretEqual(secret, s) {
-			return true
-		}
-	}
-	return false
-}
 func (c *Compiler) isPrivileged(step *resource.Step) bool {
 	// privileged-by-default containers are only
 	// enabled for plugins steps that do not define
@@ -816,12 +807,13 @@ func packNetrcSecrets(spec *engine.Spec, netrc *drone.Netrc) bool {
 }
 
 // setNetrcSecretsToStep is a helper function that sets netrc secrets to a engine.Step
-func setNetrcSecretsToStep(step *engine.Step, spec *engine.Spec) {
+func setNetrcSecretsToStep(step *engine.Step, spec *engine.Spec, secretMap map[string]*engine.Secret) {
 	envVars := []string{envNetrcMachine, envNetrcUsername, envNetrcPassword, envNetrcFile}
 	for _, envVar := range envVars {
 		if v, ok := spec.Secrets[envVar]; ok {
 			step.Secrets = append(step.Secrets, &engine.SecretVar{Name: v.Name, Env: v.Name})
 			step.SpecSecrets = append(step.SpecSecrets, v)
+			secretMap[v.Name] = v
 		}
 	}
 }

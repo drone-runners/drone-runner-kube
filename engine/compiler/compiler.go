@@ -490,17 +490,24 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	}
 
 	hasNetrc := packNetrcSecrets(spec, args.Netrc)
-
 	for stepIdx, step := range append(spec.Steps, spec.Internal...) {
+		secretMap := make(map[string]struct{})
 		if hasNetrc && (stepIdx == 0 && c.NetrcCloneOnly || !c.NetrcCloneOnly) {
 			setNetrcSecretsToStep(step, spec)
+		}
+
+		for _, s := range step.SpecSecrets {
+			secretMap[s.Name] = struct{}{}
 		}
 
 		for _, s := range step.Secrets {
 			// if the secret was already fetched and stored in the
 			// secret map it can be skipped.
 			if _, ok := spec.Secrets[s.Name]; ok {
-				step.SpecSecrets = append(step.SpecSecrets, spec.Secrets[s.Name])
+				if _, ok := secretMap[s.Name]; !ok {
+					step.SpecSecrets = append(step.SpecSecrets, spec.Secrets[s.Name])
+					secretMap[s.Name] = struct{}{}
+				}
 				continue
 			}
 			secret, ok := c.findSecret(ctx, args, s.Name)
@@ -521,6 +528,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				spec.Secrets[s.Name] = s
 				step.SpecSecrets = append(step.SpecSecrets, s)
 			}
+			secretMap[s.Name] = struct{}{}
 		}
 	}
 

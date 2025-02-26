@@ -491,7 +491,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 
 	hasNetrc := packNetrcSecrets(spec, args.Netrc)
 	for stepIdx, step := range append(spec.Steps, spec.Internal...) {
-		secretMap := make(map[string]*engine.Secret)
+		secretMap := make(map[string]struct{})
 		if hasNetrc && (stepIdx == 0 && c.NetrcCloneOnly || !c.NetrcCloneOnly) {
 			setNetrcSecretsToStep(step, spec, secretMap)
 		}
@@ -502,7 +502,7 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 			if _, ok := spec.Secrets[s.Name]; ok {
 				if _, ok := secretMap[s.Name]; !ok {
 					step.SpecSecrets = append(step.SpecSecrets, spec.Secrets[s.Name])
-					secretMap[s.Name] = spec.Secrets[s.Name]
+					secretMap[s.Name] = struct{}{}
 				}
 				continue
 			}
@@ -515,7 +515,6 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				}
 				spec.Secrets[s.Name] = s
 				step.SpecSecrets = append(step.SpecSecrets, s)
-				secretMap[s.Name] = s
 			} else {
 				s := &engine.Secret{
 					Name: s.Name,
@@ -524,8 +523,8 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 				}
 				spec.Secrets[s.Name] = s
 				step.SpecSecrets = append(step.SpecSecrets, s)
-				secretMap[s.Name] = s
 			}
+			secretMap[s.Name] = struct{}{}
 		}
 	}
 
@@ -807,13 +806,13 @@ func packNetrcSecrets(spec *engine.Spec, netrc *drone.Netrc) bool {
 }
 
 // setNetrcSecretsToStep is a helper function that sets netrc secrets to a engine.Step
-func setNetrcSecretsToStep(step *engine.Step, spec *engine.Spec, secretMap map[string]*engine.Secret) {
+func setNetrcSecretsToStep(step *engine.Step, spec *engine.Spec, secretMap map[string]struct{}) {
 	envVars := []string{envNetrcMachine, envNetrcUsername, envNetrcPassword, envNetrcFile}
 	for _, envVar := range envVars {
 		if v, ok := spec.Secrets[envVar]; ok {
 			step.Secrets = append(step.Secrets, &engine.SecretVar{Name: v.Name, Env: v.Name})
 			step.SpecSecrets = append(step.SpecSecrets, v)
-			secretMap[v.Name] = v
+			secretMap[v.Name] = struct{}{}
 		}
 	}
 }

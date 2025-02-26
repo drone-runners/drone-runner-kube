@@ -493,7 +493,11 @@ func (c *Compiler) Compile(ctx context.Context, args runtime.CompilerArgs) runti
 	for stepIdx, step := range append(spec.Steps, spec.Internal...) {
 		secretMap := make(map[string]struct{})
 		if hasNetrc && (stepIdx == 0 && c.NetrcCloneOnly || !c.NetrcCloneOnly) {
-			setNetrcSecretsToStep(step, spec, secretMap)
+			setNetrcSecretsToStep(step, spec)
+		}
+
+		for _, s := range step.SpecSecrets {
+			secretMap[s.Name] = struct{}{}
 		}
 
 		for _, s := range step.Secrets {
@@ -806,13 +810,12 @@ func packNetrcSecrets(spec *engine.Spec, netrc *drone.Netrc) bool {
 }
 
 // setNetrcSecretsToStep is a helper function that sets netrc secrets to a engine.Step
-func setNetrcSecretsToStep(step *engine.Step, spec *engine.Spec, secretMap map[string]struct{}) {
+func setNetrcSecretsToStep(step *engine.Step, spec *engine.Spec) {
 	envVars := []string{envNetrcMachine, envNetrcUsername, envNetrcPassword, envNetrcFile}
 	for _, envVar := range envVars {
 		if v, ok := spec.Secrets[envVar]; ok {
 			step.Secrets = append(step.Secrets, &engine.SecretVar{Name: v.Name, Env: v.Name})
 			step.SpecSecrets = append(step.SpecSecrets, v)
-			secretMap[v.Name] = struct{}{}
 		}
 	}
 }

@@ -32,6 +32,7 @@ func toPod(spec *Spec) *v1.Pod {
 			ImagePullSecrets:   toImagePullSecrets(spec),
 			HostAliases:        toHostAliases(spec),
 			DNSConfig:          toDnsConfig(spec),
+			RuntimeClassName:   spec.RuntimeClassName,
 		},
 	}
 }

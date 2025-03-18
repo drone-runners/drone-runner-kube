@@ -1,0 +1,14 @@
+inputSet:
+  name: event-PR
+  identifier: eventPR
+  orgIdentifier: default
+  projectIdentifier: Drone_Plugins
+  pipeline:
+    identifier: dronerunnerkubeharness
+    properties:
+      ci:
+        codebase:
+          build:
+            type: PR
+            spec:
+              number: <+trigger.prNumber>

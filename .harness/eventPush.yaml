@@ -1,0 +1,14 @@
+inputSet:
+  name: event-Push
+  identifier: eventPush
+  orgIdentifier: default
+  projectIdentifier: Drone_Plugins
+  pipeline:
+    identifier: dronerunnerkubeharness
+    properties:
+      ci:
+        codebase:
+          build:
+            type: branch
+            spec:
+              branch: <+trigger.branch>

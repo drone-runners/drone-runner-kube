@@ -190,7 +190,7 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 			PodNamespace: podNamespace,
 			PodName:      podId,
 			KubeClient:   k.client,
-			Period:       20 * time.Second,
+			Period:       5 * time.Second,
 		})
 
 		log.Trace("PodWatcher started")
@@ -225,10 +225,9 @@ func (k *Kubernetes) Run(ctx context.Context, specv runtime.Spec, stepv runtime.
 		return
 	}
 
-	err = k.fetchLogs(ctx, spec, step, output)
-	if err != nil {
-		return
-	}
+	watcher.WaitContainerReStart(containerId)
+
+	k.fetchLogs(ctx, spec, step, output)
 
 	type containerResult struct {
 		code int

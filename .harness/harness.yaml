@@ -1,0 +1,203 @@
+pipeline:
+  orgIdentifier: default
+  tags: {}
+  stages:
+    - stage:
+        name: Code Testing
+        identifier: testing
+        description: ""
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Run Tests
+                  identifier: Run_Tests
+                  spec:
+                    connectorRef: Plugins_Docker_Hub_Connector
+                    image: golang:1.16
+                    shell: Bash
+                    command: go test -cover ./...
+          caching:
+            enabled: false
+            paths: []
+          buildIntelligence:
+            enabled: false
+    - parallel:
+        - stage:
+            name: Linux amd64
+            identifier: Pull_and_Push
+            description: ""
+            type: CI
+            spec:
+              cloneCodebase: true
+              platform:
+                os: Linux
+                arch: Amd64
+              runtime:
+                type: Cloud
+                spec: {}
+              execution:
+                steps:
+                  - step:
+                      type: Run
+                      name: Build Linux binary
+                      identifier: Build_Linux_binary
+                      spec:
+                        connectorRef: account.harnessImage
+                        image: golang:1.16
+                        shell: Sh
+                        command: sh scripts/build.sh
+                  - step:
+                      type: Plugin
+                      name: Build and push when Tag
+                      identifier: Plugin_1
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: drone
+                          password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                          repo: drone/drone-runner-kube
+                          dockerfile: docker/Dockerfile.linux.amd64
+                          auto_tag: "true"
+                          auto_tag_suffix: linux-amd64
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: Linux AMD64
+                      identifier: Linux_AMD64
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        repo: drone/drone-runner-kube
+                        tags:
+                          - linux-amd64
+                        dockerfile: docker/Dockerfile.linux.amd64
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "branch"
+              caching:
+                enabled: false
+                paths: []
+              buildIntelligence:
+                enabled: false
+        - stage:
+            name: Linux arm64
+            identifier: linux_arm64
+            description: ""
+            type: CI
+            spec:
+              cloneCodebase: true
+              platform:
+                os: Linux
+                arch: Arm64
+              runtime:
+                type: Cloud
+                spec: {}
+              execution:
+                steps:
+                  - step:
+                      type: Run
+                      name: Build Linux binary
+                      identifier: Build_Linux_binary
+                      spec:
+                        connectorRef: account.harnessImage
+                        image: golang:1.16
+                        shell: Sh
+                        command: sh scripts/build.sh
+                  - step:
+                      type: Plugin
+                      name: Build and push when Tag
+                      identifier: Plugin_1
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        image: plugins/docker
+                        settings:
+                          username: drone
+                          password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                          repo: drone/drone-runner-kube
+                          dockerfile: .docker/Dockerfile.linux.arm64
+                          auto_tag: "true"
+                          auto_tag_suffix: linux-arm64
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "tag"
+                  - step:
+                      type: BuildAndPushDockerRegistry
+                      name: Linux ARM64
+                      identifier: Linux_AMD64
+                      spec:
+                        connectorRef: Plugins_Docker_Hub_Connector
+                        repo: drone/drone-runner-kube
+                        tags:
+                          - linux-arm64
+                        dockerfile: docker/Dockerfile.linux.arm64
+                      when:
+                        stageStatus: Success
+                        condition: |
+                          <+codebase.build.type> == "branch"
+              caching:
+                enabled: false
+                paths: []
+              buildIntelligence:
+                enabled: false
+    - stage:
+        name: Manifest
+        identifier: security_scan
+        description: ""
+        type: CI
+        spec:
+          cloneCodebase: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec: {}
+          execution:
+            steps:
+              - step:
+                  type: Plugin
+                  name: Manifest
+                  identifier: Manifest
+                  spec:
+                    connectorRef: Plugins_Docker_Hub_Connector
+                    image: plugins/manifest
+                    settings:
+                      username: drone
+                      password: <+secrets.getValue("Plugins_Docker_Hub_Pat")>
+                      auto_tag: "true"
+                      ignore_missing: "true"
+                      spec: docker/manifest.tmpl
+                  when:
+                    stageStatus: Success
+                    condition: <+codebase.build.type> == "tag" || "branch"
+          caching:
+            enabled: false
+            paths: []
+          buildIntelligence:
+            enabled: false
+  allowStageExecutions: true
+  properties:
+    ci:
+      codebase:
+        connectorRef: GitHub_Drone_Runners_Org
+        repoName: drone-runner-kube
+        build: <+input>
+        sparseCheckout: []
+  projectIdentifier: Drone_Plugins
+  identifier: dronerunnerkubeharness
+  name: drone-runner-kube-harness

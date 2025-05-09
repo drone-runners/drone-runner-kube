@@ -1,0 +1,14 @@
+inputSet:
+  name: event-Tag
+  identifier: eventTag
+  orgIdentifier: default
+  projectIdentifier: Drone_Plugins
+  pipeline:
+    identifier: dronerunnerkubeharness
+    properties:
+      ci:
+        codebase:
+          build:
+            type: tag
+            spec:
+              tag: <+trigger.tag>
